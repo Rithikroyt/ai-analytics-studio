@@ -1,0 +1,78 @@
+import { motion } from 'framer-motion';
+import OmniLogo from '@/components/ui/OmniLogo';
+import { Link } from 'react-router-dom';
+import {
+  LayoutDashboard, Upload, Settings2, BarChart3, BookOpen,
+  Layers, Terminal, FileText, MessageSquare, Download,
+  ChevronLeft, Database, X
+} from 'lucide-react';
+import { useWorkspaceStore } from '@/lib/store';
+
+const sections = [
+  { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+  { id: 'intake', label: 'Intake', icon: Upload },
+  { id: 'prepare', label: 'Prepare', icon: Settings2 },
+  { id: 'story', label: 'Story', icon: BarChart3 },
+  { id: 'workbook', label: 'Workbook', icon: BookOpen },
+  { id: 'semantic', label: 'Semantic Model', icon: Layers },
+  { id: 'sql', label: 'SQL Studio', icon: Terminal },
+  { id: 'docs', label: 'Docs & Evidence', icon: FileText },
+  { id: 'analyst', label: 'AI Analyst', icon: MessageSquare },
+  { id: 'reports', label: 'Reports & Export', icon: Download },
+];
+
+export default function WorkspaceSidebar({ collapsed, onToggle }) {
+  const { activeSection, setActiveSection, tables } = useWorkspaceStore();
+
+  return (
+    <aside
+      className={`workspace-rail flex flex-col h-screen transition-all duration-300 flex-shrink-0 ${collapsed ? 'w-16' : 'w-56'}`}
+    >
+      {/* Logo */}
+      <div className="h-14 flex items-center px-4 border-b border-white/5 flex-shrink-0">
+        {collapsed ? (
+          <Link to="/"><div className="w-8 h-8 rounded-lg bg-cyan-400/10 border border-cyan-400/20 flex items-center justify-center"><div className="w-3 h-3 rounded-full bg-cyan-400" /></div></Link>
+        ) : (
+          <Link to="/"><OmniLogo size="sm" showText={true} /></Link>
+        )}
+      </div>
+
+      {/* Nav */}
+      <nav className="flex-1 overflow-y-auto py-4 space-y-1 px-2">
+        {sections.map((s) => {
+          const isActive = activeSection === s.id;
+          return (
+            <button
+              key={s.id}
+              onClick={() => setActiveSection(s.id)}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all text-sm ${
+                isActive
+                  ? 'bg-cyan-400/10 text-cyan-400 border border-cyan-400/20'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+              }`}
+            >
+              <s.icon className="w-4 h-4 flex-shrink-0" />
+              {!collapsed && <span className="font-medium truncate">{s.label}</span>}
+              {!collapsed && s.id === 'intake' && tables.length > 0 && (
+                <span className="ml-auto text-xs bg-cyan-400/10 text-cyan-400 px-1.5 py-0.5 rounded-full">
+                  {tables.length}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* Collapse toggle */}
+      <div className="p-3 border-t border-white/5">
+        <button
+          onClick={onToggle}
+          className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all text-xs"
+        >
+          <ChevronLeft className={`w-4 h-4 transition-transform ${collapsed ? 'rotate-180' : ''}`} />
+          {!collapsed && <span>Collapse</span>}
+        </button>
+      </div>
+    </aside>
+  );
+}
