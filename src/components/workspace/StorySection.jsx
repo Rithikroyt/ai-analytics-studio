@@ -9,7 +9,8 @@ function RadialGauge({ value, max = 100, label, sublabel, size = 140, gradStart 
   const r = (size / 2) - 14;
   const circ = 2 * Math.PI * r;
   const dash = pct * circ;
-  const gradId = `grad-${label?.replace(/\s/g, '')}`;
+  // Use a stable unique ID per instance combining all distinguishing props
+  const gradId = `grad-${gradStart.replace('#','')}-${gradEnd.replace('#','')}-${size}-${label?.replace(/\s/g,'') || 'x'}`;
 
   return (
     <div className="flex flex-col items-center justify-center gap-2">
@@ -161,7 +162,6 @@ function NeonProgressBar({ label, value, max, color }) {
 
 // ── Calendar dot grid (decorative) ───────────────────────────────
 function CalendarGrid({ anomalies = [] }) {
-  const anomalyDates = new Set(anomalies.map(a => a.date?.slice(0, 7)));
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const days = Array.from({ length: 35 }, (_, i) => i + 1);
   const NEONS = ['#ff2d7a','#7b2fff','#ff6b35','#00e5ff','#7dff7d'];
@@ -222,19 +222,22 @@ export default function StorySection() {
   const growthNum = growthRate != null ? Number(growthRate) : 0;
   const growthAbs = Math.min(Math.abs(growthNum), 100);
   const qualityPct = activeTable.qualityScore || 0;
-  const topBreakdown = breakdownData?.[0];
   const topShare = breakdownData?.length > 0
     ? Math.round((breakdownData[0].value / breakdownData.reduce((s, b) => s + b.value, 0)) * 100)
     : 0;
   const combinedTrend = [...trendData, ...forecastData];
 
-  // sparkline series for multi-line panel
+  // sparkline series — use deterministic values based on segment index to avoid random re-renders
   const sparkSeries = useMemo(() => {
     if (!breakdownData?.length) return [];
+    const COLS = ['#ff2d7a','#7b2fff','#00e5ff','#ff6b35'];
     return breakdownData.slice(0, 4).map((seg, i) => {
-      const COLS = ['#ff2d7a','#7b2fff','#00e5ff','#ff6b35'];
       const base = seg.value;
-      const vals = Array.from({ length: 8 }, (_, j) => Math.round(base * (0.7 + Math.random() * 0.6)));
+      // deterministic pseudo-random using index + position
+      const vals = Array.from({ length: 8 }, (_, j) => {
+        const factor = 0.7 + ((i * 7 + j * 13) % 30) / 100;
+        return Math.round(base * factor);
+      });
       return { ...seg, vals, color: COLS[i % COLS.length] };
     });
   }, [breakdownData]);
@@ -247,7 +250,6 @@ export default function StorySection() {
   };
 
   const labelStyle = "text-xs font-mono text-white/40 uppercase tracking-widest mb-3";
-  const numStyle = { color: '#ff2d7a', textShadow: '0 0 20px #ff2d7a88' };
 
   return (
     <div className="p-5 overflow-auto" style={{ background: 'linear-gradient(135deg, #0e0720 0%, #120c28 50%, #0a0618 100%)', minHeight: '100%' }}>
