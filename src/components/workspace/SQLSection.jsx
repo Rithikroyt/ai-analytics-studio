@@ -104,7 +104,7 @@ If you cannot generate SQL, respond: {"sql": null, "explanation": "...", "can_ge
             onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleGenerate(); }}
             placeholder="Ask a question about your data… (Ctrl+Enter to run)"
             rows={3}
-            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm placeholder:text-muted-foreground focus:outline-none focus:border-cyan-400/30 resize-none font-mono"
+            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm placeholder:text-muted-foreground focus:outline-none focus:border-cyan-400/30 resize-none font-mono text-foreground"
           />
         </div>
         <div className="flex items-center gap-3">
@@ -121,7 +121,7 @@ If you cannot generate SQL, respond: {"sql": null, "explanation": "...", "can_ge
               <button
                 key={q}
                 onClick={() => setQuery(q)}
-                className="px-3 py-1.5 bg-white/5 border border-white/8 rounded-lg text-xs text-muted-foreground hover:text-foreground transition-colors"
+                className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 {q.slice(0, 30)}…
               </button>
@@ -142,7 +142,7 @@ If you cannot generate SQL, respond: {"sql": null, "explanation": "...", "can_ge
             )}
 
             {result.sql && (
-              <div className="glass-card rounded-xl border border-white/8">
+              <div className="glass-card rounded-xl border border-white/10">
                 <div className="flex items-center justify-between px-4 py-2 border-b border-white/5">
                   <span className="text-xs font-semibold text-cyan-400 uppercase tracking-wide">Generated SQL</span>
                   <button onClick={copySQL} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">

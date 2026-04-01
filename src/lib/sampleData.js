@@ -255,7 +255,7 @@ const buildAnalysis = (rows, columns, tableName) => {
 
   // Growth rate
   const growthRate = trendData.length >= 2
-    ? ((trendData[trendData.length-1].value - trendData[0].value) / trendData[0].value * 100).toFixed(1)
+    ? parseFloat(((trendData[trendData.length-1].value - trendData[0].value) / trendData[0].value * 100).toFixed(1))
     : null;
 
   return {
@@ -286,7 +286,7 @@ const buildExecutiveSummary = (tableName, primaryMetric, totalValue, growthRate,
   const topShare = breakdown.length > 0 
     ? Math.round(breakdown[0].value / breakdown.reduce((s, b) => s + b.value, 0) * 100)
     : 0;
-  const growthText = growthRate > 0 ? `grew ${growthRate}%` : growthRate < 0 ? `declined ${Math.abs(growthRate)}%` : 'remained stable';
+  const growthText = Number(growthRate) > 0 ? `grew ${growthRate}%` : Number(growthRate) < 0 ? `declined ${Math.abs(Number(growthRate))}%` : 'remained stable';
   const anomalyText = anomalies.length > 0 ? ` ${anomalies.length} anomalous period${anomalies.length > 1 ? 's' : ''} were detected.` : '';
   
   return `Total ${metricLabel} ${growthText} over the analysis period, reaching ${totalValue.toLocaleString()}. ${topSegment} contributed ${topShare}% of total volume, making it the dominant segment.${anomalyText} The data quality score indicates strong analytical reliability.`;
@@ -297,8 +297,8 @@ const buildRecommendations = (tableName, growthRate, anomalies, breakdown) => {
   const top = breakdown[0]?.name;
   const bottom = breakdown[breakdown.length - 1]?.name;
   
-  if (growthRate > 10) recs.push({ priority: 'high', action: `Accelerate investment in top-performing segments to sustain ${growthRate}% growth trajectory.` });
-  if (growthRate < 0) recs.push({ priority: 'critical', action: 'Investigate root causes of declining trend and implement corrective measures immediately.' });
+  if (Number(growthRate) > 10) recs.push({ priority: 'high', action: `Accelerate investment in top-performing segments to sustain ${growthRate}% growth trajectory.` });
+  if (Number(growthRate) < 0) recs.push({ priority: 'critical', action: 'Investigate root causes of declining trend and implement corrective measures immediately.' });
   if (anomalies.length > 0) recs.push({ priority: 'medium', action: `Review ${anomalies.length} detected anomalies — validate data integrity and check for external events.` });
   if (top) recs.push({ priority: 'medium', action: `Double down on ${top} — it is the highest-performing segment. Explore replication strategies.` });
   if (bottom && breakdown.length > 3) recs.push({ priority: 'low', action: `Assess viability of ${bottom} segment. Consider restructuring or divestment if underperformance persists.` });

@@ -41,7 +41,7 @@ export default function Workspace() {
       />
 
       <div className="flex flex-col flex-1 overflow-hidden min-w-0">
-        <WorkspaceTopBar />
+        <WorkspaceTopBar onSearch={() => {}} />
 
         <main className="flex-1 overflow-auto">
           <AnimatePresence mode="wait">

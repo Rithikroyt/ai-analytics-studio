@@ -5,9 +5,10 @@ import SimpleChart from '@/components/charts/SimpleChart';
 import SimpleBar from '@/components/charts/SimpleBar';
 
 function KPICard({ label, value, change, color, format }) {
-  const formatted = format === 'currency' 
-    ? (value >= 1e6 ? `$${(value/1e6).toFixed(1)}M` : value >= 1e3 ? `$${(value/1e3).toFixed(0)}K` : `$${value}`)
-    : value?.toLocaleString?.() ?? value;
+  const formatted = typeof value === 'string' ? value
+    : format === 'currency' 
+      ? (value >= 1e6 ? `$${(value/1e6).toFixed(1)}M` : value >= 1e3 ? `$${(value/1e3).toFixed(0)}K` : `$${value}`)
+      : value?.toLocaleString?.() ?? value;
   const isPositive = typeof change === 'string' && change.startsWith('+');
   
   return (
@@ -63,7 +64,7 @@ export default function StorySection() {
   } = analysisResults;
 
   const formatValue = (v) => v >= 1e6 ? `${(v/1e6).toFixed(1)}M` : v >= 1e3 ? `${(v/1e3).toFixed(0)}K` : v?.toLocaleString();
-  const growthStr = growthRate != null ? `${growthRate > 0 ? '+' : ''}${growthRate}%` : null;
+  const growthStr = growthRate != null ? `${Number(growthRate) > 0 ? '+' : ''}${growthRate}%` : null;
 
   const combinedTrend = [
     ...trendData.map(d => ({ ...d, isForecast: false })),

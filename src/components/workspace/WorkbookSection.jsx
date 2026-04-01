@@ -66,7 +66,7 @@ function ScorecardsTab({ results, table }) {
   const fmt = (v) => v >= 1e6 ? `${(v/1e6).toFixed(1)}M` : v >= 1e3 ? `${(v/1e3).toFixed(0)}K` : v?.toLocaleString?.();
 
   const stats = [
-    { label: primaryLabel || 'Total', value: fmt(totalValue), sub: growthRate != null ? `${growthRate > 0 ? '+' : ''}${growthRate}% growth` : '', color: 'text-cyan-400' },
+    { label: primaryLabel || 'Total', value: fmt(totalValue), sub: growthRate != null ? `${Number(growthRate) > 0 ? '+' : ''}${growthRate}% growth` : '', color: 'text-cyan-400' },
     { label: 'Records', value: fmt(table.rowCount), sub: `${table.columns?.length} columns`, color: 'text-teal-400' },
     { label: 'Quality', value: `${table.qualityScore}%`, sub: table.qualityScore >= 90 ? 'Excellent' : 'Good', color: 'text-green-400' },
     ...(secondLabel ? [{ label: secondLabel, value: fmt(secondValue), sub: '', color: 'text-blue-400' }] : []),

@@ -40,7 +40,7 @@ export default function OverviewSection() {
               className="glass-card rounded-2xl p-5 text-left border border-white/5 hover:border-white/10 transition-all group"
             >
               <div className={`w-9 h-9 rounded-xl ${action.bg} flex items-center justify-center mb-3`}>
-                <action.icon className={`w-4.5 h-4.5 ${action.color}`} />
+                <action.icon className={`w-4 h-4 ${action.color}`} />
               </div>
               <div className="font-semibold text-sm mb-1">{action.label}</div>
               <div className="text-xs text-muted-foreground">{action.desc}</div>

@@ -1,13 +1,11 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useWorkspaceStore } from '@/lib/store';
-import { CheckCircle2, AlertTriangle, Database, Calendar, Hash, Tag, Key, TrendingUp, ChevronRight, Info, Shield } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Database, Calendar, Hash, Tag, Key, TrendingUp, ChevronRight, Info, Shield, FileText } from 'lucide-react';
 import { buildTableAnalysis } from '@/lib/dataParser';
 
 const typeColors = { date: 'text-teal-400 bg-teal-400/10', numeric: 'text-blue-400 bg-blue-400/10', category: 'text-purple-400 bg-purple-400/10', id: 'text-amber-400 bg-amber-400/10', text: 'text-muted-foreground bg-white/5' };
-const typeIcons = { date: Calendar, numeric: Hash, category: Tag, id: Key, text: FileTextIcon };
-
-function FileTextIcon({ className }) { return <span className={className}>T</span>; }
+const typeIcons = { date: Calendar, numeric: Hash, category: Tag, id: Key, text: FileText };
 
 function QualityBar({ score }) {
   const color = score >= 90 ? 'bg-green-400' : score >= 70 ? 'bg-amber-400' : 'bg-red-400';
