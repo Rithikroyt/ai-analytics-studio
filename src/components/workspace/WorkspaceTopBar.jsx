@@ -16,7 +16,8 @@ const sectionTitles = {
 
 export default function WorkspaceTopBar({ onSearch }) {
   const { activeSection, tables, reset } = useWorkspaceStore();
-  const activeTable = useWorkspaceStore(s => s.getActiveTable());
+  const getActiveTable = useWorkspaceStore(s => s.getActiveTable);
+  const activeTable = getActiveTable();
 
   return (
     <header className="h-14 flex items-center justify-between px-6 border-b border-white/5 bg-navy-800/60 backdrop-blur-sm flex-shrink-0">

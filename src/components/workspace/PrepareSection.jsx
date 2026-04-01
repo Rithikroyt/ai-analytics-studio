@@ -1,5 +1,4 @@
 import { useState } from 'react';
-// PrepareSection
 import { motion } from 'framer-motion';
 import { useWorkspaceStore } from '@/lib/store';
 import { CheckCircle2, AlertTriangle, Database, Calendar, Hash, Tag, Key, TrendingUp, ChevronRight, Info, Shield } from 'lucide-react';
