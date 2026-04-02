@@ -1,7 +1,6 @@
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import { inferColumns, buildSemanticModel, buildAnalysis } from '@/lib/sampleData';
-export { runAIAnalysis } from '@/lib/aiAnalyzer';
 
 export const parseCSV = (file) => {
   return new Promise((resolve, reject) => {
