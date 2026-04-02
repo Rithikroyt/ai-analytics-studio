@@ -2,7 +2,8 @@ import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, X, CheckCircle2, AlertTriangle, FileSpreadsheet, FileJson, FileText, Loader2, ChevronRight, Database } from 'lucide-react';
 import { useWorkspaceStore } from '@/lib/store';
-import { processUploadedFile, buildTableSemanticModel, buildTableAnalysis } from '@/lib/dataParser';
+import { processUploadedFile, buildTableSemanticModel } from '@/lib/dataParser';
+import { runAIAnalysis } from '@/lib/aiAnalyzer';
 
 const AcceptedTypes = ['.csv', '.xlsx', '.xls', '.json', '.txt'];
 
@@ -49,9 +50,8 @@ export default function IntakeSection() {
         if (result.type === 'single') {
           addTable(result.table);
           const model = buildTableSemanticModel(result.table);
-          const analysis = buildTableAnalysis(result.table);
           setSemanticModel(model);
-          setAnalysisResults(analysis);
+          // Don't run AI analysis yet — user goes to Prepare section first
         }
       } catch (e) {
         setError(`Error parsing ${file.name}: ${e.message}`);
@@ -71,9 +71,7 @@ export default function IntakeSection() {
       if (result.type === 'single') {
         addTable(result.table);
         const model = buildTableSemanticModel(result.table);
-        const analysis = buildTableAnalysis(result.table);
         setSemanticModel(model);
-        setAnalysisResults(analysis);
       }
     } catch (e) {
       setError(`Error: ${e.message}`);

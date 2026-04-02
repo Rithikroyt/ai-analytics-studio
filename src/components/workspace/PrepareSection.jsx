@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useWorkspaceStore } from '@/lib/store';
-import { CheckCircle2, AlertTriangle, Database, Calendar, Hash, Tag, Key, TrendingUp, ChevronRight, Info, Shield, FileText } from 'lucide-react';
-import { buildTableAnalysis } from '@/lib/dataParser';
+import { CheckCircle2, AlertTriangle, Database, Calendar, Hash, Tag, Key, TrendingUp, ChevronRight, Info, Shield, FileText, Sparkles, Loader2 } from 'lucide-react';
+import { runAIAnalysis } from '@/lib/aiAnalyzer';
 
 const typeColors = { date: 'text-teal-400 bg-teal-400/10', numeric: 'text-blue-400 bg-blue-400/10', category: 'text-purple-400 bg-purple-400/10', id: 'text-amber-400 bg-amber-400/10', text: 'text-muted-foreground bg-white/5' };
 const typeIcons = { date: Calendar, numeric: Hash, category: Tag, id: Key, text: FileText };
@@ -23,6 +23,8 @@ export default function PrepareSection() {
   const { getActiveTable, setActiveSection, setAnalysisResults, tables } = useWorkspaceStore();
   const activeTable = getActiveTable();
   const [confirmed, setConfirmed] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysisStep, setAnalysisStep] = useState('');
 
   if (!activeTable) {
     return (
@@ -41,11 +43,27 @@ export default function PrepareSection() {
   const catColumns = columns.filter(c => c.type === 'category');
   const idColumns = columns.filter(c => c.type === 'id');
 
-  const handleConfirmAndAnalyze = () => {
-    const analysis = buildTableAnalysis(activeTable);
-    setAnalysisResults(analysis);
+  const handleConfirmAndAnalyze = async () => {
+    setAnalyzing(true);
     setConfirmed(true);
-    setTimeout(() => setActiveSection('story'), 600);
+    try {
+      setAnalysisStep('Profiling columns & computing statistics…');
+      await new Promise(r => setTimeout(r, 300));
+      setAnalysisStep('Running anomaly detection (Z-score + IQR)…');
+      await new Promise(r => setTimeout(r, 200));
+      setAnalysisStep('Calculating correlations (Pearson r)…');
+      await new Promise(r => setTimeout(r, 200));
+      setAnalysisStep('Generating AI insights & adaptive chart layout…');
+      const analysis = await runAIAnalysis(activeTable);
+      setAnalysisResults(analysis);
+      setAnalysisStep('Done!');
+      setTimeout(() => setActiveSection('story'), 400);
+    } catch (e) {
+      console.error('AI analysis failed', e);
+      setAnalysisStep('Analysis failed — please try again.');
+      setConfirmed(false);
+    }
+    setAnalyzing(false);
   };
 
   return (
@@ -159,12 +177,23 @@ export default function PrepareSection() {
 
       <button
         onClick={handleConfirmAndAnalyze}
-        disabled={confirmed}
-        className="w-full flex items-center justify-center gap-2 py-3.5 bg-cyan-400 rounded-xl font-bold text-sm hover:bg-cyan-300 transition-all disabled:opacity-50"
+        disabled={confirmed || analyzing}
+        className="w-full flex items-center justify-center gap-2 py-3.5 bg-cyan-400 rounded-xl font-bold text-sm hover:bg-cyan-300 transition-all disabled:opacity-60"
         style={{ color: 'hsl(222,47%,6%)' }}
       >
-        {confirmed ? <><CheckCircle2 className="w-4 h-4" /> Analysis running…</> : <>Run Analysis & Generate Story <ChevronRight className="w-4 h-4" /></>}
+        {analyzing ? (
+          <><Loader2 className="w-4 h-4 animate-spin" /> {analysisStep}</>
+        ) : confirmed ? (
+          <><CheckCircle2 className="w-4 h-4" /> Done!</>
+        ) : (
+          <><Sparkles className="w-4 h-4" /> Run AI Analysis & Generate Dashboard <ChevronRight className="w-4 h-4" /></>
+        )}
       </button>
+      {analyzing && (
+        <div className="text-center text-xs text-white/40 mt-2 font-mono">
+          ◆ LLM + Statistical Models running — this takes ~5-10 seconds
+        </div>
+      )}
     </div>
   );
 }

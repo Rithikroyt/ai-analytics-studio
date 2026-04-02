@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useWorkspaceStore } from '@/lib/store';
-import { Database, BarChart3, Brain, FileText, Zap, ArrowRight, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Database, BarChart3, Brain, FileText, Zap, ArrowRight, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
+import { runAIAnalysis } from '@/lib/aiAnalyzer';
 
 const bundles = [
   { key: 'sales', label: 'Sales & Revenue', desc: '2,304 rows · 12 columns · 2023–2024', icon: '📊', color: 'border-cyan-400/30 bg-cyan-400/5' },
@@ -16,7 +18,27 @@ const quickActions = [
 ];
 
 export default function OverviewSection() {
-  const { loadSampleBundle, setActiveSection, tables, analysisResults } = useWorkspaceStore();
+  const { loadSampleBundle, setActiveSection, setAnalysisResults, tables, analysisResults } = useWorkspaceStore();
+  const [loadingBundle, setLoadingBundle] = useState('');
+
+  const handleLoadBundle = async (key) => {
+    setLoadingBundle(key);
+    loadSampleBundle(key);
+    // Get the loaded table from store after bundle load
+    const { sampleBundles } = await import('@/lib/sampleData');
+    const bundle = sampleBundles[key];
+    if (bundle?.tables?.[0]) {
+      try {
+        const analysis = await runAIAnalysis(bundle.tables[0]);
+        setAnalysisResults(analysis);
+      } catch (e) {
+        // Fallback to static analysis
+        setAnalysisResults(bundle.analysisResults);
+      }
+    }
+    setLoadingBundle('');
+    setActiveSection('story');
+  };
 
   return (
     <div className="p-8 space-y-10 max-w-5xl mx-auto">
@@ -94,15 +116,15 @@ export default function OverviewSection() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
-              onClick={() => { loadSampleBundle(b.key); setActiveSection('story'); }}
+              onClick={() => handleLoadBundle(b.key)}
+              disabled={!!loadingBundle}
               className={`glass-card rounded-2xl p-5 text-left border ${b.color} hover:scale-[1.02] transition-all`}
             >
               <div className="text-3xl mb-3">{b.icon}</div>
               <div className="font-semibold text-sm mb-1">{b.label}</div>
               <div className="text-xs text-muted-foreground mb-3">{b.desc}</div>
               <div className="flex items-center gap-1 text-xs text-cyan-400">
-                <Zap className="w-3 h-3" />
-                Load & Analyze
+                {loadingBundle === b.key ? <><Loader2 className="w-3 h-3 animate-spin" /> Analyzing…</> : <><Zap className="w-3 h-3" /> Load & AI Analyze</>}
               </div>
             </motion.button>
           ))}
