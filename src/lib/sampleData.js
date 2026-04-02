@@ -109,24 +109,35 @@ const inferColumns = (rows) => {
   if (!rows || rows.length === 0) return [];
   const keys = Object.keys(rows[0]);
   return keys.map(key => {
-    const values = rows.slice(0, 50).map(r => r[key]).filter(v => v != null);
-    const numericCount = values.filter(v => typeof v === 'number').length;
-    const isNumeric = numericCount > values.length * 0.8;
-    const isDate = values.some(v => /\d{4}-\d{2}/.test(String(v)));
-    const uniqueCount = new Set(values).size;
-    const isId = key.toLowerCase().includes('id') || key.toLowerCase().includes('_id');
-    
+    const values = rows.slice(0, 100).map(r => r[key]).filter(v => v != null && String(v).trim() !== '');
+    if (!values.length) return { name: key, type: 'text', nullCount: rows.length, uniqueCount: 0, mean: null, min: null, max: null, sample: [] };
+
+    // Check numeric — also handles string numbers from Excel
+    const numericCount = values.filter(v => !isNaN(Number(v)) && String(v).trim() !== '').length;
+    const isNumeric = numericCount > values.length * 0.75;
+
+    // Check date — various formats
+    const isDate = !isNumeric && values.some(v => {
+      const s = String(v);
+      return /\d{4}-\d{2}/.test(s) || /\d{1,2}\/\d{1,2}\/\d{2,4}/.test(s) ||
+             /^Q[1-4]\s*\d{4}/.test(s) || /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i.test(s) ||
+             /^\d{4}$/.test(s.trim()); // just year
+    });
+
+    const uniqueCount = new Set(values.map(String)).size;
+    const isId = /\bid\b|_id$|^id_/i.test(key);
+
     let type = 'text';
-    if (isId) type = 'id';
+    if (isId && uniqueCount === values.length) type = 'id';
     else if (isDate) type = 'date';
     else if (isNumeric) type = 'numeric';
-    else if (uniqueCount < 15) type = 'category';
-    
-    const numVals = isNumeric ? values.map(Number) : [];
+    else if (uniqueCount <= Math.max(20, values.length * 0.3)) type = 'category';
+
+    const numVals = isNumeric ? values.map(v => Number(v)).filter(v => !isNaN(v)) : [];
     const sum = numVals.reduce((a, b) => a + b, 0);
     const mean = numVals.length ? sum / numVals.length : 0;
     const nullCount = rows.length - values.length;
-    
+
     return {
       name: key,
       type,

@@ -97,28 +97,53 @@ export default function AdaptiveChart({ panel, data, rows, columns, height = 220
   const { chart_type, x_column, y_column, color_theme = 'cyan' } = panel;
   const tc = THEME_COLORS[color_theme] || THEME_COLORS.cyan;
 
+  // Fuzzy column name resolver — handles case mismatches and partial matches
+  const resolveCol = (colName) => {
+    if (!colName || !rows?.length) return null;
+    const rowKeys = Object.keys(rows[0]);
+    // Exact match first
+    if (rowKeys.includes(colName)) return colName;
+    // Case-insensitive match
+    const lower = colName.toLowerCase();
+    const found = rowKeys.find(k => k.toLowerCase() === lower);
+    if (found) return found;
+    // Partial match (contains)
+    const partial = rowKeys.find(k => k.toLowerCase().includes(lower) || lower.includes(k.toLowerCase()));
+    return partial || null;
+  };
+
+  const xCol = resolveCol(x_column);
+  const yCol = resolveCol(y_column);
+
   // Build chart data from raw rows
   const buildSeriesData = () => {
     if (!rows || !rows.length) return data || [];
-    if (x_column && y_column) {
+
+    if (xCol && yCol) {
       // Group by x, sum y
       const grouped = {};
       rows.forEach(row => {
-        const xVal = String(row[x_column] ?? '').slice(0, 10);
-        const yVal = Number(row[y_column]) || 0;
-        if (!xVal || xVal === 'null') return;
+        const xVal = String(row[xCol] ?? '').trim();
+        const yVal = Number(row[yCol]) || 0;
+        if (!xVal || xVal === 'null' || xVal === 'undefined') return;
         grouped[xVal] = (grouped[xVal] || 0) + yVal;
       });
-      return Object.entries(grouped)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .slice(0, 20)
-        .map(([name, value]) => ({ name, value: Math.round(value) }));
+      // Try to sort as dates, fallback to string sort
+      const entries = Object.entries(grouped);
+      entries.sort(([a], [b]) => {
+        const da = new Date(a), db = new Date(b);
+        if (!isNaN(da) && !isNaN(db)) return da - db;
+        return a.localeCompare(b);
+      });
+      return entries.slice(0, 24).map(([name, value]) => ({ name, value: Math.round(value) }));
     }
-    if (x_column && !y_column) {
-      // Count occurrences
+
+    if (xCol && !yCol) {
+      // Count occurrences of x_column values
       const grouped = {};
       rows.forEach(row => {
-        const k = String(row[x_column] ?? 'Unknown');
+        const k = String(row[xCol] ?? 'Unknown').trim();
+        if (!k || k === 'null') return;
         grouped[k] = (grouped[k] || 0) + 1;
       });
       return Object.entries(grouped)
@@ -126,6 +151,23 @@ export default function AdaptiveChart({ panel, data, rows, columns, height = 220
         .slice(0, 12)
         .map(([name, value]) => ({ name, value }));
     }
+
+    // Fallback: if no column mapping but we have rows, try first category + first numeric
+    if (rows?.length) {
+      const colKeys = Object.keys(rows[0]);
+      const numKey = colKeys.find(k => rows.slice(0,5).some(r => !isNaN(Number(r[k])) && r[k] != null));
+      const catKey = colKeys.find(k => k !== numKey && rows.slice(0,5).every(r => isNaN(Number(r[k]))));
+      if (catKey && numKey) {
+        const grouped = {};
+        rows.forEach(row => {
+          const k = String(row[catKey] ?? '').trim();
+          if (!k || k === 'null') return;
+          grouped[k] = (grouped[k] || 0) + (Number(row[numKey]) || 0);
+        });
+        return Object.entries(grouped).sort(([,a],[,b]) => b-a).slice(0,12).map(([name, value]) => ({ name, value: Math.round(value) }));
+      }
+    }
+
     return data || [];
   };
 

@@ -259,14 +259,26 @@ export async function runAIAnalysis(table) {
     return s ? `${c.name}: min=${s.min}, max=${s.max}, mean=${Math.round(s.mean)}, std=${Math.round(s.std)}` : '';
   }).filter(Boolean).join('\n');
 
+  // Exact column names list for LLM to reference
+  const exactColNames = columns.map(c => c.name);
+  const numericColNames = numericCols.map(c => c.name);
+  const catColNames = catCols.map(c => c.name);
+  const dateColNames = dateCol ? [dateCol.name] : [];
+
   let aiInsights = null;
   try {
     aiInsights = await base44.integrations.Core.InvokeLLM({
-      prompt: `You are a world-class data scientist and AI analyst. Analyze this dataset and return structured insights.
+      prompt: `You are a world-class data scientist. Analyze this dataset and return structured insights.
 
 DATASET: "${tableName}"
 DOMAIN: ${domain}
-SCHEMA: ${schemaSnippet}
+
+EXACT COLUMN NAMES (use these EXACTLY, character-for-character, in x_column and y_column fields):
+- All columns: ${exactColNames.join(', ')}
+- Numeric columns: ${numericColNames.join(', ')}
+- Category columns: ${catColNames.join(', ')}
+- Date columns: ${dateColNames.join(', ')}
+
 ROWS: ${rows.length}
 SAMPLE ROWS:
 ${sampleRows}
@@ -275,33 +287,39 @@ ${statsSnippet}
 CORRELATIONS: ${correlations.slice(0, 5).map(c => `${c.colA} vs ${c.colB}: r=${c.r}`).join(', ')}
 ANOMALIES DETECTED: ${anomalies.length}
 
-Return ONLY valid JSON matching this schema exactly:
+CRITICAL RULES:
+1. x_column and y_column MUST be exact names from the column list above (copy-paste exactly)
+2. For line_area/bar charts: x_column = date or category column, y_column = numeric column
+3. For donut/horizontal_bar: x_column = category column, y_column = numeric column  
+4. For scatter: x_column = numeric, y_column = numeric
+5. For histogram/kpi_gauge/metric_card: x_column or y_column = numeric column
+6. NEVER invent column names — only use names from the list above
+
+Return ONLY valid JSON:
 {
-  "domain_label": "string (e.g. Sales Analytics, HR Dashboard, Healthcare Ops)",
-  "primary_metric_name": "string (best column to use as primary KPI — must be one of the numeric columns)",
-  "secondary_metric_name": "string or null",
-  "primary_dimension": "string or null (best categorical column for breakdown)",
-  "secondary_dimension": "string or null",
+  "domain_label": "string (e.g. iPhone Sales Analytics)",
+  "primary_metric_name": "string (EXACT name of best numeric KPI column from list above)",
+  "secondary_metric_name": "string or null (EXACT column name)",
+  "primary_dimension": "string or null (EXACT category column name)",
+  "secondary_dimension": "string or null (EXACT column name)",
   "chart_panels": [
     {
       "id": "panel_1",
       "title": "string",
-      "chart_type": "one of: kpi_gauge|line_area|bar|horizontal_bar|donut|scatter|heatmap|histogram|table|metric_card",
-      "x_column": "column name or null",
-      "y_column": "column name or null",
-      "insight": "one sentence insight about this chart",
+      "chart_type": "one of: kpi_gauge|line_area|bar|horizontal_bar|donut|scatter|heatmap|histogram|metric_card",
+      "x_column": "EXACT column name from list above, or null",
+      "y_column": "EXACT column name from list above, or null",
+      "insight": "one sentence insight",
       "color_theme": "one of: cyan|purple|orange|green|pink|yellow|teal"
     }
   ],
   "executive_summary": "3-4 sentence professional summary",
   "key_findings": ["finding 1", "finding 2", "finding 3"],
-  "recommendations": [
-    {"priority": "high|medium|low", "action": "string"}
-  ],
-  "data_story": "string (narrative: what story does this data tell?)"
+  "recommendations": [{"priority": "high|medium|low", "action": "string"}],
+  "data_story": "string"
 }
 
-Generate 6-9 chart panels that make sense for THIS specific dataset. Choose chart types based on data types and insights. Do NOT use the same chart type more than 3 times. Be creative and data-driven.`,
+Generate 6-8 varied chart panels for THIS dataset using the exact column names provided.`,
       response_json_schema: {
         type: 'object',
         properties: {
