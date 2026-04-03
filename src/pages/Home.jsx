@@ -303,7 +303,7 @@ export default function Home() {
                 </Link>
               ))}
             </div>
-            <div className="text-xs text-muted-foreground">© 2026 OmniData AI. All rights reserved.</div>
+            <div className="text-xs text-muted-foreground">© 2026 AI Agent Data Analytics Tool. All rights reserved.</div>
           </div>
         </div>
       </footer>

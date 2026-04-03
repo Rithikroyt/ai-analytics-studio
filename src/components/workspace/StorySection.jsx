@@ -6,7 +6,10 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useWorkspaceStore } from '@/lib/store';
-import { Database, ArrowRight, AlertTriangle, CheckCircle2, TrendingUp, TrendingDown, Sparkles, RefreshCw, Info } from 'lucide-react';
+import { Database, ArrowRight, AlertTriangle, CheckCircle2, TrendingUp, TrendingDown, Sparkles, RefreshCw, Info, Download } from 'lucide-react';
+import { useState as useExportState } from 'react';
+import ExportPanel from '@/components/workspace/ExportPanel';
+import { AnimatePresence as ExportAnimatePresence } from 'framer-motion';
 import AdaptiveChart from '@/components/charts/AdaptiveChart';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -191,6 +194,7 @@ export default function StorySection() {
   const { analysisResults, getActiveTable, setActiveSection } = useWorkspaceStore();
   const activeTable = getActiveTable();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [showExport, setShowExport] = useExportState(false);
 
   if (!analysisResults || !activeTable) {
     return (
@@ -229,15 +233,28 @@ export default function StorySection() {
             <h1 className="text-2xl font-black text-white">{r.tableName}</h1>
             {r.dataStory && <p className="text-xs text-white/40 mt-1 max-w-xl">{r.dataStory}</p>}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 relative">
             <button onClick={() => setActiveSection('workbook')} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg text-white/50 hover:text-white/80 transition-colors"
               style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
               Workbook <ArrowRight className="w-3 h-3" />
+            </button>
+            <button onClick={() => setShowExport(v => !v)} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg text-white/70 hover:text-white transition-colors"
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <Download className="w-3 h-3" /> Export
             </button>
             <button onClick={() => setActiveSection('analyst')} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-semibold"
               style={{ background: `linear-gradient(90deg,${primaryColor}cc,#9c27b0)`, color: '#fff' }}>
               <Sparkles className="w-3 h-3" /> Ask AI
             </button>
+            <ExportAnimatePresence>
+              {showExport && (
+                <ExportPanel
+                  analysisResults={analysisResults}
+                  table={activeTable}
+                  onClose={() => setShowExport(false)}
+                />
+              )}
+            </ExportAnimatePresence>
           </div>
         </motion.div>
 

@@ -25,12 +25,12 @@ export default function OmniLogo({ size = 'md', showText = true }) {
       </svg>
       {showText && (
         <div className="flex flex-col leading-none">
-          <span className="font-inter font-bold text-white" style={{ fontSize: px * 0.45 }}>
-            OmniData<span className="text-gradient"> AI</span>
+          <span className="font-inter font-bold text-white" style={{ fontSize: px * 0.38 }}>
+            AI Agent<span className="text-gradient"> Analytics</span>
           </span>
           {size !== 'sm' && (
-            <span className="font-inter font-normal text-muted-foreground" style={{ fontSize: px * 0.25 }}>
-              Analytics Studio
+            <span className="font-inter font-normal text-muted-foreground" style={{ fontSize: px * 0.22 }}>
+              Data Analytics Tool
             </span>
           )}
         </div>

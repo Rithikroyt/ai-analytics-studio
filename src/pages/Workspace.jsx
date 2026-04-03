@@ -12,6 +12,7 @@ import SQLSection from '@/components/workspace/SQLSection';
 import DocsSection from '@/components/workspace/DocsSection';
 import AnalystSection from '@/components/workspace/AnalystSection';
 import ReportsSection from '@/components/workspace/ReportsSection';
+import CompareSection from '@/components/workspace/CompareSection';
 import { useWorkspaceStore } from '@/lib/store';
 
 const sectionComponents = {
@@ -25,6 +26,7 @@ const sectionComponents = {
   docs: DocsSection,
   analyst: AnalystSection,
   reports: ReportsSection,
+  compare: CompareSection,
 };
 
 export default function Workspace() {

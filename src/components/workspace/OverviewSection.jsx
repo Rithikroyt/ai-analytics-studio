@@ -44,7 +44,7 @@ export default function OverviewSection() {
     <div className="p-8 space-y-10 max-w-5xl mx-auto">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-3xl font-black mb-2">Welcome to OmniData AI</h1>
+        <h1 className="text-3xl font-black mb-2">Welcome to AI Agent Data Analytics Tool</h1>
         <p className="text-muted-foreground">Upload your data or start with a sample bundle to explore the full platform.</p>
       </motion.div>
 

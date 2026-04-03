@@ -37,6 +37,7 @@ const tooltipStyle = {
 };
 
 // ── KPI Gauge (Radial SVG) ────────────────────────────────────────
+let _gaugeCounter = 0;
 function KpiGauge({ value, max, label, color, number, unit = '' }) {
   const pct = Math.min(Math.max((value / (max || 1)), 0), 1);
   const size = 140;
@@ -44,7 +45,7 @@ function KpiGauge({ value, max, label, color, number, unit = '' }) {
   const circ = 2 * Math.PI * r;
   const dash = pct * circ;
   const tc = THEME_COLORS[color] || THEME_COLORS.cyan;
-  const gId = `g-${color}-${label?.replace(/\W/g, '')}`;
+  const gId = `g-${color}-${label?.replace(/\W/g, '')}-${++_gaugeCounter}`;
   return (
     <div className="flex flex-col items-center justify-center gap-2">
       <div className="relative" style={{ width: size, height: size }}>
@@ -96,6 +97,8 @@ export default function AdaptiveChart({ panel, data, rows, columns, height = 220
   if (!panel) return null;
   const { chart_type, x_column, y_column, color_theme = 'cyan' } = panel;
   const tc = THEME_COLORS[color_theme] || THEME_COLORS.cyan;
+  // Unique gradient id per chart instance to prevent shared-gradient bleed
+  const uid = `${color_theme}-${(x_column||'').replace(/\W/g,'')}-${(y_column||'').replace(/\W/g,'')}-${chart_type}`;
 
   // Fuzzy column name resolver — handles case mismatches and partial matches
   const resolveCol = (colName) => {
@@ -186,11 +189,12 @@ export default function AdaptiveChart({ panel, data, rows, columns, height = 220
 
   // ── Render chart by type ──
   if (chart_type === 'line_area' || chart_type === 'area') {
+    const gradId = `ag-${uid}`;
     return (
       <ResponsiveContainer width="100%" height={height}>
         <AreaChart data={chartData} margin={{ top: 4, right: 4, bottom: 4, left: 0 }}>
           <defs>
-            <linearGradient id={`ag-${color_theme}`} x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor={tc.primary} stopOpacity={0.35} />
               <stop offset="95%" stopColor={tc.primary} stopOpacity={0} />
             </linearGradient>
@@ -199,7 +203,7 @@ export default function AdaptiveChart({ panel, data, rows, columns, height = 220
           <XAxis dataKey="name" tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.3)' }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
           <YAxis tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.3)' }} tickLine={false} axisLine={false} tickFormatter={fmtV} width={45} />
           <Tooltip {...commonProps} />
-          <Area type="monotone" dataKey="value" stroke={tc.primary} fill={`url(#ag-${color_theme})`}
+          <Area type="monotone" dataKey="value" stroke={tc.primary} fill={`url(#${gradId})`}
             strokeWidth={2} dot={false} activeDot={{ r: 4, fill: tc.primary }} />
         </AreaChart>
       </ResponsiveContainer>

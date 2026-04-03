@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import {
   LayoutDashboard, Upload, Settings2, BarChart3, BookOpen,
   Layers, Terminal, FileText, MessageSquare, Download,
-  ChevronLeft, Database, X
+  ChevronLeft, Database, GitCompare, X
 } from 'lucide-react';
 import { useWorkspaceStore } from '@/lib/store';
 
@@ -14,6 +14,7 @@ const sections = [
   { id: 'prepare', label: 'Prepare', icon: Settings2 },
   { id: 'story', label: 'Story', icon: BarChart3 },
   { id: 'workbook', label: 'Workbook', icon: BookOpen },
+  { id: 'compare', label: 'Compare', icon: GitCompare },
   { id: 'semantic', label: 'Semantic Model', icon: Layers },
   { id: 'sql', label: 'SQL Studio', icon: Terminal },
   { id: 'docs', label: 'Docs & Evidence', icon: FileText },
