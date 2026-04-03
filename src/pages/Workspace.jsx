@@ -10,7 +10,7 @@ import WorkbookSection from '@/components/workspace/WorkbookSection';
 import SemanticSection from '@/components/workspace/SemanticSection';
 import SQLSection from '@/components/workspace/SQLSection';
 import DocsSection from '@/components/workspace/DocsSection';
-import AnalystSection from '@/components/workspace/AnalystSection.jsx';
+import AnalystSection from '@/components/workspace/AnalystSection';
 import ReportsSection from '@/components/workspace/ReportsSection';
 import CompareSection from '@/components/workspace/CompareSection';
 import { useWorkspaceStore } from '@/lib/store';

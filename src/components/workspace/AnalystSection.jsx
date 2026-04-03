@@ -6,7 +6,7 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWorkspaceStore } from '@/lib/store';
 import { base44 } from '@/api/base44Client';
-import { Send, Sparkles, Database, Loader2, Trash2, Bot, User, AlertCircle } from 'lucide-react';
+import { Send, Sparkles, Database, Loader2, Trash2, Bot, User } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 const SUGGESTIONS = [
