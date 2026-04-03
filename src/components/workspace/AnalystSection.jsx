@@ -1,6 +1,5 @@
 /**
- * AnalystSection — AI Chat Analyst
- * Ask questions in plain English and get deep, evidence-based answers.
+ * AnalystSection — AI Chat Analyst with inline chart visualization
  */
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,15 +7,96 @@ import { useWorkspaceStore } from '@/lib/store';
 import { base44 } from '@/api/base44Client';
 import { Send, Sparkles, Database, Loader2, Trash2, Bot, User } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import {
+  BarChart, Bar, AreaChart, Area, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
+} from 'recharts';
+
+const CHART_COLORS = ['#00e5ff', '#ff2d7a', '#7b2fff', '#ff6b35', '#4caf50', '#ffcc02', '#00bfa5'];
 
 const SUGGESTIONS = [
-  'What are the top trends in this dataset?',
-  'Which segment is performing best and why?',
-  'Are there any anomalies I should be concerned about?',
-  'Give me an executive summary of this data.',
-  'What are the key correlations between columns?',
+  'Show me a chart of top segments by revenue',
+  'What are the top trends? Show with a chart.',
+  'Which segment is performing best? Visualize it.',
+  'Are there any anomalies? Show with a chart.',
+  'Give me a breakdown chart of this data.',
   'What actions should I take based on this data?',
 ];
+
+const fmtV = (v) => {
+  if (v == null || isNaN(v)) return v;
+  const n = Number(v);
+  if (Math.abs(n) >= 1e6) return `${(n / 1e6).toFixed(1)}M`;
+  if (Math.abs(n) >= 1e3) return `${(n / 1e3).toFixed(0)}K`;
+  return n.toLocaleString(undefined, { maximumFractionDigits: 1 });
+};
+
+const tooltipStyle = {
+  backgroundColor: 'rgba(10,8,20,0.95)',
+  border: '1px solid rgba(255,255,255,0.1)',
+  borderRadius: 8,
+  fontSize: 11,
+  color: '#e2e8f0',
+};
+
+function InlineChart({ chart }) {
+  if (!chart?.data?.length) return null;
+  const { type, data, title, x_key = 'name', y_key = 'value' } = chart;
+
+  return (
+    <div className="mt-3 rounded-xl overflow-hidden border border-white/8 bg-black/20 p-3">
+      {title && <div className="text-xs text-white/50 mb-2 font-semibold uppercase tracking-widest">{title}</div>}
+      <ResponsiveContainer width="100%" height={200}>
+        {type === 'pie' || type === 'donut' ? (
+          <PieChart>
+            <Pie data={data} dataKey={y_key} nameKey={x_key}
+              cx="50%" cy="50%"
+              innerRadius={type === 'donut' ? '45%' : 0}
+              outerRadius="70%" paddingAngle={2}>
+              {data.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+            </Pie>
+            <Tooltip contentStyle={tooltipStyle} formatter={(v) => [fmtV(v), '']} />
+            <Legend wrapperStyle={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }} />
+          </PieChart>
+        ) : type === 'area' || type === 'line' ? (
+          <AreaChart data={data} margin={{ top: 4, right: 4, bottom: 4, left: 0 }}>
+            <defs>
+              <linearGradient id="analyst-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#00e5ff" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#00e5ff" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+            <XAxis dataKey={x_key} tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.3)' }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+            <YAxis tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.3)' }} tickLine={false} axisLine={false} tickFormatter={fmtV} width={40} />
+            <Tooltip contentStyle={tooltipStyle} formatter={(v) => [fmtV(v), y_key]} />
+            <Area type="monotone" dataKey={y_key} stroke="#00e5ff" fill="url(#analyst-grad)" strokeWidth={2} dot={false} />
+          </AreaChart>
+        ) : (
+          // default: bar
+          <BarChart data={data} layout={data.length > 6 ? 'vertical' : 'horizontal'} margin={{ top: 4, right: 4, bottom: 4, left: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+            {data.length > 6 ? (
+              <>
+                <XAxis type="number" tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.3)' }} tickFormatter={fmtV} tickLine={false} axisLine={false} />
+                <YAxis dataKey={x_key} type="category" tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.4)' }} tickLine={false} axisLine={false} width={80} />
+              </>
+            ) : (
+              <>
+                <XAxis dataKey={x_key} tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.3)' }} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.3)' }} tickFormatter={fmtV} tickLine={false} axisLine={false} width={40} />
+              </>
+            )}
+            <Tooltip contentStyle={tooltipStyle} formatter={(v) => [fmtV(v), y_key]} />
+            <Bar dataKey={y_key} radius={[4, 4, 0, 0]}>
+              {data.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} fillOpacity={0.85} />)}
+            </Bar>
+          </BarChart>
+        )}
+      </ResponsiveContainer>
+    </div>
+  );
+}
 
 function MessageBubble({ message }) {
   const isUser = message.role === 'user';
@@ -39,25 +119,26 @@ function MessageBubble({ message }) {
         {isUser ? (
           <p>{message.content}</p>
         ) : (
-          <ReactMarkdown
-            className="prose prose-sm prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
-            components={{
-              p: ({ children }) => <p className="my-1 leading-relaxed">{children}</p>,
-              ul: ({ children }) => <ul className="my-1 ml-4 list-disc">{children}</ul>,
-              ol: ({ children }) => <ol className="my-1 ml-4 list-decimal">{children}</ol>,
-              li: ({ children }) => <li className="my-0.5">{children}</li>,
-              h1: ({ children }) => <h1 className="text-base font-bold my-2">{children}</h1>,
-              h2: ({ children }) => <h2 className="text-sm font-semibold my-2 text-cyan-400">{children}</h2>,
-              h3: ({ children }) => <h3 className="text-sm font-semibold my-1.5 text-white/80">{children}</h3>,
-              strong: ({ children }) => <strong className="font-semibold text-white">{children}</strong>,
-              code: ({ inline, children }) => inline
-                ? <code className="px-1 py-0.5 rounded bg-white/10 text-cyan-300 text-xs font-mono">{children}</code>
-                : <pre className="bg-black/30 rounded-lg p-3 overflow-x-auto my-2 text-xs font-mono"><code>{children}</code></pre>,
-              blockquote: ({ children }) => <blockquote className="border-l-2 border-cyan-400/40 pl-3 my-2 text-white/60 italic">{children}</blockquote>,
-            }}
-          >
-            {message.content}
-          </ReactMarkdown>
+          <>
+            <ReactMarkdown
+              className="prose prose-sm prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+              components={{
+                p: ({ children }) => <p className="my-1 leading-relaxed">{children}</p>,
+                ul: ({ children }) => <ul className="my-1 ml-4 list-disc">{children}</ul>,
+                ol: ({ children }) => <ol className="my-1 ml-4 list-decimal">{children}</ol>,
+                li: ({ children }) => <li className="my-0.5">{children}</li>,
+                h2: ({ children }) => <h2 className="text-sm font-semibold my-2 text-cyan-400">{children}</h2>,
+                h3: ({ children }) => <h3 className="text-sm font-semibold my-1.5 text-white/80">{children}</h3>,
+                strong: ({ children }) => <strong className="font-semibold text-white">{children}</strong>,
+                code: ({ inline, children }) => inline
+                  ? <code className="px-1 py-0.5 rounded bg-white/10 text-cyan-300 text-xs font-mono">{children}</code>
+                  : <pre className="bg-black/30 rounded-lg p-3 overflow-x-auto my-2 text-xs font-mono"><code>{children}</code></pre>,
+              }}
+            >
+              {message.content}
+            </ReactMarkdown>
+            {message.chart && <InlineChart chart={message.chart} />}
+          </>
         )}
       </div>
       {isUser && (
@@ -83,7 +164,7 @@ export default function AnalystSection() {
   const buildContext = () => {
     if (!activeTable) return '';
     const cols = activeTable.columns?.map(c => `${c.name}(${c.type})`).join(', ') || '';
-    const sample = activeTable.rows?.slice(0, 3).map(r => JSON.stringify(r)).join('\n') || '';
+    const sample = activeTable.rows?.slice(0, 5).map(r => JSON.stringify(r)).join('\n') || '';
     const stats = analysisResults
       ? `Primary KPI: ${analysisResults.primaryLabel}, Total: ${analysisResults.totalValue}, Growth: ${analysisResults.growthRate}%, Anomalies: ${analysisResults.anomalies?.length || 0}`
       : '';
@@ -94,32 +175,55 @@ export default function AnalystSection() {
     const question = (text || input).trim();
     if (!question || loading) return;
     setInput('');
-
     addChatMessage({ role: 'user', content: question });
     setLoading(true);
 
     try {
       const context = buildContext();
-      const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `You are an expert data analyst AI. Answer the user's question about their dataset with deep, evidence-based insights.
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt: `You are an expert data analyst AI. Answer the user's question about their dataset with deep, evidence-based insights AND generate chart data to visualize the answer.
 
 DATASET CONTEXT:
 ${context}
 
 USER QUESTION: ${question}
 
-Provide a thorough, structured response using markdown. Include:
-- **Direct Answer** to the question
-- **Evidence** from the data (specific numbers, percentages, column values)
-- **Key Insights** (2-3 bullet points)
-- **Recommendations** if applicable
-
-Be specific, quantitative, and actionable. Use the actual data context provided.`,
+Return a JSON response with:
+1. "answer": A thorough markdown response including Direct Answer, Evidence, Key Insights, and Recommendations.
+2. "chart": An object with chart data to visualize the answer. Include:
+   - "type": one of "bar", "area", "line", "donut", "pie"
+   - "title": short chart title
+   - "data": array of objects with "name" and "value" keys (max 10 items)
+   - "x_key": "name"
+   - "y_key": "value"
+   
+   Build the chart data from the actual dataset context provided. Compute aggregations from the sample rows and use realistic numbers.
+   If the question doesn't need a chart (e.g. just asking for recommendations), set "chart" to null.`,
+        response_json_schema: {
+          type: 'object',
+          properties: {
+            answer: { type: 'string' },
+            chart: {
+              type: ['object', 'null'],
+              properties: {
+                type: { type: 'string' },
+                title: { type: 'string' },
+                data: { type: 'array', items: { type: 'object' } },
+                x_key: { type: 'string' },
+                y_key: { type: 'string' },
+              },
+            },
+          },
+        },
       });
 
-      addChatMessage({ role: 'assistant', content: response });
+      addChatMessage({
+        role: 'assistant',
+        content: result?.answer || String(result),
+        chart: result?.chart || null,
+      });
     } catch (e) {
-      addChatMessage({ role: 'assistant', content: `Sorry, I encountered an error: ${e.message}` });
+      addChatMessage({ role: 'assistant', content: `Sorry, I encountered an error: ${e.message}`, chart: null });
     }
     setLoading(false);
   };
@@ -166,7 +270,7 @@ Be specific, quantitative, and actionable. Use the actual data context provided.
                 <Bot className="w-6 h-6 text-purple-400" />
               </div>
               <h3 className="font-semibold mb-1">Ask me anything about your data</h3>
-              <p className="text-sm text-muted-foreground">I have full context of your dataset and analysis results.</p>
+              <p className="text-sm text-muted-foreground">I'll answer with insights and generate charts to visualize the data.</p>
             </div>
             <div>
               <div className="text-xs text-muted-foreground uppercase tracking-widest mb-3">Suggested Questions</div>
@@ -194,7 +298,7 @@ Be specific, quantitative, and actionable. Use the actual data context provided.
               <Loader2 className="w-3.5 h-3.5 text-purple-400 animate-spin" />
             </div>
             <div className="px-4 py-3 rounded-2xl bg-white/4 border border-white/8 text-sm text-muted-foreground">
-              Analyzing your data…
+              Analyzing and generating chart…
             </div>
           </motion.div>
         )}
