@@ -6,7 +6,7 @@ import AnalystChart from '@/components/workspace/analyst/AnalystChart';
 import { exportToPDF, exportToExcel } from '@/lib/exportUtils';
 import {
   LayoutDashboard, Trash2, Pencil, Check, X, Plus, Download,
-  FileSpreadsheet, FileText, Sparkles, BarChart2, Database
+  FileSpreadsheet, FileText, Sparkles, BarChart2, Database, BookOpen, Bell
 } from 'lucide-react';
 
 function DashboardCard({ item, onDelete, onRename }) {
@@ -141,6 +141,20 @@ export default function Dashboards() {
               <FileText className="w-3.5 h-3.5" />
               {exportLoading === 'pdf' ? 'Generating…' : 'Export PDF'}
             </button>
+            <Link
+              to="/story-builder"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-purple-400/10 border border-purple-400/20 text-purple-400 hover:bg-purple-400/15 transition-all"
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              Story Builder
+            </Link>
+            <Link
+              to="/alerts"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-amber-400/10 border border-amber-400/20 text-amber-400 hover:bg-amber-400/15 transition-all"
+            >
+              <Bell className="w-3.5 h-3.5" />
+              Alerts
+            </Link>
             <Link
               to="/workspace"
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-cyan-400/10 border border-cyan-400/20 text-cyan-400 hover:bg-cyan-400/15 transition-all"

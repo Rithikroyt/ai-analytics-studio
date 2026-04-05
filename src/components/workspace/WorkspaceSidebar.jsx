@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import {
   LayoutDashboard, Upload, Settings2, BarChart3, BookOpen,
   Layers, Terminal, FileText, MessageSquare, Download,
-  ChevronLeft, Database, GitCompare, PieChart
+  ChevronLeft, Database, GitCompare, PieChart, Bell
 } from 'lucide-react';
 import { useWorkspaceStore } from '@/lib/store';
 
@@ -63,23 +63,29 @@ export default function WorkspaceSidebar({ collapsed, onToggle }) {
           );
         })}
 
-        {/* Dashboards link */}
-        <div className="pt-2 mt-2 border-t border-white/5">
-          <Link
-            to="/dashboards"
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all text-sm text-muted-foreground hover:text-foreground hover:bg-white/5"
-          >
+        {/* Bottom links */}
+        <div className="pt-2 mt-2 border-t border-white/5 space-y-1">
+          <Link to="/dashboards"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all text-sm text-muted-foreground hover:text-foreground hover:bg-white/5">
             <PieChart className="w-4 h-4 flex-shrink-0 text-cyan-400" />
             {!collapsed && (
               <>
                 <span className="font-medium truncate">Dashboards</span>
                 {savedCharts.length > 0 && (
-                  <span className="ml-auto text-xs bg-cyan-400/10 text-cyan-400 px-1.5 py-0.5 rounded-full">
-                    {savedCharts.length}
-                  </span>
+                  <span className="ml-auto text-xs bg-cyan-400/10 text-cyan-400 px-1.5 py-0.5 rounded-full">{savedCharts.length}</span>
                 )}
               </>
             )}
+          </Link>
+          <Link to="/story-builder"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all text-sm text-muted-foreground hover:text-foreground hover:bg-white/5">
+            <BookOpen className="w-4 h-4 flex-shrink-0 text-purple-400" />
+            {!collapsed && <span className="font-medium truncate">Story Builder</span>}
+          </Link>
+          <Link to="/alerts"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all text-sm text-muted-foreground hover:text-foreground hover:bg-white/5">
+            <Bell className="w-4 h-4 flex-shrink-0 text-amber-400" />
+            {!collapsed && <span className="font-medium truncate">Alerts</span>}
           </Link>
         </div>
       </nav>

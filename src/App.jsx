@@ -12,6 +12,8 @@ import Workflows from '@/pages/Workflows';
 import UniversalData from '@/pages/UniversalData';
 import Workspace from '@/pages/Workspace';
 import Dashboards from '@/pages/Dashboards';
+import StoryBuilder from '@/pages/StoryBuilder';
+import Alerts from '@/pages/Alerts';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -46,6 +48,8 @@ const AuthenticatedApp = () => {
         <Route path="/universal-data" element={<UniversalData />} />
         <Route path="/workspace" element={<Workspace />} />
         <Route path="/dashboards" element={<Dashboards />} />
+        <Route path="/story-builder" element={<StoryBuilder />} />
+        <Route path="/alerts" element={<Alerts />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </>
