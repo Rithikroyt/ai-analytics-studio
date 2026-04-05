@@ -13,6 +13,7 @@ import { useWorkspaceStore } from '@/lib/store';
 import { base44 } from '@/api/base44Client';
 import AnalystChart from '@/components/workspace/analyst/AnalystChart';
 import PresentationMode from '@/components/story/PresentationMode';
+import SlideComments from '@/components/story/SlideComments';
 import {
   BookOpen, Plus, Trash2, GripVertical, Sparkles, Loader2,
   Play, BarChart2, Type, Eye, ChevronLeft, Save, Pencil, Check, X,
@@ -67,7 +68,7 @@ function ChartLibrary({ savedCharts, onAdd }) {
 }
 
 // ── Single slide card in builder ──────────────────────────────────
-function SlideCard({ slide, index, onRemove, onUpdateNarration, onUpdateText }) {
+function SlideCard({ slide, index, onRemove, onUpdateNarration, onUpdateText, onUpdateComments }) {
   const [editingNarration, setEditingNarration] = useState(false);
   const [narration, setNarration] = useState(slide.narration || '');
   const [editingText, setEditingText] = useState(!slide.text && slide.type === 'insight');
@@ -154,9 +155,18 @@ function SlideCard({ slide, index, onRemove, onUpdateNarration, onUpdateText }) 
           </div>
         )}
       </div>
-    </div>
-  );
-}
+
+      {/* Collaborative comments */}
+      <SlideComments
+        slideId={slide.id}
+        comments={slide.comments || []}
+        onAddComment={(comment) => onUpdateComments(slide.id, [...(slide.comments || []), comment])}
+        onResolveComment={(id) => onUpdateComments(slide.id, (slide.comments || []).map(c => c.id === id ? { ...c, resolved: true } : c))}
+        onReplyComment={(reply) => onUpdateComments(slide.id, [...(slide.comments || []), reply])}
+      />
+      </div>
+      );
+      }
 
 // ── Story title editor ────────────────────────────────────────────
 function StoryTitleEditor({ title, onSave }) {
@@ -220,6 +230,10 @@ export default function StoryBuilder() {
 
   const updateText = (id, text) => {
     updateSlides(slides.map(s => s.id === id ? { ...s, text } : s));
+  };
+
+  const updateComments = (id, comments) => {
+    updateSlides(slides.map(s => s.id === id ? { ...s, comments } : s));
   };
 
   const onDragEnd = (result) => {
@@ -374,6 +388,7 @@ Return JSON with a "narrations" array (one string per slide, in order).`,
                                     onRemove={removeSlide}
                                     onUpdateNarration={updateNarration}
                                     onUpdateText={updateText}
+                                    onUpdateComments={updateComments}
                                   />
                                 </div>
                               </div>
@@ -401,15 +416,23 @@ Return JSON with a "narrations" array (one string per slide, in order).`,
               <Eye className="w-3 h-3" /> Slide Map
             </div>
             <div className="space-y-2">
-              {slides.map((s, i) => (
-                <div key={s.id} className="rounded-lg border border-white/8 bg-white/2 p-2">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <span className="text-xs font-mono text-white/25">{i + 1}</span>
-                    <SlideTypeBadge type={s.type} />
+              {slides.map((s, i) => {
+                const unresolvedComments = (s.comments || []).filter(c => !c.resolved && !c.replyTo).length;
+                return (
+                  <div key={s.id} className="rounded-lg border border-white/8 bg-white/2 p-2">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className="text-xs font-mono text-white/25">{i + 1}</span>
+                      <SlideTypeBadge type={s.type} />
+                      {unresolvedComments > 0 && (
+                        <span className="ml-auto text-xs px-1.5 py-0.5 rounded-full bg-amber-400/15 text-amber-400 font-semibold leading-none">
+                          {unresolvedComments}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-white/45 truncate">{s.title || s.text?.slice(0, 30) || '—'}</div>
                   </div>
-                  <div className="text-xs text-white/45 truncate">{s.title || s.text?.slice(0, 30) || '—'}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             {slides.length > 0 && (
               <button onClick={() => setPresentationMode(true)}

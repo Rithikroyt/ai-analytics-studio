@@ -21,6 +21,7 @@ import {
 import { exportToPDF, exportToExcel } from '@/lib/exportUtils';
 import ReactMarkdown from 'react-markdown';
 import AnalystChart from '@/components/workspace/analyst/AnalystChart';
+import AnalystChartWithTrendline from '@/components/workspace/analyst/AnalystChartWithTrendline';
 import {
   describe, pearson, linearRegression, kMeans, decomposeTimeSeries,
   tTest, chiSquaredGoodnessOfFit, detectAnomalies, holtwinters,
@@ -246,7 +247,7 @@ function MessageBubble({ message, onFollowUp, onSaveChart, datasetName }) {
                     <Bookmark className="w-3 h-3" /> Save
                   </button>
                 </div>
-                <AnalystChart chart={chart} height={chart.height || 220} />
+                <AnalystChartWithTrendline chart={chart} height={chart.height || 220} />
                 {chart.note && <div className="mt-2 text-xs text-white/25 italic">{chart.note}</div>}
               </div>
             ))}
