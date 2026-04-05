@@ -11,6 +11,7 @@ import Platform from '@/pages/Platform';
 import Workflows from '@/pages/Workflows';
 import UniversalData from '@/pages/UniversalData';
 import Workspace from '@/pages/Workspace';
+import Dashboards from '@/pages/Dashboards';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -44,6 +45,7 @@ const AuthenticatedApp = () => {
         <Route path="/workflows" element={<Workflows />} />
         <Route path="/universal-data" element={<UniversalData />} />
         <Route path="/workspace" element={<Workspace />} />
+        <Route path="/dashboards" element={<Dashboards />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </>

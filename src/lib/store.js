@@ -25,6 +25,9 @@ export const useWorkspaceStore = create((set, get) => ({
   // Reports
   reports: [],
 
+  // Saved dashboard items
+  savedCharts: [],
+
   setActiveSection: (section) => set({ activeSection: section }),
 
   addTable: (table) => set((state) => ({
@@ -100,5 +103,6 @@ export const useWorkspaceStore = create((set, get) => ({
     isProcessing: false,
     processingStep: '',
     reports: [],
+    savedCharts: [],
   }),
 }));

@@ -16,8 +16,9 @@ import { base44 } from '@/api/base44Client';
 import {
   Send, Sparkles, Database, Loader2, Trash2, Bot, User,
   ChevronDown, ChevronRight, BarChart2, TrendingUp, Cpu, Lightbulb,
-  AlertCircle, CheckCircle2, FlaskConical, Activity
+  AlertCircle, CheckCircle2, FlaskConical, Activity, Bookmark, FileText, FileSpreadsheet
 } from 'lucide-react';
+import { exportToPDF, exportToExcel } from '@/lib/exportUtils';
 import ReactMarkdown from 'react-markdown';
 import AnalystChart from '@/components/workspace/analyst/AnalystChart';
 import {
@@ -189,7 +190,7 @@ function FollowUps({ suggestions, onSelect }) {
 }
 
 // ─── Message bubble ────────────────────────────────────────────────
-function MessageBubble({ message, onFollowUp }) {
+function MessageBubble({ message, onFollowUp, onSaveChart, datasetName }) {
   const isUser = message.role === 'user';
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
@@ -229,13 +230,22 @@ function MessageBubble({ message, onFollowUp }) {
             {/* Charts */}
             {message.charts?.map((chart, i) => (
               <div key={i} className="mt-3 rounded-xl overflow-hidden border border-white/8 bg-black/25 p-3">
-                {chart.title && (
-                  <div className="text-xs text-white/45 mb-2 font-semibold uppercase tracking-widest flex items-center gap-1.5">
-                    <BarChart2 className="w-3 h-3 text-cyan-400" />
-                    {chart.title}
-                    {chart.subtitle && <span className="text-white/25 normal-case font-normal">· {chart.subtitle}</span>}
-                  </div>
-                )}
+                <div className="flex items-center justify-between mb-2">
+                  {chart.title ? (
+                    <div className="text-xs text-white/45 font-semibold uppercase tracking-widest flex items-center gap-1.5">
+                      <BarChart2 className="w-3 h-3 text-cyan-400" />
+                      {chart.title}
+                      {chart.subtitle && <span className="text-white/25 normal-case font-normal">· {chart.subtitle}</span>}
+                    </div>
+                  ) : <div />}
+                  <button
+                    onClick={() => onSaveChart(chart, message.content, datasetName)}
+                    className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg text-white/35 hover:text-cyan-400 hover:bg-cyan-400/8 border border-transparent hover:border-cyan-400/20 transition-all"
+                    title="Save to Dashboard"
+                  >
+                    <Bookmark className="w-3 h-3" /> Save
+                  </button>
+                </div>
                 <AnalystChart chart={chart} height={chart.height || 220} />
                 {chart.note && <div className="mt-2 text-xs text-white/25 italic">{chart.note}</div>}
               </div>
@@ -257,13 +267,23 @@ function MessageBubble({ message, onFollowUp }) {
 
 // ─── Main component ────────────────────────────────────────────────
 export default function AnalystSection() {
-  const { getActiveTable, analysisResults, chatMessages, addChatMessage, clearChat } = useWorkspaceStore();
+  const { getActiveTable, analysisResults, chatMessages, addChatMessage, clearChat, saveToDashboard } = useWorkspaceStore();
   const activeTable = getActiveTable();
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [thinkingLabel, setThinkingLabel] = useState('');
   const [mode, setMode] = useState('exploratory');
+  const [savedToast, setSavedToast] = useState('');
   const bottomRef = useRef(null);
+
+  const handleSaveChart = (chart, insight, datasetName) => {
+    saveToDashboard({ chart, insight: insight?.slice(0, 200), datasetName, label: chart.title });
+    setSavedToast(chart.title || 'Chart');
+    setTimeout(() => setSavedToast(''), 2500);
+  };
+
+  const handleExportPDF = () => exportToPDF({ messages: chatMessages, tableName: activeTable?.name, analysisResults });
+  const handleExportExcel = () => exportToExcel({ messages: chatMessages, tableName: activeTable?.name, analysisResults });
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -431,7 +451,17 @@ ANSWER RULES:
   const activeMode = MODES.find(m => m.id === mode);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full relative">
+      {/* Save toast */}
+      <AnimatePresence>
+        {savedToast && (
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+            className="absolute top-16 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-400/15 border border-cyan-400/30 text-cyan-400 text-xs font-medium shadow-lg">
+            <Bookmark className="w-3.5 h-3.5" />
+            "{savedToast}" saved to Dashboard
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-white/5 flex-shrink-0">
         <div className="flex items-center gap-2">
@@ -442,9 +472,18 @@ ANSWER RULES:
         </div>
         <div className="flex items-center gap-2">
           {chatMessages.length > 0 && (
-            <button onClick={clearChat} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-lg hover:bg-white/5">
-              <Trash2 className="w-3 h-3" /> Clear
-            </button>
+            <>
+              <button onClick={handleExportExcel} className="flex items-center gap-1 text-xs text-green-400/70 hover:text-green-400 transition-colors px-2 py-1 rounded-lg hover:bg-green-400/8">
+                <FileSpreadsheet className="w-3 h-3" /> Excel
+              </button>
+              <button onClick={handleExportPDF} className="flex items-center gap-1 text-xs text-blue-400/70 hover:text-blue-400 transition-colors px-2 py-1 rounded-lg hover:bg-blue-400/8">
+                <FileText className="w-3 h-3" /> PDF
+              </button>
+              <div className="w-px h-4 bg-white/10" />
+              <button onClick={clearChat} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-lg hover:bg-white/5">
+                <Trash2 className="w-3 h-3" /> Clear
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -513,7 +552,7 @@ ANSWER RULES:
 
         <AnimatePresence>
           {chatMessages.map((msg, i) => (
-            <MessageBubble key={i} message={msg} onFollowUp={handleSend} />
+            <MessageBubble key={i} message={msg} onFollowUp={handleSend} onSaveChart={handleSaveChart} datasetName={activeTable?.name} />
           ))}
         </AnimatePresence>
 
