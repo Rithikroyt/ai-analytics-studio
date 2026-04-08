@@ -115,8 +115,11 @@ module.exports = {
       },
       safelist: [
         'text-cyan-400', 'text-teal-400', 'text-green-400', 'text-yellow-400', 'text-red-400', 'text-blue-400',
+        'text-amber-400', 'text-purple-400', 'text-pink-400', 'text-orange-400',
         'bg-cyan-400/10', 'bg-teal-400/10', 'bg-green-400/10', 'bg-yellow-400/10', 'bg-red-400/10',
-        'border-cyan-400/30', 'border-teal-400/30', 'border-green-400/30',
+        'bg-amber-400/10', 'bg-purple-400/10', 'bg-blue-400/10', 'bg-pink-400/10',
+        'border-cyan-400/20', 'border-teal-400/20', 'border-blue-400/20', 'border-purple-400/20',
+        'border-cyan-400/30', 'border-teal-400/30', 'border-green-400/30', 'border-amber-400/20',
       ],
     },
   },

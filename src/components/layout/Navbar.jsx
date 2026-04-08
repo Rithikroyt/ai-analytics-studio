@@ -1,95 +1,119 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import OmniLogo from '../ui/OmniLogo';
-import { Menu, X, ChevronRight } from 'lucide-react';
+import { Menu, X, Zap, ChevronDown } from 'lucide-react';
+import OmniLogo from '@/components/ui/OmniLogo';
 
 const navLinks = [
-  { label: 'Platform', to: '/platform' },
-  { label: 'Workflows', to: '/workflows' },
-  { label: 'Universal Data', to: '/universal-data' },
+  { label: 'Platform', path: '/platform' },
+  { label: 'Workflows', path: '/workflows' },
+  { label: 'Universal Data', path: '/universal-data' },
 ];
 
 export default function Navbar() {
-  const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
-  const isWorkspace = location.pathname.startsWith('/workspace');
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  // Hide navbar on workspace pages
+  const isWorkspace = location.pathname === '/workspace' || location.pathname === '/dashboards' || location.pathname === '/story-builder' || location.pathname === '/alerts';
   
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
+
   if (isWorkspace) return null;
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 nav-blur">
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        <Link to="/" className="flex-shrink-0">
-          <OmniLogo size="sm" />
-        </Link>
-
-        {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-8">
-          {navLinks.map(link => (
-            <Link
-              key={link.to}
-              to={link.to}
-              className={`text-sm font-medium transition-colors ${
-                location.pathname === link.to 
-                  ? 'text-cyan-400' 
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-
-        <div className="hidden md:flex items-center gap-4">
-          <Link
-            to="/workspace"
-            className="flex items-center gap-2 px-4 py-2 bg-cyan-400 text-navy-900 rounded-lg text-sm font-semibold hover:bg-cyan-300 transition-colors"
-            style={{ color: 'hsl(222, 47%, 6%)' }}
-          >
-            Launch Workspace
-            <ChevronRight className="w-4 h-4" />
+    <motion.header
+      initial={{ y: -20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'nav-blur shadow-lg' : 'bg-transparent'}`}
+    >
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo */}
+          <Link to="/" className="flex items-center">
+            <OmniLogo size="sm" showText={true} />
           </Link>
-        </div>
 
-        {/* Mobile menu button */}
-        <button
-          className="md:hidden text-muted-foreground hover:text-foreground"
-          onClick={() => setMobileOpen(!mobileOpen)}
-        >
-          {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
-      </div>
-
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="md:hidden border-t border-border/50 bg-navy-800 px-6 py-4 space-y-3"
-          >
+          {/* Desktop nav */}
+          <nav className="hidden md:flex items-center gap-1">
             {navLinks.map(link => (
               <Link
-                key={link.to}
-                to={link.to}
-                className="block text-sm text-muted-foreground hover:text-foreground py-2"
-                onClick={() => setMobileOpen(false)}
+                key={link.label}
+                to={link.path}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  location.pathname === link.path
+                    ? 'text-cyan-400 bg-cyan-400/8'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+                }`}
               >
                 {link.label}
               </Link>
             ))}
+          </nav>
+
+          {/* CTA */}
+          <div className="hidden md:flex items-center gap-3">
             <Link
               to="/workspace"
-              className="block w-full text-center px-4 py-2 bg-cyan-400 text-navy-900 rounded-lg text-sm font-semibold mt-4"
-              style={{ color: 'hsl(222, 47%, 6%)' }}
-              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-1.5 px-4 py-2 bg-cyan-400 text-xs font-bold rounded-xl hover:bg-cyan-300 transition-all hover:scale-105"
+              style={{ color: 'hsl(222,47%,6%)' }}
             >
-              Launch Workspace
+              <Zap className="w-3.5 h-3.5" /> Launch Workspace
             </Link>
+          </div>
+
+          {/* Mobile toggle */}
+          <button onClick={() => setMobileOpen(o => !o)} className="md:hidden p-2 text-white/60 hover:text-white transition-colors">
+            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile menu */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="md:hidden nav-blur border-t border-white/5 overflow-hidden"
+          >
+            <div className="max-w-7xl mx-auto px-6 py-4 space-y-1">
+              {navLinks.map(link => (
+                <Link
+                  key={link.label}
+                  to={link.path}
+                  onClick={() => setMobileOpen(false)}
+                  className={`flex items-center px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                    location.pathname === link.path ? 'text-cyan-400 bg-cyan-400/8' : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
+              <div className="pt-3 border-t border-white/5 mt-3">
+                <Link
+                  to="/workspace"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center justify-center gap-2 w-full py-2.5 bg-cyan-400 rounded-xl text-sm font-bold"
+                  style={{ color: 'hsl(222,47%,6%)' }}
+                >
+                  <Zap className="w-4 h-4" /> Launch Workspace
+                </Link>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </header>
+    </motion.header>
   );
 }
