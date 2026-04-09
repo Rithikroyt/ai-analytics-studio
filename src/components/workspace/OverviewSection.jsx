@@ -11,9 +11,10 @@ import { runAIAnalysis } from '@/lib/aiAnalyzer';
 import { Link } from 'react-router-dom';
 
 const bundles = [
-  { key: 'sales', label: 'Sales & Revenue', desc: '2,304 rows · 12 columns · 2023–2024', icon: '📊', color: 'border-cyan-400/30 bg-cyan-400/5', tag: 'Revenue · Forecast · Regional', accentColor: 'text-cyan-400' },
-  { key: 'workforce', label: 'Workforce & Payroll', desc: '131 employees · 10 columns', icon: '👥', color: 'border-teal-400/30 bg-teal-400/5', tag: 'HR · Attrition · Salary Bands', accentColor: 'text-teal-400' },
-  { key: 'healthcare', label: 'Healthcare Operations', desc: '84 rows · 11 columns · 12 months', icon: '🏥', color: 'border-blue-400/30 bg-blue-400/5', tag: 'Clinical · Quality · Throughput', accentColor: 'text-blue-400' },
+  { key: 'sales', label: 'Sales & Revenue', desc: '2,304 rows · 12 cols · 2023–2024', icon: '📊', color: 'border-cyan-400/30 bg-cyan-400/5', tag: 'Revenue · Forecast · Regional' },
+  { key: 'workforce', label: 'Workforce & Payroll', desc: '131 employees · 10 columns', icon: '👥', color: 'border-teal-400/30 bg-teal-400/5', tag: 'HR · Attrition · Salary Bands' },
+  { key: 'healthcare', label: 'Healthcare Operations', desc: '84 rows · 11 cols · 12 months', icon: '🏥', color: 'border-blue-400/30 bg-blue-400/5', tag: 'Clinical · Quality · Throughput' },
+  { key: 'education', label: 'Student Engagement', desc: '480 rows · 12 cols · 2024', icon: '🎓', color: 'border-purple-400/30 bg-purple-400/5', tag: 'Retention · Completion · Revenue' },
 ];
 
 const quickActions = [
@@ -172,7 +173,7 @@ export default function OverviewSection() {
       <div>
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2">Sample Bundles</h2>
         <p className="text-sm text-muted-foreground mb-4">Load a pre-built dataset with full AI analysis to explore the platform immediately.</p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           {bundles.map((b, i) => (
             <motion.button key={b.key} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
               onClick={() => handleLoadBundle(b.key)}

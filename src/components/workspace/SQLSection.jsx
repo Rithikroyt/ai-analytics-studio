@@ -1,91 +1,168 @@
-import { useState } from 'react';
+/**
+ * SQL Studio — Natural language → SQL → in-memory execution → results + chart
+ */
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWorkspaceStore } from '@/lib/store';
 import {
-  Terminal, Sparkles, Loader2, Copy, CheckCircle2,
-  AlertTriangle, Database, Play, Info, ArrowRight, Download
+  Terminal, Sparkles, Play, Copy, CheckCircle2, AlertTriangle,
+  Database, Loader2, ArrowRight, BarChart2, Table2, Lightbulb,
+  RefreshCw, Download, ChevronRight
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+
+const PALETTE = ['#00e5ff', '#7b2fff', '#ff6b35', '#4caf50', '#ff2d7a', '#ffcc02', '#00bfa5', '#e91e63'];
+const TOOLTIP_STYLE = {
+  backgroundColor: 'rgba(8,6,18,0.96)', border: '1px solid rgba(255,255,255,0.1)',
+  borderRadius: 10, fontSize: 11, color: '#e2e8f0',
+};
+const axisStyle = { fontSize: 9, fill: 'rgba(255,255,255,0.35)' };
+
+const fmtV = (v) => {
+  if (v == null) return '—';
+  const n = Number(v);
+  if (isNaN(n)) return String(v);
+  if (Math.abs(n) >= 1e9) return `${(n / 1e9).toFixed(1)}B`;
+  if (Math.abs(n) >= 1e6) return `${(n / 1e6).toFixed(1)}M`;
+  if (Math.abs(n) >= 1e3) return `${(n / 1e3).toFixed(0)}K`;
+  return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+};
 
 const EXAMPLE_QUERIES = [
-  { label: 'Revenue by region', q: 'What is the total revenue by region?' },
-  { label: 'Top 5 segments', q: 'Show me the top 5 segments by total value' },
-  { label: 'Month-over-month', q: 'What is the month-over-month change?' },
-  { label: 'Highest average', q: 'Which segment has the highest average value?' },
-  { label: 'Count by category', q: 'Count the number of records by category' },
-  { label: 'Anomaly rates', q: 'Which segment has the most outliers?' },
+  'Show total revenue by region',
+  'Top 10 segments by average value',
+  'What changed month over month?',
+  'Count records by category',
+  'Which segment has the highest value?',
+  'Show distribution of the primary KPI',
+  'Compare performance across segments',
+  'Show records with the highest values',
 ];
 
+// ── In-memory SQL runner ──────────────────────────────────────────
 function runInMemorySQL(sql, table) {
   try {
     const rows = table.rows || [];
     if (!rows.length) return null;
-    const upperSQL = sql.toUpperCase();
+    const upper = sql.toUpperCase().replace(/\s+/g, ' ');
 
-    if (upperSQL.includes('GROUP BY')) {
-      const gbMatch = sql.match(/GROUP\s+BY\s+([`\w]+)/i);
-      const groupCol = gbMatch?.[1]?.replace(/`/g, '');
+    // GROUP BY with aggregation
+    if (upper.includes('GROUP BY')) {
+      const gbMatch = sql.match(/GROUP\s+BY\s+"?(\w+)"?/i);
+      const groupCol = gbMatch?.[1] || table.columns?.find(c => c.type === 'category')?.name;
       if (!groupCol) return null;
 
-      const numCols = table.columns?.filter(c => c.type === 'numeric').slice(0, 4) || [];
+      const sumMatch = sql.match(/SUM\s*\(\s*"?(\w+)"?\s*\)/i);
+      const avgMatch = sql.match(/AVG\s*\(\s*"?(\w+)"?\s*\)/i);
+      const countMatch = upper.includes('COUNT(');
+      const aggCol = sumMatch?.[1] || avgMatch?.[1] || table.columns?.find(c => c.type === 'numeric')?.name;
+
       const grouped = {};
       rows.forEach(row => {
         const key = String(row[groupCol] ?? 'NULL');
-        if (!grouped[key]) {
-          grouped[key] = { [groupCol]: key, _count: 0 };
-          numCols.forEach(c => { grouped[key][`sum_${c.name}`] = 0; });
-        }
+        if (!grouped[key]) grouped[key] = { _key: key, _count: 0, _sum: 0, _values: [] };
         grouped[key]._count++;
-        numCols.forEach(c => { grouped[key][`sum_${c.name}`] += Number(row[c.name]) || 0; });
+        if (aggCol) {
+          const v = Number(row[aggCol]);
+          if (!isNaN(v)) { grouped[key]._sum += v; grouped[key]._values.push(v); }
+        }
       });
 
-      const resultRows = Object.values(grouped).sort((a, b) => b._count - a._count).slice(0, 15);
-      // Round numeric sums
-      resultRows.forEach(r => { Object.keys(r).filter(k => k.startsWith('sum_')).forEach(k => { r[k] = Math.round(r[k]); }); });
-      const headers = Object.keys(resultRows[0] || {});
-      return { headers, rows: resultRows, rowCount: resultRows.length };
+      const resultRows = Object.values(grouped).map(g => {
+        const out = { [groupCol]: g._key };
+        if (countMatch) out['count'] = g._count;
+        if (aggCol) {
+          if (sumMatch) out[`sum_${aggCol}`] = Math.round(g._sum);
+          else if (avgMatch) out[`avg_${aggCol}`] = g._values.length ? parseFloat((g._sum / g._values.length).toFixed(2)) : 0;
+          else out[`total_${aggCol}`] = Math.round(g._sum);
+        }
+        return out;
+      }).sort((a, b) => {
+        const av = Object.values(a).find(v => typeof v === 'number') || 0;
+        const bv = Object.values(b).find(v => typeof v === 'number') || 0;
+        return bv - av;
+      });
+
+      const limitMatch = sql.match(/LIMIT\s+(\d+)/i);
+      const limited = resultRows.slice(0, limitMatch ? parseInt(limitMatch[1]) : 20);
+      return { headers: Object.keys(limited[0] || {}), rows: limited, groupedBy: groupCol, aggCol };
     }
 
+    // ORDER BY with LIMIT
+    if (upper.includes('ORDER BY')) {
+      const orderMatch = sql.match(/ORDER\s+BY\s+"?(\w+)"?\s*(ASC|DESC)?/i);
+      const orderCol = orderMatch?.[1];
+      const desc = (orderMatch?.[2] || 'DESC').toUpperCase() === 'DESC';
+      const limitMatch = sql.match(/LIMIT\s+(\d+)/i);
+      const limit = limitMatch ? parseInt(limitMatch[1]) : 10;
+
+      let sorted = [...rows];
+      if (orderCol) {
+        sorted.sort((a, b) => {
+          const av = Number(a[orderCol]);
+          const bv = Number(b[orderCol]);
+          if (!isNaN(av) && !isNaN(bv)) return desc ? bv - av : av - bv;
+          return desc ? String(b[orderCol]).localeCompare(String(a[orderCol])) : String(a[orderCol]).localeCompare(String(b[orderCol]));
+        });
+      }
+      const sliced = sorted.slice(0, limit);
+      const headers = table.columns?.map(c => c.name).slice(0, 8) || [];
+      return { headers, rows: sliced.map(r => Object.fromEntries(headers.map(h => [h, r[h]]))) };
+    }
+
+    // Basic SELECT *
     const limitMatch = sql.match(/LIMIT\s+(\d+)/i);
-    const limit = limitMatch ? parseInt(limitMatch[1]) : 10;
-
-    // ORDER BY
-    const orderMatch = sql.match(/ORDER\s+BY\s+([`\w]+)\s*(DESC|ASC)?/i);
-    let sliced = [...rows];
-    if (orderMatch) {
-      const col = orderMatch[1].replace(/`/g, '');
-      const desc = (orderMatch[2] || 'ASC').toUpperCase() === 'DESC';
-      sliced.sort((a, b) => {
-        const av = Number(a[col]) || 0;
-        const bv = Number(b[col]) || 0;
-        return desc ? bv - av : av - bv;
-      });
-    }
-
-    sliced = sliced.slice(0, limit);
-    const headers = table.columns?.map(c => c.name) || [];
-    return { headers, rows: sliced, rowCount: sliced.length };
+    const limit = limitMatch ? parseInt(limitMatch[1]) : 15;
+    const sliced = rows.slice(0, limit);
+    const headers = table.columns?.map(c => c.name).slice(0, 8) || [];
+    return { headers, rows: sliced.map(r => Object.fromEntries(headers.map(h => [h, r[h]]))) };
   } catch {
     return null;
   }
 }
 
-function downloadCSV(result, filename = 'query_result.csv') {
-  if (!result?.rows?.length) return;
-  const cols = result.headers.join(',');
-  const rows = result.rows.map(row =>
-    result.headers.map(h => {
-      const val = String(row[h] ?? '');
-      return val.includes(',') ? `"${val}"` : val;
-    }).join(',')
-  ).join('\n');
-  const blob = new Blob([cols + '\n' + rows], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = filename; a.click();
-  URL.revokeObjectURL(url);
+// ── Quick result chart ─────────────────────────────────────────────
+function ResultChart({ result }) {
+  if (!result?.groupedBy || !result.rows?.length) return null;
+  const numKey = result.headers?.find(h => h !== result.groupedBy && typeof result.rows[0][h] === 'number');
+  if (!numKey) return null;
+
+  const data = result.rows.slice(0, 12).map(r => ({ name: String(r[result.groupedBy]).slice(0, 16), value: Number(r[numKey]) || 0 }));
+  const isHorizontal = data.length > 6;
+
+  if (isHorizontal) {
+    return (
+      <ResponsiveContainer width="100%" height={Math.max(180, data.length * 30)}>
+        <BarChart data={data} layout="vertical" margin={{ top: 4, right: 40, bottom: 4, left: 4 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+          <XAxis type="number" tick={axisStyle} tickFormatter={fmtV} tickLine={false} axisLine={false} />
+          <YAxis dataKey="name" type="category" tick={{ ...axisStyle, fontSize: 10 }} tickLine={false} axisLine={false} width={100} />
+          <Tooltip contentStyle={TOOLTIP_STYLE} formatter={v => [fmtV(v), numKey]} />
+          <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+            {data.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} fillOpacity={0.85} />)}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    );
+  }
+
+  return (
+    <ResponsiveContainer width="100%" height={200}>
+      <BarChart data={data} margin={{ top: 4, right: 8, bottom: 4, left: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+        <XAxis dataKey="name" tick={axisStyle} tickLine={false} axisLine={false} />
+        <YAxis tick={axisStyle} tickFormatter={fmtV} tickLine={false} axisLine={false} width={44} />
+        <Tooltip contentStyle={TOOLTIP_STYLE} formatter={v => [fmtV(v), numKey]} />
+        <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+          {data.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} fillOpacity={0.85} />)}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
 }
 
+// ── Main ───────────────────────────────────────────────────────────
 export default function SQLSection() {
   const { semanticModel, getActiveTable, setActiveSection } = useWorkspaceStore();
   const table = getActiveTable();
@@ -93,43 +170,31 @@ export default function SQLSection() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [view, setView] = useState('table'); // 'table' | 'chart'
   const [history, setHistory] = useState([]);
 
   const handleGenerate = async (q) => {
-    const finalQuery = (q || query).trim();
-    if (!finalQuery || !table) return;
-    if (q) setQuery(q);
+    const question = (q || query).trim();
+    if (!question || !table) return;
     setLoading(true);
     setResult(null);
-
+    const cols = table.columns?.map(c => `${c.name} (${c.type})`).join(', ');
+    const catCols = table.columns?.filter(c => c.type === 'category').map(c => c.name).join(', ');
+    const numCols = table.columns?.filter(c => c.type === 'numeric').map(c => c.name).join(', ');
     try {
-      const cols = table.columns?.map(c => `${c.name} (${c.type})`).join(', ');
-      const numericCols = table.columns?.filter(c => c.type === 'numeric').map(c => c.name).join(', ');
-      const catCols = table.columns?.filter(c => c.type === 'category').map(c => c.name).join(', ');
-      const sampleRow = JSON.stringify(table.rows?.[0] || {});
-
       const resp = await base44.integrations.Core.InvokeLLM({
-        prompt: `You are a SQL expert. Generate a SQL SELECT query for this table.
+        prompt: `You are a SQL expert. Given table "${table.name}" with columns: ${cols}
+Numeric columns: ${numCols}
+Category columns: ${catCols}
+Rows: ${table.rowCount}
 
-TABLE: "${table.name}"
-COLUMNS: ${cols}
-NUMERIC COLUMNS (for SUM/AVG/COUNT): ${numericCols}
-CATEGORY COLUMNS (for GROUP BY): ${catCols}
-SAMPLE ROW: ${sampleRow}
-ROW COUNT: ${table.rowCount?.toLocaleString()}
+User question: "${question}"
 
-USER QUESTION: "${finalQuery}"
+Generate a SQL SELECT query. Use GROUP BY + SUM/COUNT/AVG for aggregations. Use ORDER BY + LIMIT for rankings.
+Always use exact column names listed above.
 
-Rules:
-1. Only use SELECT statements (no INSERT/UPDATE/DELETE)
-2. Use exact column names as listed above
-3. For grouping questions: use GROUP BY + SUM/COUNT/AVG
-4. For ranking: use ORDER BY ... DESC LIMIT 10
-5. Include LIMIT unless the user wants all rows
-6. If you cannot generate SQL: set can_generate=false and explain why
-
-Respond with valid JSON only:
-{"sql": "SELECT ...", "explanation": "Plain English description of what this query does", "can_generate": true}`,
+Return JSON: {"sql": "SELECT ...", "explanation": "plain English explanation", "can_generate": true}
+If unable: {"sql": null, "explanation": "reason + suggestion", "can_generate": false}`,
         response_json_schema: {
           type: 'object',
           properties: {
@@ -145,15 +210,16 @@ Respond with valid JSON only:
         queryResult = runInMemorySQL(resp.sql, table);
       }
 
-      const resultData = { ...resp, queryResult, query: finalQuery };
-      setResult(resultData);
-      setHistory(h => [{ query: finalQuery, sql: resp.sql, rowCount: queryResult?.rowCount }, ...h.slice(0, 9)]);
+      const r = { ...resp, queryResult, question };
+      setResult(r);
+      setHistory(h => [r, ...h].slice(0, 5));
+      setView('table');
     } catch (e) {
       setResult({
         sql: null,
-        explanation: 'Could not generate SQL. Try the AI Analyst for a direct natural-language answer.',
+        explanation: 'SQL generation failed. Try the AI Analyst for natural language questions about your data.',
         can_generate: false,
-        error: true,
+        question,
       });
     }
     setLoading(false);
@@ -165,14 +231,25 @@ Respond with valid JSON only:
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const downloadCSV = () => {
+    if (!result?.queryResult) return;
+    const { headers, rows } = result.queryResult;
+    const csv = [headers.join(','), ...rows.map(r => headers.map(h => JSON.stringify(r[h] ?? '')).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'query_result.csv'; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (!table) {
     return (
       <div className="p-8 flex flex-col items-center justify-center min-h-[500px] text-center">
         <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/8 flex items-center justify-center mx-auto mb-4">
           <Terminal className="w-7 h-7 text-white/25" />
         </div>
-        <h2 className="text-lg font-semibold mb-2">No Data Loaded</h2>
-        <p className="text-muted-foreground text-sm mb-6">Upload a dataset first to use SQL Studio.</p>
+        <h2 className="text-lg font-semibold mb-2">SQL Studio</h2>
+        <p className="text-sm text-muted-foreground mb-6">Upload data to query it with natural language — we generate the SQL and run it instantly.</p>
         <button onClick={() => setActiveSection('intake')}
           className="flex items-center gap-2 px-5 py-2.5 bg-cyan-400/10 border border-cyan-400/20 text-cyan-400 rounded-xl text-sm font-semibold hover:bg-cyan-400/15 transition-colors">
           Upload Data <ArrowRight className="w-4 h-4" />
@@ -182,19 +259,18 @@ Respond with valid JSON only:
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
+    <div className="p-6 max-w-5xl mx-auto space-y-5">
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-2xl font-bold mb-1">SQL Studio</h1>
-        <p className="text-sm text-muted-foreground">Ask questions in plain English — get AI-generated SQL and instant in-memory results.</p>
+        <p className="text-sm text-muted-foreground">Ask questions in plain English — AI generates SQL and runs it against your data instantly.</p>
       </motion.div>
 
-      {/* Schema browser */}
+      {/* Schema strip */}
       <div className="glass rounded-xl p-4 border border-white/8">
         <div className="flex items-center gap-2 mb-3">
           <Database className="w-3.5 h-3.5 text-cyan-400" />
           <span className="text-xs font-semibold text-cyan-400">{table.name}</span>
-          <span className="text-xs text-muted-foreground">· {table.rowCount?.toLocaleString()} rows</span>
-          <span className="ml-auto text-xs text-muted-foreground">{table.columns?.length} columns</span>
+          <span className="text-xs text-muted-foreground">· {table.rowCount?.toLocaleString()} rows · {table.columns?.length} columns</span>
         </div>
         <div className="flex flex-wrap gap-1.5">
           {table.columns?.map(c => (
@@ -208,23 +284,18 @@ Respond with valid JSON only:
             </span>
           ))}
         </div>
-        <div className="flex gap-3 mt-2 text-xs">
-          {[['numeric', 'text-blue-400'], ['date', 'text-teal-400'], ['category', 'text-purple-400'], ['id', 'text-amber-400']].map(([type, color]) => {
-            const count = table.columns?.filter(c => c.type === type).length;
-            if (!count) return null;
-            return <span key={type} className={`${color} font-mono`}>{count} {type}</span>;
-          })}
-        </div>
       </div>
 
       {/* Example queries */}
       <div>
-        <div className="text-xs text-white/30 uppercase tracking-widest mb-2">Quick queries</div>
+        <div className="text-xs text-white/30 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+          <Lightbulb className="w-3 h-3" /> Example queries
+        </div>
         <div className="flex flex-wrap gap-2">
-          {EXAMPLE_QUERIES.map(({ label, q }) => (
-            <button key={label} onClick={() => handleGenerate(q)}
-              className="px-3 py-1.5 bg-white/4 border border-white/8 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:border-cyan-400/25 transition-all">
-              {label}
+          {EXAMPLE_QUERIES.map(q => (
+            <button key={q} onClick={() => { setQuery(q); handleGenerate(q); }}
+              className="px-3 py-1.5 bg-white/4 border border-white/8 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:border-cyan-400/25 hover:bg-white/7 transition-all">
+              {q}
             </button>
           ))}
         </div>
@@ -232,29 +303,37 @@ Respond with valid JSON only:
 
       {/* Query input */}
       <div className="space-y-3">
-        <textarea
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleGenerate(); }}
-          placeholder="Ask a question in plain English… (Ctrl+Enter or ⌘+Enter to run)"
-          rows={3}
-          className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm placeholder:text-muted-foreground focus:outline-none focus:border-cyan-400/30 resize-none font-mono text-foreground"
-        />
-        <div className="flex items-center gap-3">
+        <div className="relative">
+          <Terminal className="absolute left-4 top-4 w-4 h-4 text-muted-foreground" />
+          <textarea value={query} onChange={e => setQuery(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleGenerate(); }}
+            placeholder="Ask a question about your data… (Ctrl+Enter to generate SQL)"
+            rows={3}
+            className="w-full pl-11 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-sm placeholder:text-muted-foreground focus:outline-none focus:border-cyan-400/30 resize-none text-foreground font-mono"
+          />
+        </div>
+        <div className="flex items-center gap-2">
           <button onClick={() => handleGenerate()} disabled={loading || !query.trim()}
-            className="flex items-center gap-2 px-5 py-2.5 bg-cyan-400 rounded-xl text-sm font-bold disabled:opacity-50 hover:bg-cyan-300 transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 bg-cyan-400 rounded-xl text-sm font-bold disabled:opacity-50 hover:bg-cyan-300 transition-all"
             style={{ color: 'hsl(222,47%,6%)' }}>
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Play className="w-4 h-4" /> Run Query</>}
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+            {loading ? 'Generating…' : 'Generate & Run SQL'}
           </button>
-          <span className="text-xs text-white/25">⌘+Enter to run · Results shown in-memory</span>
-          {result?.queryResult && (
-            <button onClick={() => downloadCSV(result.queryResult, 'query_result.csv')}
-              className="ml-auto flex items-center gap-1.5 text-xs px-3 py-1.5 bg-teal-400/10 border border-teal-400/20 text-teal-400 rounded-lg hover:bg-teal-400/15 transition-colors">
-              <Download className="w-3 h-3" /> Export CSV
-            </button>
-          )}
+          <span className="text-xs text-muted-foreground">Ctrl+Enter to run</span>
         </div>
       </div>
+
+      {/* Query history */}
+      {history.length > 1 && (
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {history.slice(1, 4).map((h, i) => (
+            <button key={i} onClick={() => { setQuery(h.question); setResult(h); }}
+              className="flex-shrink-0 text-xs px-3 py-1.5 rounded-lg bg-white/4 border border-white/8 text-white/40 hover:text-white/70 hover:bg-white/6 transition-all truncate max-w-48">
+              {h.question}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Results */}
       <AnimatePresence>
@@ -264,99 +343,115 @@ Respond with valid JSON only:
             {!result.can_generate && (
               <div className="flex items-start gap-3 p-4 bg-amber-400/5 border border-amber-400/20 rounded-xl">
                 <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <div className="text-sm text-amber-400 font-semibold mb-1">SQL Not Available</div>
-                  <div className="text-xs text-amber-400/80">{result.explanation}</div>
-                  <button onClick={() => setActiveSection('analyst')} className="mt-2 text-xs text-cyan-400 hover:underline flex items-center gap-1">
-                    Ask the AI Analyst instead <ArrowRight className="w-3 h-3" />
+                <div className="text-sm text-amber-400/90 leading-relaxed">{result.explanation}
+                  <button onClick={() => setActiveSection('analyst')} className="ml-2 text-cyan-400 hover:underline inline-flex items-center gap-1 text-xs">
+                    Try AI Analyst <ChevronRight className="w-3 h-3" />
                   </button>
                 </div>
               </div>
             )}
 
-            {/* SQL output */}
+            {/* Generated SQL */}
             {result.sql && (
-              <div className="glass-card rounded-xl border border-white/10 overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/5 bg-white/3">
+              <div className="glass-card rounded-xl border border-white/10">
+                <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/8">
                   <div className="flex items-center gap-2">
-                    <Terminal className="w-3.5 h-3.5 text-cyan-400" />
-                    <span className="text-xs font-semibold text-cyan-400 uppercase tracking-wide">Generated SQL</span>
+                    <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                    <span className="text-xs font-semibold text-cyan-400 uppercase tracking-widest">Generated SQL</span>
                   </div>
                   <button onClick={copySQL} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                    {copied ? <><CheckCircle2 className="w-3.5 h-3.5 text-green-400" /> Copied!</> : <><Copy className="w-3.5 h-3.5" /> Copy SQL</>}
+                    {copied ? <><CheckCircle2 className="w-3.5 h-3.5 text-green-400" /> Copied</> : <><Copy className="w-3.5 h-3.5" /> Copy</>}
                   </button>
                 </div>
-                <pre className="p-4 text-xs font-mono text-green-300 overflow-auto leading-relaxed">{result.sql}</pre>
+                <pre className="p-4 text-xs font-mono text-green-300/90 overflow-auto whitespace-pre-wrap leading-relaxed">{result.sql}</pre>
               </div>
             )}
 
-            {/* Plain English explanation */}
+            {/* Explanation */}
             {result.explanation && result.can_generate && (
               <div className="flex items-start gap-3 p-4 glass rounded-xl border border-white/8">
-                <Info className="w-4 h-4 text-white/30 mt-0.5 flex-shrink-0" />
+                <Lightbulb className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
                 <div>
-                  <div className="text-xs text-white/35 uppercase tracking-widest mb-1">What this query does</div>
-                  <div className="text-sm text-white/70">{result.explanation}</div>
+                  <div className="text-xs text-muted-foreground uppercase tracking-widest mb-1">What this query does</div>
+                  <div className="text-sm text-white/70 leading-relaxed">{result.explanation}</div>
                 </div>
               </div>
             )}
 
-            {/* Query results table */}
+            {/* Query result */}
             {result.queryResult && (
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-xs text-muted-foreground uppercase tracking-widest">
-                    Query Results · {result.queryResult.rowCount} row{result.queryResult.rowCount !== 1 ? 's' : ''}
+              <div className="glass-card rounded-xl border border-white/8">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-white/8">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />
+                    <span className="text-xs font-semibold">Query Results</span>
+                    <span className="text-xs text-muted-foreground">· {result.queryResult.rows?.length} rows returned</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {result.queryResult.groupedBy && (
+                      <div className="flex items-center bg-white/5 border border-white/8 rounded-lg p-0.5">
+                        <button onClick={() => setView('table')} className={`p-1.5 rounded text-xs transition-all ${view === 'table' ? 'bg-white/10 text-white' : 'text-white/35 hover:text-white/60'}`}>
+                          <Table2 className="w-3 h-3" />
+                        </button>
+                        <button onClick={() => setView('chart')} className={`p-1.5 rounded text-xs transition-all ${view === 'chart' ? 'bg-white/10 text-white' : 'text-white/35 hover:text-white/60'}`}>
+                          <BarChart2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+                    <button onClick={downloadCSV} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-lg hover:bg-white/5">
+                      <Download className="w-3 h-3" /> CSV
+                    </button>
                   </div>
                 </div>
-                <div className="overflow-auto rounded-xl border border-white/8 max-h-72">
-                  <table className="w-full text-xs">
-                    <thead className="sticky top-0">
-                      <tr className="bg-navy-700/95 border-b border-white/8">
-                        {result.queryResult.headers?.map(h => (
-                          <th key={h} className="px-3 py-2.5 text-left font-mono text-white/50 font-medium whitespace-nowrap">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {result.queryResult.rows?.slice(0, 20).map((row, i) => (
-                        <tr key={i} className="border-b border-white/5 hover:bg-white/2 transition-colors">
-                          {result.queryResult.headers?.map(h => (
-                            <td key={h} className="px-3 py-2 font-mono text-white/65 whitespace-nowrap">{String(row[h] ?? '—')}</td>
+
+                <AnimatePresence mode="wait">
+                  {view === 'chart' && result.queryResult.groupedBy ? (
+                    <motion.div key="chart" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-4">
+                      <ResultChart result={result.queryResult} />
+                    </motion.div>
+                  ) : (
+                    <motion.div key="table" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="overflow-auto max-h-72">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="bg-white/3 border-b border-white/8 sticky top-0">
+                            {result.queryResult.headers?.map(h => (
+                              <th key={h} className="px-3 py-2.5 text-left font-mono text-white/50 font-medium whitespace-nowrap">{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {result.queryResult.rows?.map((row, i) => (
+                            <tr key={i} className="border-b border-white/5 hover:bg-white/2 transition-colors">
+                              {result.queryResult.headers?.map(h => (
+                                <td key={h} className="px-3 py-2 font-mono text-white/65 whitespace-nowrap">
+                                  {typeof row[h] === 'number' ? fmtV(row[h]) : String(row[h] ?? '—')}
+                                </td>
+                              ))}
+                            </tr>
                           ))}
-                        </tr>
-                      ))}
-                      {result.queryResult.rows?.length === 0 && (
-                        <tr><td colSpan={result.queryResult.headers?.length} className="px-4 py-8 text-center text-muted-foreground">No results returned.</td></tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-                {result.queryResult.rows?.length > 20 && (
-                  <div className="text-xs text-white/25 mt-1.5 text-center">Showing first 20 of {result.queryResult.rowCount} rows · Export CSV for full results</div>
-                )}
+                        </tbody>
+                      </table>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+
+            {result.can_generate && !result.queryResult && (
+              <div className="flex items-center gap-2 text-xs text-amber-400/70 p-3 bg-amber-400/5 border border-amber-400/15 rounded-lg">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                This query could not be run in-memory (requires a database engine). The SQL above is valid — copy it to run in your own DB.
               </div>
             )}
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Query history */}
-      {history.length > 0 && (
-        <div>
-          <div className="text-xs text-white/30 uppercase tracking-widest mb-2">Recent Queries</div>
-          <div className="space-y-1">
-            {history.slice(0, 5).map((h, i) => (
-              <button key={i} onClick={() => handleGenerate(h.query)}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left hover:bg-white/5 transition-colors group">
-                <Terminal className="w-3 h-3 text-white/20 flex-shrink-0" />
-                <span className="text-xs text-white/50 flex-1 truncate">{h.query}</span>
-                {h.rowCount != null && <span className="text-xs text-white/25">{h.rowCount} rows</span>}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* AI Analyst link */}
+      <div className="flex items-center gap-3 p-4 glass rounded-xl border border-white/5 text-xs text-muted-foreground">
+        <Sparkles className="w-4 h-4 text-purple-400 flex-shrink-0" />
+        <span>Need deeper analysis? The <button onClick={() => setActiveSection('analyst')} className="text-cyan-400 hover:underline font-medium">AI Analyst</button> can answer complex questions using statistics, trends, and predictions — no SQL required.</span>
+      </div>
     </div>
   );
 }

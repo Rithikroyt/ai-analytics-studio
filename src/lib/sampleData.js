@@ -101,9 +101,45 @@ const generateHealthcareData = () => {
   return rows;
 };
 
+const generateEducationData = () => {
+  const courses = ['Data Science 101','Python Programming','Business Analytics','Machine Learning','Statistics','Excel Mastery','SQL Foundations','Leadership 101'];
+  const statuses = ['Enrolled','Completed','Dropped','Paused'];
+  const campuses = ['Online','San Francisco','New York','Chicago','London'];
+  const rows = [];
+  let id = 1;
+  for (let month = 1; month <= 12; month++) {
+    for (const course of courses) {
+      for (const campus of campuses) {
+        const enrolled = Math.round(40 + Math.random() * 160);
+        const completed = Math.round(enrolled * (0.55 + Math.random() * 0.35));
+        const dropped = Math.round(enrolled * (0.05 + Math.random() * 0.15));
+        const satisfaction = parseFloat((3.2 + Math.random() * 1.8).toFixed(1));
+        const avg_score = parseFloat((58 + Math.random() * 40).toFixed(1));
+        const revenue = Math.round(enrolled * (299 + Math.random() * 400));
+        rows.push({
+          id: id++,
+          month: `2024-${String(month).padStart(2,'0')}`,
+          course,
+          campus,
+          enrolled,
+          completed,
+          dropped,
+          completion_rate: parseFloat(((completed / enrolled) * 100).toFixed(1)),
+          satisfaction_score: satisfaction,
+          avg_assessment_score: avg_score,
+          revenue,
+          instructor_rating: parseFloat((3.5 + Math.random() * 1.5).toFixed(1)),
+        });
+      }
+    }
+  }
+  return rows;
+};
+
 const salesData = generateSalesData();
 const workforceData = generateWorkforceData();
 const healthcareData = generateHealthcareData();
+const educationData = generateEducationData();
 
 const inferColumns = (rows) => {
   if (!rows || rows.length === 0) return [];
@@ -322,6 +358,7 @@ const buildRecommendations = (tableName, growthRate, anomalies, breakdown) => {
 const salesColumns = inferColumns(salesData);
 const workforceColumns = inferColumns(workforceData);
 const healthcareColumns = inferColumns(healthcareData);
+const educationColumns = inferColumns(educationData);
 
 export const sampleBundles = {
   sales: {
@@ -365,6 +402,20 @@ export const sampleBundles = {
     }],
     semanticModel: buildSemanticModel('healthcare-main', healthcareColumns, 'Healthcare Operations'),
     analysisResults: buildAnalysis(healthcareData, healthcareColumns, 'Healthcare Operations'),
+  },
+  education: {
+    tables: [{
+      id: 'education-main',
+      name: 'Student Engagement & Retention',
+      fileName: 'education_data.csv',
+      rows: educationData,
+      columns: educationColumns,
+      rowCount: educationData.length,
+      qualityScore: 97,
+      issues: [],
+    }],
+    semanticModel: buildSemanticModel('education-main', educationColumns, 'Student Engagement & Retention'),
+    analysisResults: buildAnalysis(educationData, educationColumns, 'Student Engagement & Retention'),
   },
 };
 

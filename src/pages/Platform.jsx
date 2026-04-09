@@ -1,187 +1,277 @@
-import { motion } from 'framer-motion';
+import { useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { motion, useInView } from 'framer-motion';
 import {
-  Brain, BarChart3, Database, Layers, Zap, GitBranch, FileText,
-  ArrowRight, CheckCircle2, TrendingUp, Shield, Activity,
-  Bot, Search, Target, FlaskConical, Lightbulb, Cpu
+  Upload, Settings2, BarChart3, Brain, FileText, Layers,
+  Terminal, ArrowRight, Zap, CheckCircle2, Activity,
+  TrendingUp, Database, Shield, Sparkles, GitBranch,
+  ChevronRight, Target, AlertTriangle
 } from 'lucide-react';
 
-const fadeUp = { hidden: { opacity: 0, y: 24 }, show: { opacity: 1, y: 0, transition: { duration: 0.5 } } };
-const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.08 } } };
+function FadeIn({ children, delay = 0, className = '' }) {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: '-60px' });
+  return (
+    <motion.div ref={ref} initial={{ opacity: 0, y: 20 }} animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] }} className={className}>
+      {children}
+    </motion.div>
+  );
+}
 
-const caps = [
-  { icon: Database, color: 'text-cyan-400', bg: 'bg-cyan-400/10', border: 'border-cyan-400/20', title: 'Data Intake Engine', items: ['CSV, XLSX, JSON, TXT upload', 'Multi-sheet Excel detection', 'Header inference & cleaning', 'Column type classification', 'Multi-table workspace'] },
-  { icon: Brain, color: 'text-purple-400', bg: 'bg-purple-400/10', border: 'border-purple-400/20', title: 'AI Analyst Agent', items: ['Natural language data queries', 'Schema & semantic layer grounding', 'SQL generation & execution', 'Evidence from uploaded docs', 'Structured answer framework'] },
-  { icon: BarChart3, color: 'text-teal-400', bg: 'bg-teal-400/10', border: 'border-teal-400/20', title: 'Storytelling Dashboards', items: ['Narrative-driven chart layouts', 'KPI strip + executive headline', 'Anomaly detection panel', 'Forecast with confidence bands', 'Recommended actions panel'] },
-  { icon: Layers, color: 'text-blue-400', bg: 'bg-blue-400/10', border: 'border-blue-400/20', title: 'Semantic Layer', items: ['Dimensions & measures catalog', 'KPI definitions & descriptions', 'Relationship inference', 'Consistent metric naming', 'Date grain management'] },
-  { icon: GitBranch, color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/20', title: 'SQL Studio', items: ['Natural language to SQL', 'Query preview & results', 'Plain-English explanation', 'Safe fallback mode', 'Export query results'] },
-  { icon: FileText, color: 'text-pink-400', bg: 'bg-pink-400/10', border: 'border-pink-400/20', title: 'Reports & Export', items: ['Executive summary memos', 'Board-ready PDF exports', 'Anomaly & forecast reports', 'Data quality audits', 'CSV exports of results'] },
+const PIPELINE = [
+  {
+    icon: Upload, color: 'text-cyan-400', bg: 'bg-cyan-400/10', border: 'border-cyan-400/25', num: '01',
+    title: 'Universal Data Intake',
+    desc: 'Upload CSV, XLSX, JSON, or text documents. Multi-sheet Excel detection, robust CSV parsing, JSON flattening, and document extraction.',
+    features: ['Auto-detect column types', 'Excel sheet selector', 'Data quality scoring', 'Multi-file bundles'],
+  },
+  {
+    icon: Settings2, color: 'text-teal-400', bg: 'bg-teal-400/10', border: 'border-teal-400/25', num: '02',
+    title: 'Auto-Prepare & Profile',
+    desc: 'Automated data profiling, schema inference, missing value detection, duplicate analysis, and quality scoring with actionable recommendations.',
+    features: ['Missing value analysis', 'Duplicate detection', 'KPI candidate ranking', 'Date field inference'],
+  },
+  {
+    icon: Activity, color: 'text-purple-400', bg: 'bg-purple-400/10', border: 'border-purple-400/25', num: '03',
+    title: 'Statistical Analysis Engine',
+    desc: 'Full local statistics: descriptive analytics, Pearson correlations, anomaly detection, t-tests, regression, and exponential smoothing forecasts.',
+    features: ['Anomaly detection', 'Correlation matrix', 'Forecasting (6 periods)', 'Descriptive stats'],
+  },
+  {
+    icon: Layers, color: 'text-blue-400', bg: 'bg-blue-400/10', border: 'border-blue-400/25', num: '04',
+    title: 'Semantic Model Layer',
+    desc: 'Auto-generate a business-friendly semantic model with KPI definitions, dimensions, measures, and natural language query examples.',
+    features: ['Metric definitions', 'Business labels', 'NL query examples', 'Used across all modules'],
+  },
+  {
+    icon: BarChart3, color: 'text-green-400', bg: 'bg-green-400/10', border: 'border-green-400/25', num: '05',
+    title: 'Storytelling Dashboards',
+    desc: 'Executive dashboards following the hierarchy: What happened → Why → Where the risk is → What to do next. AI-generated chart panels.',
+    features: ['KPI summary strip', 'Trend + forecast chart', 'Anomaly panel', 'AI recommendations'],
+  },
+  {
+    icon: Brain, color: 'text-pink-400', bg: 'bg-pink-400/10', border: 'border-pink-400/25', num: '06',
+    title: 'Grounded AI Analyst',
+    desc: 'Chat agent powered by Claude, grounded in your actual data. Statistical context, chart analysis, and evidence-based answers — never hallucinated.',
+    features: ['4 analysis modes', 'Trendline overlay', 'Follow-up suggestions', 'Confidence scores'],
+  },
+  {
+    icon: FileText, color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/25', num: '07',
+    title: 'Reports & Export',
+    desc: 'AI-written Executive Summaries, Board Memos, Anomaly Reports, and Forecast Reports. Export as PDF, CSV, or Excel workbook.',
+    features: ['5 report types', 'PDF export', 'CSV export', 'Excel workbook'],
+  },
+  {
+    icon: Terminal, color: 'text-orange-400', bg: 'bg-orange-400/10', border: 'border-orange-400/25', num: '08',
+    title: 'SQL Studio',
+    desc: 'Natural language → SQL translation with in-memory execution, result tables, auto-visualization, and query history.',
+    features: ['NL to SQL', 'In-memory execution', 'Auto chart', 'Download results'],
+  },
 ];
 
-const analysisLayers = [
-  { icon: Activity, color: 'text-cyan-400', title: 'Descriptive Analytics', desc: 'Summary stats, KPI cards, trends, segment comparison, distribution, deviation from benchmarks, top/bottom performers.' },
-  { icon: Shield, color: 'text-amber-400', title: 'Data Quality Analytics', desc: 'Missing value summary, duplicate detection, outlier suspicion, inconsistent categories, quality score and recommendations.' },
-  { icon: FlaskConical, color: 'text-green-400', title: 'Statistical Analytics', desc: 'Correlations, t-tests, chi-square, ANOVA, confidence intervals, regression summaries — all in plain English.' },
-  { icon: TrendingUp, color: 'text-purple-400', title: 'Predictive Analytics', desc: 'Time-series forecasting, anomaly detection, clustering, risk scoring — only applied where data supports it.' },
-  { icon: Lightbulb, color: 'text-orange-400', title: 'Prescriptive Analytics', desc: 'Key risks, likely causes, recommended interventions, priority rankings, what-if scenarios.' },
-  { icon: Bot, color: 'text-pink-400', title: 'Text & Feedback Analytics', desc: 'Sentiment analysis, theme extraction, cluster concerns, evidence snippets, action themes from documents.' },
-];
-
-const pipeline = [
-  { step: 1, label: 'Raw Upload', icon: Database, color: '#00e5ff' },
-  { step: 2, label: 'Auto-Profile', icon: Activity, color: '#00bfa5' },
-  { step: 3, label: 'Semantic Model', icon: Layers, color: '#2196f3' },
-  { step: 4, label: 'Analysis Engine', icon: Cpu, color: '#9c27b0' },
-  { step: 5, label: 'AI Analyst', icon: Brain, color: '#e91e63' },
-  { step: 6, label: 'Reports & Export', icon: FileText, color: '#ff6b35' },
+const INTELLIGENCE_LAYERS = [
+  {
+    title: 'Descriptive Analytics',
+    color: 'text-cyan-400', border: 'border-cyan-400/20', bg: 'bg-cyan-400/5',
+    items: ['Summary statistics', 'KPI cards', 'Segment comparison', 'Distribution analysis', 'Top/bottom performers'],
+  },
+  {
+    title: 'Diagnostic Analytics',
+    color: 'text-purple-400', border: 'border-purple-400/20', bg: 'bg-purple-400/5',
+    items: ['Anomaly detection (Z-score + IQR)', 'Pearson correlation matrix', 'Root cause analysis', 'Statistical significance (p-values)', 'Deviation from benchmark'],
+  },
+  {
+    title: 'Predictive Analytics',
+    color: 'text-green-400', border: 'border-green-400/20', bg: 'bg-green-400/5',
+    items: ['Exponential smoothing forecast', 'Linear regression model', '6-period projections', 'Confidence bands', 'Feature importance'],
+  },
+  {
+    title: 'Prescriptive Analytics',
+    color: 'text-amber-400', border: 'border-amber-400/20', bg: 'bg-amber-400/5',
+    items: ['Priority recommendations', 'Risk identification', 'Intervention suggestions', 'Opportunity ranking', 'Scenario planning'],
+  },
 ];
 
 export default function Platform() {
   return (
     <div className="min-h-screen bg-background pt-20">
       {/* Hero */}
-      <section className="py-24 hero-gradient">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0, transition: { duration: 0.6 } }}>
-            <span className="text-xs font-semibold tracking-widest text-cyan-400 uppercase">The Platform</span>
-            <h1 className="text-5xl md:text-6xl font-black mt-4 mb-6">
-              One platform.<br /><span className="text-gradient">Infinite data stories.</span>
+      <section className="hero-gradient py-20 px-6 text-center">
+        <div className="max-w-4xl mx-auto">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-cyan-400/25 bg-cyan-400/8 mb-6">
+              <Zap className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="text-xs font-semibold text-cyan-400 tracking-widest uppercase">Integrated Platform Architecture</span>
+            </div>
+            <h1 className="text-5xl font-black mb-5">
+              One platform. Every step from
+              <span className="text-gradient block">raw data to executive insight.</span>
             </h1>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              The only platform that takes raw structured data all the way to executive-ready AI insights — with no setup, no code, and no data engineering team required.
+            <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed">
+              AI Agent Analytics is a vertically integrated decision intelligence platform — upload, prepare, analyze, visualize, and report without switching tools or writing code.
             </p>
+            <Link to="/workspace"
+              className="inline-flex items-center gap-2 px-6 py-3.5 bg-cyan-400 rounded-xl font-bold hover:bg-cyan-300 transition-all"
+              style={{ color: 'hsl(222,47%,6%)' }}>
+              <Zap className="w-4 h-4" /> Launch Workspace
+            </Link>
           </motion.div>
         </div>
       </section>
 
-      {/* Pipeline visual */}
-      <section className="py-16 border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-center justify-center flex-wrap gap-0">
-            {pipeline.map((p, i) => (
-              <div key={p.step} className="flex items-center">
-                <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
-                  className="flex flex-col items-center gap-2">
-                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center border" style={{ background: `${p.color}15`, borderColor: `${p.color}30` }}>
-                    <p.icon className="w-5 h-5" style={{ color: p.color }} />
+      {/* Pipeline */}
+      <section className="py-24 px-6">
+        <div className="max-w-6xl mx-auto">
+          <FadeIn className="text-center mb-16">
+            <div className="text-xs text-cyan-400 uppercase tracking-widest font-semibold mb-3">8-Stage Pipeline</div>
+            <h2 className="text-4xl font-black mb-4">From raw file to board-ready insights</h2>
+            <p className="text-muted-foreground max-w-xl mx-auto">Each stage is automated — you guide, the platform executes.</p>
+          </FadeIn>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {PIPELINE.map((stage, i) => (
+              <FadeIn key={stage.num} delay={i * 0.05}>
+                <div className={`glass-card rounded-2xl p-5 border ${stage.border} hover:scale-[1.01] transition-all`}>
+                  <div className="flex items-start gap-4">
+                    <div className={`w-10 h-10 rounded-xl ${stage.bg} border ${stage.border} flex items-center justify-center flex-shrink-0`}>
+                      <stage.icon className={`w-5 h-5 ${stage.color}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`text-xs font-black font-mono ${stage.color}`}>{stage.num}</span>
+                        <h3 className="font-bold text-sm">{stage.title}</h3>
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed mb-3">{stage.desc}</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {stage.features.map(f => (
+                          <span key={f} className="text-xs px-2 py-0.5 bg-white/5 border border-white/8 rounded-full text-white/50">
+                            <CheckCircle2 className="w-2.5 h-2.5 inline mr-1 text-green-400" />{f}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-xs text-white/50 font-medium text-center max-w-16 leading-tight">{p.label}</div>
-                </motion.div>
-                {i < pipeline.length - 1 && (
-                  <div className="w-8 md:w-12 h-px bg-gradient-to-r from-white/20 to-white/5 mx-2 flex-shrink-0" />
-                )}
-              </div>
+                </div>
+              </FadeIn>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Capabilities grid */}
-      <section className="py-24 max-w-7xl mx-auto px-6">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-14">
-          <span className="text-xs font-semibold tracking-widest text-cyan-400 uppercase">Platform Capabilities</span>
-          <h2 className="text-4xl font-black mt-3 mb-4">Six integrated modules</h2>
-          <p className="text-muted-foreground max-w-xl mx-auto">Each module is designed to work seamlessly with the others — creating a unified analytics experience.</p>
-        </motion.div>
+      {/* Intelligence layers */}
+      <section className="section-gradient py-24 px-6">
+        <div className="max-w-6xl mx-auto">
+          <FadeIn className="text-center mb-16">
+            <div className="text-xs text-purple-400 uppercase tracking-widest font-semibold mb-3">Analysis Engine</div>
+            <h2 className="text-4xl font-black mb-4">Four layers of analytical intelligence</h2>
+            <p className="text-muted-foreground max-w-xl mx-auto">Applied contextually based on your data — not forced on every dataset.</p>
+          </FadeIn>
 
-        <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {caps.map((cap) => (
-            <motion.div key={cap.title} variants={fadeUp} className={`glass-card rounded-2xl p-6 border ${cap.border} hover:border-opacity-70 transition-all`}>
-              <div className={`w-10 h-10 rounded-xl ${cap.bg} flex items-center justify-center mb-4`}>
-                <cap.icon className={`w-5 h-5 ${cap.color}`} />
-              </div>
-              <h3 className="font-bold text-lg mb-4">{cap.title}</h3>
-              <ul className="space-y-2">
-                {cap.items.map(item => (
-                  <li key={item} className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" /> {item}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+            {INTELLIGENCE_LAYERS.map((layer, i) => (
+              <FadeIn key={layer.title} delay={i * 0.08}>
+                <div className={`glass-card rounded-2xl p-5 border ${layer.border} ${layer.bg} h-full`}>
+                  <h3 className={`font-bold text-sm mb-4 ${layer.color}`}>{layer.title}</h3>
+                  <ul className="space-y-2">
+                    {layer.items.map(item => (
+                      <li key={item} className="flex items-start gap-2 text-xs text-white/60">
+                        <ChevronRight className={`w-3 h-3 flex-shrink-0 mt-0.5 ${layer.color}`} />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </FadeIn>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* AI Analyst deep dive */}
+      <section className="py-24 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <FadeIn>
+              <div className="text-xs text-pink-400 uppercase tracking-widest font-semibold mb-3">AI Analyst Agent</div>
+              <h2 className="text-4xl font-black mb-5">Answers grounded in your data.<br />Never hallucinated.</h2>
+              <p className="text-muted-foreground mb-6 leading-relaxed">
+                The AI Analyst is powered by Claude and pre-loaded with statistical context from your actual data — descriptive stats, correlations, anomalies, and forecasts — before it answers.
+              </p>
+              <ul className="space-y-3 mb-6">
+                {[
+                  'Pre-computed statistics as factual ground truth',
+                  '4 analysis modes: Exploratory, Predictive, Diagnostic, Prescriptive',
+                  'Anomaly trendline overlay on every chart',
+                  'Confidence scores and methodology notes',
+                  'Follow-up question suggestions',
+                  'Export AI session as Excel or PDF',
+                ].map(item => (
+                  <li key={item} className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                    <CheckCircle2 className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+                    {item}
                   </li>
                 ))}
               </ul>
-            </motion.div>
-          ))}
-        </motion.div>
-      </section>
+              <Link to="/workspace" className="inline-flex items-center gap-2 px-5 py-3 bg-pink-400/10 border border-pink-400/20 text-pink-400 rounded-xl font-semibold text-sm hover:bg-pink-400/15 transition-all">
+                <Brain className="w-4 h-4" /> Try AI Analyst <ArrowRight className="w-4 h-4" />
+              </Link>
+            </FadeIn>
 
-      {/* Analysis Engine section */}
-      <section className="py-24 section-gradient">
-        <div className="max-w-7xl mx-auto px-6">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-14">
-            <span className="text-xs font-semibold tracking-widest text-purple-400 uppercase">Analysis Engine</span>
-            <h2 className="text-4xl font-black mt-3 mb-4">Six layers of analytics intelligence</h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">Not every model applies to every dataset. The engine selects the right analytical approach based on your data's structure.</p>
-          </motion.div>
-
-          <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {analysisLayers.map((layer) => (
-              <motion.div key={layer.title} variants={fadeUp} className="glass-card rounded-2xl p-5 border border-white/5 hover:border-white/10 transition-all">
-                <div className="flex items-center gap-3 mb-3">
-                  <layer.icon className={`w-4 h-4 ${layer.color}`} />
-                  <h3 className={`font-semibold text-sm ${layer.color}`}>{layer.title}</h3>
+            {/* Answer format mockup */}
+            <FadeIn delay={0.2}>
+              <div className="glass-card rounded-2xl p-6 border border-pink-400/20">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-7 h-7 rounded-lg bg-pink-400/10 flex items-center justify-center">
+                    <Brain className="w-3.5 h-3.5 text-pink-400" />
+                  </div>
+                  <span className="text-sm font-semibold">AI Analyst Response Format</span>
                 </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">{layer.desc}</p>
-              </motion.div>
-            ))}
-          </motion.div>
+                {[
+                  { num: '1', label: 'Direct Answer', color: 'bg-cyan-400', desc: 'Factual, specific, data-grounded response' },
+                  { num: '2', label: 'Why It Matters', color: 'bg-purple-400', desc: 'Business impact and strategic relevance' },
+                  { num: '3', label: 'Supporting Evidence', color: 'bg-teal-400', desc: 'Statistics, charts, and anomaly flags' },
+                  { num: '4', label: 'Recommended Actions', color: 'bg-green-400', desc: 'Prioritized, actionable next steps' },
+                  { num: '5', label: 'Confidence & Limitations', color: 'bg-amber-400', desc: 'Transparency about uncertainty' },
+                ].map(item => (
+                  <div key={item.num} className="flex items-start gap-3 mb-3 last:mb-0">
+                    <div className={`w-5 h-5 rounded-full ${item.color} flex items-center justify-center flex-shrink-0 mt-0.5`}>
+                      <span className="text-xs font-black text-navy-900">{item.num}</span>
+                    </div>
+                    <div>
+                      <div className="text-xs font-semibold text-white/80">{item.label}</div>
+                      <div className="text-xs text-muted-foreground">{item.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </FadeIn>
+          </div>
         </div>
       </section>
 
-      {/* AI Agent answer format */}
-      <section className="py-24 max-w-7xl mx-auto px-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          <motion.div initial={{ opacity: 0, x: -32 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
-            <span className="text-xs font-semibold tracking-widest text-purple-400 uppercase">AI Agent Answer Format</span>
-            <h2 className="text-4xl font-black mt-4 mb-6">Every answer is structured.<br /><span className="text-gradient">Every answer is grounded.</span></h2>
-            <p className="text-muted-foreground leading-relaxed mb-6">The AI Analyst never returns blank answers or generic fallbacks. Every response follows a proven decision-intelligence framework.</p>
-            <div className="space-y-3">
-              {[
-                ['1', 'Direct Answer', 'text-cyan-400', 'The most important finding, stated clearly.'],
-                ['2', 'Why It Matters', 'text-teal-400', 'Business context and impact of the finding.'],
-                ['3', 'Supporting Evidence', 'text-blue-400', 'Data points, statistical tests, and document snippets.'],
-                ['4', 'Recommended Actions', 'text-purple-400', 'Priority interventions and next steps.'],
-                ['5', 'Confidence & Limitations', 'text-amber-400', 'What is known, what is uncertain, what to explore next.'],
-              ].map(([num, label, color, desc]) => (
-                <div key={num} className="flex items-start gap-3">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5 ${color} bg-white/5`}>{num}</div>
-                  <div>
-                    <div className={`text-sm font-semibold ${color}`}>{label}</div>
-                    <div className="text-xs text-muted-foreground">{desc}</div>
-                  </div>
+      {/* Semantic layer */}
+      <section className="section-gradient py-24 px-6">
+        <div className="max-w-4xl mx-auto text-center">
+          <FadeIn>
+            <div className="text-xs text-blue-400 uppercase tracking-widest font-semibold mb-3">Semantic Layer</div>
+            <h2 className="text-4xl font-black mb-5">One semantic model, used everywhere</h2>
+            <p className="text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
+              The auto-generated semantic model ensures consistent KPI definitions, business-friendly labels, and accurate metric calculations across every module.
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+              {['Dashboard labels', 'SQL generation', 'AI answers', 'Report narratives'].map((item, i) => (
+                <div key={item} className="glass-card rounded-xl p-4 border border-blue-400/15 bg-blue-400/5">
+                  <GitBranch className="w-5 h-5 text-blue-400 mx-auto mb-2" />
+                  <div className="text-xs font-semibold text-blue-400">{item}</div>
                 </div>
               ))}
             </div>
-          </motion.div>
-
-          <motion.div initial={{ opacity: 0, x: 32 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
-            className="glass-card rounded-2xl border border-purple-400/20 p-6 space-y-4">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-7 h-7 rounded-lg bg-purple-400/15 flex items-center justify-center">
-                <Bot className="w-3.5 h-3.5 text-purple-400" />
-              </div>
-              <span className="text-sm font-semibold text-purple-400">AI Analyst Response</span>
-            </div>
-            {[
-              { label: 'Direct Answer', color: 'border-cyan-400/30 bg-cyan-400/5', text: 'Revenue grew 18.3% YoY, exceeding the 15% forecast target.' },
-              { label: 'Why It Matters', color: 'border-teal-400/30 bg-teal-400/5', text: 'This growth positions the company for Series B fundraising at a premium valuation.' },
-              { label: 'Supporting Evidence', color: 'border-blue-400/30 bg-blue-400/5', text: 'NA enterprise segment: +$2.1M. APAC new logos: +$0.8M. Q4 SaaS expansion: +$1.4M.' },
-              { label: 'Recommended Actions', color: 'border-purple-400/30 bg-purple-400/5', text: 'Double-down on NA enterprise. Accelerate APAC hiring. Address LatAm underperformance.' },
-              { label: 'Confidence: High', color: 'border-green-400/30 bg-green-400/5', text: 'Based on 2,304 transaction records, 4 regional datasets, Q3/Q4 board reports.' },
-            ].map((item) => (
-              <div key={item.label} className={`rounded-xl p-3 border ${item.color}`}>
-                <div className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-1">{item.label}</div>
-                <div className="text-xs text-white/70 leading-relaxed">{item.text}</div>
-              </div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="py-16 max-w-7xl mx-auto px-6">
-        <div className="text-center">
-          <Link to="/workspace" className="inline-flex items-center gap-2 px-8 py-4 bg-cyan-400 rounded-xl font-bold hover:bg-cyan-300 transition-all hover:scale-105" style={{ color: 'hsl(222,47%,6%)' }}>
-            <Zap className="w-5 h-5" /> Launch Workspace <ArrowRight className="w-5 h-5" />
-          </Link>
+            <Link to="/workspace" className="inline-flex items-center gap-2 px-6 py-3.5 bg-cyan-400 rounded-xl font-bold hover:bg-cyan-300 transition-all"
+              style={{ color: 'hsl(222,47%,6%)' }}>
+              <Zap className="w-4 h-4" /> Try the Full Platform
+            </Link>
+          </FadeIn>
         </div>
       </section>
     </div>
