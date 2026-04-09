@@ -111,7 +111,11 @@ export const useWorkspaceStore = create(
 
       loadSampleBundle: (bundleKey) => {
         const bundle = sampleBundles[bundleKey];
-        if (!bundle) return;
+        if (!bundle || !bundle.tables?.length) {
+          console.warn('[store] loadSampleBundle: unknown key or empty bundle:', bundleKey);
+          return;
+        }
+        // Preserve savedCharts, stories, alerts, documents — only replace workspace session data
         set({
           tables: bundle.tables,
           activeTableId: bundle.tables[0]?.id || null,
@@ -126,6 +130,7 @@ export const useWorkspaceStore = create(
         return tables.find(t => t.id === activeTableId) || tables[0] || null;
       },
 
+      // Resets only the current workspace session — preserved: savedCharts, stories, alerts, documents
       reset: () => set({
         tables: [],
         activeTableId: null,
@@ -136,7 +141,6 @@ export const useWorkspaceStore = create(
         isProcessing: false,
         processingStep: '',
         reports: [],
-        savedCharts: [],
       }),
     }),
     {

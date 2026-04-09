@@ -292,8 +292,7 @@ export default function AnalystSection() {
 
   const statContext = useMemo(() => buildStatContext(activeTable), [activeTable?.name, activeTable?.rowCount]);
 
-  // Reset suggestions when mode changes
-  useEffect(() => {}, [mode]);
+  // (mode changes re-render suggestions automatically via SUGGESTIONS[mode])
 
   const handleSend = async (text) => {
     const question = (text || input).trim();

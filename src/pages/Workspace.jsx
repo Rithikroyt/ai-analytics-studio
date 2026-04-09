@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import WorkspaceSidebar from '@/components/workspace/WorkspaceSidebar';
 import AnnotationsPanel from '@/components/workspace/AnnotationsPanel';
 import { MessageSquare, X } from 'lucide-react';
@@ -58,7 +59,9 @@ export default function Workspace() {
               transition={{ duration: 0.18 }}
               className="h-full"
             >
-              <ActiveSection />
+              <ErrorBoundary>
+                <ActiveSection />
+              </ErrorBoundary>
             </motion.div>
           </AnimatePresence>
 

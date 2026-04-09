@@ -111,7 +111,7 @@ export default function WorkspaceTopBar({ onSearch }) {
               <div className="text-xs text-white/35 mb-3">This clears all tables and analysis data. Saved charts and stories are preserved.</div>
               <div className="flex gap-2">
                 <button onClick={() => setShowReset(false)} className="flex-1 py-1.5 rounded-lg border border-white/10 text-xs text-white/50 hover:text-white/80">Cancel</button>
-                <button onClick={() => { reset(); setShowReset(false); localStorage.removeItem('omnidata-workspace'); }} className="flex-1 py-1.5 rounded-lg bg-red-400/15 border border-red-400/25 text-xs text-red-400 hover:bg-red-400/20">Reset</button>
+                <button onClick={() => { reset(); setShowReset(false); }} className="flex-1 py-1.5 rounded-lg bg-red-400/15 border border-red-400/25 text-xs text-red-400 hover:bg-red-400/20">Reset</button>
               </div>
             </motion.div>
           )}
