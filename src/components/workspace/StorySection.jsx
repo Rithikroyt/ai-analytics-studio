@@ -64,7 +64,7 @@ function InsightHeadline({ summary, growthRate, primaryLabel, primaryColor }) {
     <div className="rounded-2xl p-5 border" style={{ background: `${primaryColor}09`, borderColor: `${primaryColor}25` }}>
       <div className="flex items-start gap-3">
         <div className="w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center" style={{ background: `${primaryColor}18` }}>
-          <Lightbulb className="w-4.5 h-4.5" style={{ color: primaryColor }} />
+          <Lightbulb className="w-5 h-5" style={{ color: primaryColor }} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
@@ -386,7 +386,7 @@ export default function StorySection() {
 
   // KPI cards config
   const kpiCards = [
-    { label: r.primaryLabel || 'Primary KPI', value: fmtV(r.totalValue), sub: r.growthRate != null ? `${r.growthRate >= 0 ? '+' : ''}${r.growthRate}% trend` : 'No time data', color: '#00e5ff', icon: TrendingUp, highlight: true },
+    { label: r.primaryLabel || 'Primary KPI', value: fmtV(r.totalValue), sub: r.growthRate != null ? `${Number(r.growthRate) >= 0 ? '+' : ''}${r.growthRate}% trend` : 'No time data', color: '#00e5ff', icon: TrendingUp, highlight: true },
     { label: 'Records Analyzed', value: fmtV(activeTable.rowCount), sub: `${columns.length} columns`, color: '#00bfa5', icon: Database },
     { label: 'Data Quality', value: `${activeTable.qualityScore}%`, sub: activeTable.qualityScore >= 90 ? 'Excellent' : activeTable.qualityScore >= 70 ? 'Good' : 'Needs work', color: activeTable.qualityScore >= 90 ? '#4caf50' : '#ffcc02', icon: Shield },
     ...(r.secondLabel ? [{ label: r.secondLabel, value: fmtV(r.secondValue), sub: 'secondary metric', color: '#9c27b0', icon: Target }] : []),

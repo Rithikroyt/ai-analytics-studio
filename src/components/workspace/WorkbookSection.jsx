@@ -233,8 +233,8 @@ function ComparisonTab({ results, table }) {
   );
 
   // Build period-over-period comparison from trend data
-  const trendA = results.allTrends?.[numCols[colA]?.name] || results.trendData || [];
-  const trendB = results.allTrends?.[numCols[colB]?.name] || [];
+  const trendA = (results.allTrends || {})[numCols[colA]?.name] || results.trendData || [];
+  const trendB = (results.allTrends || {})[numCols[colB]?.name] || [];
   const combined = trendA.map((d,i) => ({
     date: d.date,
     [numCols[colA].name]: d.value,
@@ -359,10 +359,10 @@ function DistributionTab({ table, results }) {
 
 // ── Highlight table tab ───────────────────────────────────────────
 function HighlightTab({ table, results }) {
-  const numCols = table.columns?.filter(c=>c.type==='numeric') || [];
-  const catCols = table.columns?.filter(c=>c.type==='category') || [];
-  const [rowDim, setRowDim] = useState(catCols[0]?.name || '');
-  const [colMetric, setColMetric] = useState(numCols[0]?.name || '');
+  const numCols = useMemo(() => table.columns?.filter(c=>c.type==='numeric')||[], [table]);
+  const catCols = useMemo(() => table.columns?.filter(c=>c.type==='category')||[], [table]);
+  const [rowDim, setRowDim] = useState(() => table.columns?.find(c=>c.type==='category')?.name || '');
+  const [colMetric, setColMetric] = useState(() => table.columns?.find(c=>c.type==='numeric')?.name || '');
 
   if (!catCols.length || !numCols.length) return (
     <div className="text-center py-16 text-sm text-white/35">Highlight table requires at least one category and one numeric column.</div>
