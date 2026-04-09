@@ -64,7 +64,7 @@ const SUGGESTIONS = {
 };
 
 // ─── Pre-compute rich statistical context from the active table ────
-function buildStatContext(table) {
+function buildStatContext(table, semanticModel, analysisResults, documents) {
   if (!table?.rows?.length) return '';
   const { rows, columns, name, rowCount } = table;
   const numCols = columns.filter(c => c.type === 'numeric');
@@ -78,7 +78,6 @@ function buildStatContext(table) {
     return `  ${col.name}: mean=${fmtNum(d.mean)}, std=${fmtNum(d.std)}, min=${fmtNum(d.min)}, max=${fmtNum(d.max)}, skew=${fmtNum(d.skewness,2)}, kurt=${fmtNum(d.kurtosis,2)}, q1=${fmtNum(d.q1)}, q3=${fmtNum(d.q3)}`;
   }).filter(Boolean);
 
-  // Top correlations
   const corrs = [];
   for (let i = 0; i < Math.min(numCols.length, 5); i++) {
     for (let j = i + 1; j < Math.min(numCols.length, 5); j++) {
@@ -89,7 +88,6 @@ function buildStatContext(table) {
     }
   }
 
-  // Top category distributions
   const catDists = catCols.slice(0, 3).map(col => {
     const counts = {};
     rows.forEach(r => { const k = String(r[col.name]); counts[k] = (counts[k] || 0) + 1; });
@@ -97,7 +95,6 @@ function buildStatContext(table) {
     return `  ${col.name}: [${top}]`;
   });
 
-  // Anomaly counts
   const anomalyCounts = numCols.slice(0, 4).map(col => {
     const vals = rows.map(r => Number(r[col.name])).filter(v => !isNaN(v));
     const anomalies = detectAnomalies(vals);
@@ -106,6 +103,30 @@ function buildStatContext(table) {
 
   const sample = rows.slice(0, 4).map(r => JSON.stringify(r)).join('\n');
   const colSchema = columns.map(c => `${c.name}(${c.type})`).join(', ');
+
+  // Semantic layer context
+  const semanticCtx = semanticModel ? `
+SEMANTIC MODEL:
+  Primary KPI: ${semanticModel.measures?.find(m=>m.isPrimary)?.label || semanticModel.measures?.[0]?.label || 'unknown'}
+  Measures: ${semanticModel.measures?.map(m=>m.label).join(', ') || 'none'}
+  Dimensions: ${semanticModel.dimensions?.map(d=>d.label).join(', ') || 'none'}
+  Date grain: ${semanticModel.dateGrain || 'monthly'}` : '';
+
+  // Analysis results context
+  const analysisCtx = analysisResults ? `
+AI ANALYSIS RESULTS:
+  Total primary KPI: ${analysisResults.totalValue?.toLocaleString()}
+  Growth rate: ${analysisResults.growthRate != null ? analysisResults.growthRate + '%' : 'N/A (no date column)'}
+  Anomalies detected: ${analysisResults.anomalies?.length || 0}
+  Correlations: ${analysisResults.correlations?.slice(0,3).map(c=>`${c.colA}↔${c.colB} r=${c.r}`).join(', ') || 'none'}
+  Top segment: ${analysisResults.breakdownData?.[0]?.name || 'N/A'}
+  Can forecast: ${analysisResults.canForecast}
+  Executive summary: ${analysisResults.executiveSummary?.slice(0,300) || 'not yet generated'}` : '';
+
+  // Context documents
+  const docsCtx = documents?.length ? `
+CONTEXT DOCUMENTS (${documents.length}):
+${documents.slice(0,3).map(d => `  [${d.name}]: ${d.content?.slice(0,200)}`).join('\n')}` : '';
 
   return `
 DATASET: "${name}" | ${rowCount} rows | ${columns.length} columns
@@ -125,6 +146,9 @@ ${catDists.join('\n') || '  none'}
 
 ANOMALY COUNTS (Z-score+IQR):
 ${anomalyCounts.join('\n')}
+${semanticCtx}
+${analysisCtx}
+${docsCtx}
 `.trim();
 }
 
@@ -268,7 +292,7 @@ function MessageBubble({ message, onFollowUp, onSaveChart, datasetName }) {
 
 // ─── Main component ────────────────────────────────────────────────
 export default function AnalystSection() {
-  const { getActiveTable, analysisResults, chatMessages, addChatMessage, clearChat, saveToDashboard } = useWorkspaceStore();
+  const { getActiveTable, analysisResults, chatMessages, addChatMessage, clearChat, saveToDashboard, semanticModel, documents } = useWorkspaceStore();
   const activeTable = getActiveTable();
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -290,7 +314,7 @@ export default function AnalystSection() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages, loading]);
 
-  const statContext = useMemo(() => buildStatContext(activeTable), [activeTable?.name, activeTable?.rowCount]);
+  const statContext = useMemo(() => buildStatContext(activeTable, semanticModel, analysisResults, documents), [activeTable?.name, activeTable?.rowCount, semanticModel, analysisResults]);
 
   // (mode changes re-render suggestions automatically via SUGGESTIONS[mode])
 
@@ -319,12 +343,37 @@ export default function AnalystSection() {
       setThinkingLabel('Generating LLM analysis + charts…');
 
       const result = await base44.integrations.Core.InvokeLLM({
-        prompt: `You are a senior data scientist and AI analyst. CRITICAL RULES:
-1. NEVER return a blank or empty answer field
-2. ALWAYS ground your answer in the statistics provided — never hallucinate data
-3. If uncertain, state what IS known and what is uncertain
-4. Always provide at least 1 chart
-5. Always provide at least 2 followup questions
+        prompt: `You are a world-class senior data scientist and grounded AI analyst. Your answers must ALWAYS follow this exact 5-part structure:
+
+## 1. Direct Answer
+(answer the question directly in 1-3 sentences with specific numbers from the data)
+
+## 2. Why It Matters
+(business significance and context)
+
+## 3. Supporting Evidence
+(statistics, correlation values, anomalies, trend data — grounded in the data provided)
+
+## 4. Recommended Actions
+(2-3 specific, actionable next steps)
+
+## 5. Confidence & Limitations
+(state your confidence level, what data supports the answer, and what is uncertain)
+
+CRITICAL RULES:
+1. NEVER return a blank or empty answer
+2. NEVER hallucinate data — only use numbers from the context below
+3. NEVER say "I cannot answer" — always provide the closest grounded answer
+4. If uncertain: state what IS known, what is uncertain, and recommend the next useful action
+5. Always provide at least 1 chart
+6. Always cite specific numbers from the statistics block
+7. Correlation does NOT imply causation — always note this when relevant
+
+GROUNDING SOURCES (use ALL of these):
+- Dataset statistics (primary source)
+- Semantic model definitions
+- AI analysis results (trends, anomalies, forecasts)
+- Context documents
 
 Analysis mode: **${mode.toUpperCase()}** — ${modeInstructions[mode]}
 

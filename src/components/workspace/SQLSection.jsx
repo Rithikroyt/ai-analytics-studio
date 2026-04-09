@@ -170,8 +170,9 @@ export default function SQLSection() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [view, setView] = useState('table'); // 'table' | 'chart'
+  const [view, setView] = useState('table');
   const [history, setHistory] = useState([]);
+
 
   const handleGenerate = async (q) => {
     const question = (q || query).trim();
@@ -181,26 +182,45 @@ export default function SQLSection() {
     const cols = table.columns?.map(c => `${c.name} (${c.type})`).join(', ');
     const catCols = table.columns?.filter(c => c.type === 'category').map(c => c.name).join(', ');
     const numCols = table.columns?.filter(c => c.type === 'numeric').map(c => c.name).join(', ');
+    const dateCols = table.columns?.filter(c => c.type === 'date').map(c => c.name).join(', ');
+    // Build semantic context for better SQL generation
+    const semanticCtx = semanticModel ? `
+SEMANTIC MODEL:
+  Primary KPI: ${semanticModel.measures?.[0]?.label || 'unknown'} (column: ${semanticModel.measures?.[0]?.name || 'unknown'})
+  Measures: ${semanticModel.measures?.map(m=>`${m.label}=${m.name}`).join(', ') || 'none'}
+  Dimensions: ${semanticModel.dimensions?.map(d=>`${d.label}=${d.name}`).join(', ') || 'none'}` : '';
     try {
       const resp = await base44.integrations.Core.InvokeLLM({
-        prompt: `You are a SQL expert. Given table "${table.name}" with columns: ${cols}
-Numeric columns: ${numCols}
-Category columns: ${catCols}
+        prompt: `You are a SQL expert with knowledge of the business semantic model.
+Table: "${table.name}"
+Columns: ${cols}
+Numeric: ${numCols}
+Category: ${catCols}
+Date: ${dateCols || 'none'}
 Rows: ${table.rowCount}
+${semanticCtx}
 
 User question: "${question}"
 
-Generate a SQL SELECT query. Use GROUP BY + SUM/COUNT/AVG for aggregations. Use ORDER BY + LIMIT for rankings.
-Always use exact column names listed above.
+Generate a SQL SELECT query using EXACT column names above.
+- GROUP BY + SUM/COUNT/AVG for aggregations
+- ORDER BY + LIMIT for rankings
+- Use semantic model labels to understand business intent
+- If the question uses a business name (e.g. "Revenue"), map it to the correct column
 
-Return JSON: {"sql": "SELECT ...", "explanation": "plain English explanation", "can_generate": true}
-If unable: {"sql": null, "explanation": "reason + suggestion", "can_generate": false}`,
+If you cannot generate valid SQL, set can_generate=false and provide:
+1. What IS answerable from the semantic model
+2. The closest semantic answer using available data
+3. Suggested rephrasing that would work
+
+Return JSON: {"sql": "SELECT ..." or null, "explanation": "plain English explanation", "can_generate": true/false, "semantic_answer": "optional: closest semantic answer if SQL not possible"}`,
         response_json_schema: {
           type: 'object',
           properties: {
             sql: { type: ['string', 'null'] },
             explanation: { type: 'string' },
             can_generate: { type: 'boolean' },
+            semantic_answer: { type: ['string', 'null'] },
           },
         },
       });
@@ -341,13 +361,24 @@ If unable: {"sql": null, "explanation": "reason + suggestion", "can_generate": f
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
             {/* Cannot generate warning */}
             {!result.can_generate && (
-              <div className="flex items-start gap-3 p-4 bg-amber-400/5 border border-amber-400/20 rounded-xl">
-                <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
-                <div className="text-sm text-amber-400/90 leading-relaxed">{result.explanation}
-                  <button onClick={() => setActiveSection('analyst')} className="ml-2 text-cyan-400 hover:underline inline-flex items-center gap-1 text-xs">
-                    Try AI Analyst <ChevronRight className="w-3 h-3" />
-                  </button>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3 p-4 bg-amber-400/5 border border-amber-400/20 rounded-xl">
+                  <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm text-amber-400/90 leading-relaxed">{result.explanation}
+                    <button onClick={() => setActiveSection('analyst')} className="ml-2 text-cyan-400 hover:underline inline-flex items-center gap-1 text-xs">
+                      Try AI Analyst <ChevronRight className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
+                {result.semantic_answer && (
+                  <div className="flex items-start gap-3 p-4 bg-cyan-400/5 border border-cyan-400/20 rounded-xl">
+                    <Lightbulb className="w-4 h-4 text-cyan-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <div className="text-xs text-cyan-400 uppercase tracking-widest mb-1">Closest Semantic Answer</div>
+                      <div className="text-sm text-white/65 leading-relaxed">{result.semantic_answer}</div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

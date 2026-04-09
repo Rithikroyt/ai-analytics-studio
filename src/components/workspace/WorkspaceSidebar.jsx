@@ -3,22 +3,23 @@ import { Link } from 'react-router-dom';
 import {
   LayoutDashboard, Upload, Settings2, BarChart3, BookOpen,
   Layers, Terminal, FileText, MessageSquare, Download,
-  ChevronLeft, Database, GitCompare, PieChart, Bell, Link2, Wand2
+  ChevronLeft, Database, GitCompare, PieChart, Bell, Link2, Wand2, FlaskConical
 } from 'lucide-react';
 import { useWorkspaceStore } from '@/lib/store';
 
 const sections = [
-  { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-  { id: 'intake', label: 'Intake', icon: Upload },
-  { id: 'prepare', label: 'Prepare', icon: Settings2 },
-  { id: 'story', label: 'Story', icon: BarChart3 },
-  { id: 'workbook', label: 'Workbook', icon: BookOpen },
-  { id: 'compare', label: 'Compare', icon: GitCompare },
-  { id: 'semantic', label: 'Semantic Model', icon: Layers },
-  { id: 'sql', label: 'SQL Studio', icon: Terminal },
-  { id: 'docs', label: 'Docs & Evidence', icon: FileText },
-  { id: 'analyst', label: 'AI Analyst', icon: MessageSquare },
-  { id: 'reports', label: 'Reports & Export', icon: Download },
+  { id: 'overview',    label: 'Overview',       icon: LayoutDashboard },
+  { id: 'intake',      label: 'Intake',          icon: Upload },
+  { id: 'prepare',     label: 'Prepare',         icon: Settings2 },
+  { id: 'story',       label: 'Story',           icon: BarChart3 },
+  { id: 'workbook',    label: 'Workbook',        icon: BookOpen },
+  { id: 'compare',     label: 'Compare',         icon: GitCompare },
+  { id: 'statistics',  label: 'Statistics',      icon: FlaskConical },
+  { id: 'semantic',    label: 'Semantic Model',  icon: Layers },
+  { id: 'sql',         label: 'SQL Studio',      icon: Terminal },
+  { id: 'docs',        label: 'Docs & Evidence', icon: FileText },
+  { id: 'analyst',     label: 'AI Analyst',      icon: MessageSquare },
+  { id: 'reports',     label: 'Reports & Export',icon: Download },
 ];
 
 export default function WorkspaceSidebar({ collapsed, onToggle }) {
