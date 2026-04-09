@@ -2,7 +2,8 @@
  * AnalystEngine — Orchestrates 7-step reasoning workflow
  * Executes intent detection, tool selection, analysis, and structured responses
  */
-import * as localTools from '@/lib/analystToolsLocal';
+import * as localTools from '@/lib/analystToolsLocal.js';
+import { assessConfidence } from '@/lib/analystTools.js';
 import { assessConfidence } from '@/lib/analystTools';
 
 export async function executeAnalystWorkflow(question, store, analysisResults, activeTable) {
