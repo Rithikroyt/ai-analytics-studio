@@ -11,10 +11,10 @@ import {
 import { Link } from 'react-router-dom';
 
 const bundles = [
-  { key: 'sales', label: 'Sales & Revenue', desc: '2,400 rows · 12 cols · 2023–2024', icon: '📊', color: 'border-cyan-400/30 bg-cyan-400/5', tag: 'Revenue · Forecast · Regional · Channel' },
-  { key: 'workforce', label: 'Workforce & Payroll', desc: '149 employees · 12 columns', icon: '👥', color: 'border-teal-400/30 bg-teal-400/5', tag: 'HR · Attrition · Salary · Engagement' },
-  { key: 'healthcare', label: 'Healthcare Operations', desc: '96 rows · 12 cols · 12 months', icon: '🏥', color: 'border-blue-400/30 bg-blue-400/5', tag: 'Clinical · Quality · Cost · Throughput' },
-  { key: 'education', label: 'Student Engagement', desc: '480 rows · 12 cols · 2024', icon: '🎓', color: 'border-purple-400/30 bg-purple-400/5', tag: 'Retention · Completion · NPS · Revenue' },
+  { key: 'sales',      label: 'Sales & Revenue',          desc: '2,400 rows · 12 cols · 2023–2024', icon: '📊', color: 'border-cyan-400/30 bg-cyan-400/5',   tag: 'Revenue · Forecast · Regional · Channel', kpis: ['Revenue', 'Gross Profit', 'Units Sold', 'Gross Margin %'] },
+  { key: 'workforce',  label: 'HR & Workforce Analytics',  desc: '149 employees · 12 columns',          icon: '👥', color: 'border-teal-400/30 bg-teal-400/5',  tag: 'Attrition · Salary · Engagement · Tenure', kpis: ['Salary', 'Performance Score', 'Tenure', 'Engagement'] },
+  { key: 'healthcare', label: 'Healthcare Operations',     desc: '96 rows · 12 cols · 12 months',      icon: '🏥', color: 'border-blue-400/30 bg-blue-400/5',  tag: 'Admissions · Quality · Cost · Throughput', kpis: ['Admissions', 'Cost per Case', 'Satisfaction', 'Occupancy %'] },
+  { key: 'education',  label: 'Student Engagement & NPS',  desc: '480 rows · 12 cols · 2024',          icon: '🎓', color: 'border-purple-400/30 bg-purple-400/5', tag: 'Retention · Completion · NPS · Revenue', kpis: ['Completion Rate', 'NPS Score', 'Revenue', 'Satisfaction'] },
 ];
 
 const quickActions = [
@@ -189,13 +189,18 @@ export default function OverviewSection() {
             <motion.button key={b.key} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
               onClick={() => handleLoadBundle(b.key)}
               disabled={!!loadingBundle}
-              className={`glass-card rounded-2xl p-5 text-left border ${b.color} hover:scale-[1.01] transition-all disabled:opacity-60`}>
+              className={`glass-card rounded-2xl p-5 text-left border ${b.color} hover:scale-[1.01] transition-all disabled:opacity-60 group`}>
               <div className="text-3xl mb-3">{b.icon}</div>
               <div className="font-bold text-sm mb-1">{b.label}</div>
               <div className="text-xs text-muted-foreground mb-2">{b.desc}</div>
+              <div className="flex flex-wrap gap-1 mb-3">
+                {b.kpis.map(k => (
+                  <span key={k} className="text-xs px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/40 font-mono">{k}</span>
+                ))}
+              </div>
               <div className="text-xs text-white/30 mb-3 leading-relaxed">{b.tag}</div>
               <div className="flex items-center gap-1 text-xs text-cyan-400">
-                {loadingBundle === b.key ? <><Loader2 className="w-3 h-3 animate-spin" /> Loading…</> : <><Zap className="w-3 h-3" /> Load & AI Analyze</>}
+                {loadingBundle === b.key ? <><Loader2 className="w-3 h-3 animate-spin" /> Loading…</> : <><Zap className="w-3 h-3" /> Load &amp; AI Analyze</>}
               </div>
             </motion.button>
           ))}

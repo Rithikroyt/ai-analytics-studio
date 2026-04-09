@@ -169,7 +169,7 @@ export default function PrepareSection() {
           <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
           <span className="text-xs font-mono text-white/40 uppercase tracking-widest">Prepare & Profile</span>
         </div>
-        <h1 className="text-2xl font-bold mb-1">Data Profile</h1>
+        <h1 className="text-2xl font-bold mb-1">Data Profile & Preparation</h1>
         <p className="text-sm text-muted-foreground">
           Auto-detected schema, quality assessment, and column classifications for{' '}
           <span className="text-white/70 font-mono">{name}</span>.
@@ -410,9 +410,9 @@ export default function PrepareSection() {
           ) : done ? (
             <><CheckCircle2 className="w-4 h-4" /> Analysis Complete — Opening Dashboard…</>
           ) : !hasNumericKpis ? (
-            <><Sparkles className="w-4 h-4" /> Run Descriptive Profile (Limited Mode) <ChevronRight className="w-4 h-4" /></>
+            <><Sparkles className="w-4 h-4" /> Generate Descriptive Profile <ChevronRight className="w-4 h-4" /></>
           ) : (
-            <><Sparkles className="w-4 h-4" /> Run AI Analysis & Generate Dashboard <ChevronRight className="w-4 h-4" /></>
+            <><Sparkles className="w-4 h-4" /> Run Full AI Analysis & Generate Dashboard <ChevronRight className="w-4 h-4" /></>
           )}
         </button>
 

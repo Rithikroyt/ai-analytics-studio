@@ -485,13 +485,27 @@ ANSWER RULES:
         followups: finalResult?.followups || [],
       });
     } catch (e) {
+      // Build a graceful local answer using pre-computed stats
+      const numCols = activeTable?.columns?.filter(c => c.type === 'numeric') || [];
+      const fallbackCharts = numCols.length > 0 ? [{
+        type: 'bar',
+        title: 'Column Averages (Local Computation)',
+        data: numCols.slice(0, 6).map(col => {
+          const vals = (activeTable.rows || []).map(r => Number(r[col.name])).filter(v => !isNaN(v));
+          const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+          return { name: col.name.replace(/_/g, ' ').slice(0, 16), value: parseFloat(avg.toFixed(2)) };
+        }),
+        x_key: 'name',
+        y_key: 'value',
+        note: 'Computed locally — AI service temporarily unavailable',
+      }] : [];
       addChatMessage({
         role: 'assistant',
-        content: `**Analysis Note:** I encountered an issue processing that request. Here's what I can tell you based on the available data:\n\n${statContext.slice(0, 500)}\n\nPlease try rephrasing your question or ask about a specific column or metric.`,
-        charts: [],
-        confidence: 40,
-        methodology: 'Fallback response',
-        followups: ['What are the key statistics for this dataset?', 'Show me a distribution of the main metric.', 'Which columns have the most interesting patterns?'],
+        content: `**Local Analysis (AI service temporarily unavailable)**\n\nHere is what I can tell you from the pre-computed statistics:\n\n${statContext.slice(0, 800)}\n\n---\n*The AI analysis service encountered a temporary issue. The chart below was computed locally. Please retry your question in a moment.*`,
+        charts: fallbackCharts,
+        confidence: 55,
+        methodology: 'Local statistical computation (fallback)',
+        followups: ['What are the top segments by total value?', 'Show me the trend over time.', 'Which columns are most correlated?'],
       });
     }
     setLoading(false);

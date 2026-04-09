@@ -4,18 +4,19 @@ import { Search, Database, Activity, RotateCcw, ChevronDown, Zap, AlertTriangle,
 import { AnimatePresence, motion } from 'framer-motion';
 
 const sectionTitles = {
-  overview: { label: 'Overview', sub: 'Workspace home' },
-  intake: { label: 'Data Intake', sub: 'Upload & manage datasets' },
-  prepare: { label: 'Prepare & Profile', sub: 'Schema · Quality · Classification' },
-  story: { label: 'Story Dashboard', sub: 'AI storytelling analytics' },
-  workbook: { label: 'Workbook', sub: 'Interactive data exploration' },
-  semantic: { label: 'Semantic Model', sub: 'Dimensions · Measures · KPIs' },
-  sql: { label: 'SQL Studio', sub: 'Natural language to SQL' },
-  docs: { label: 'Docs & Evidence', sub: 'Context documents for AI analyst' },
-  analyst: { label: 'AI Analyst', sub: 'Natural language data Q&A' },
-  reports: { label: 'Reports & Export', sub: 'Board memos · PDFs · CSVs' },
-  compare: { label: 'Compare Datasets', sub: 'Side-by-side delta analysis' },
-  mapping: { label: 'Data Mapping', sub: 'AI schema detection & type suggestion' },
+  overview:    { label: 'Overview',                sub: 'Workspace home · quick actions & bundles' },
+  intake:      { label: 'Data Intake',             sub: 'Upload CSV, XLSX, JSON · live connectors' },
+  prepare:     { label: 'Prepare & Profile',       sub: 'Schema inference · quality scoring · type classification' },
+  story:       { label: 'Executive Dashboard',     sub: 'AI-powered storytelling · KPIs · anomalies · actions' },
+  workbook:    { label: 'Analytics Workbook',      sub: 'Scorecards · trends · distribution · outliers' },
+  statistics:  { label: 'Statistical Analysis',    sub: 'Correlation · regression · t-test · CI' },
+  semantic:    { label: 'Semantic Model',          sub: 'Business KPI definitions · dimensions · measures' },
+  sql:         { label: 'SQL Studio',              sub: 'Natural language → SQL → in-memory execution' },
+  docs:        { label: 'Docs & Evidence',         sub: 'Context documents · evidence grounding for AI' },
+  analyst:     { label: 'AI Analyst',              sub: 'Grounded Q&A · statistical engine · chart generation' },
+  reports:     { label: 'Reports & Export',        sub: 'Board memos · PDF · HTML · CSV bundles' },
+  compare:     { label: 'Compare Datasets',        sub: 'Side-by-side delta analysis · AI comparison summary' },
+  mapping:     { label: 'Data Mapping',            sub: 'AI schema detection · type suggestion' },
 };
 
 export default function WorkspaceTopBar({ onSearch }) {

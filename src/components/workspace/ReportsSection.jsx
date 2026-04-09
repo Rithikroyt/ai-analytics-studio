@@ -9,13 +9,13 @@ import {
 import { base44 } from '@/api/base44Client';
 
 const reportTypes = [
-  { id: 'executive', label: 'Executive Summary', icon: '📄', emoji: FileText, color: 'text-cyan-400', border: 'border-cyan-400/20', bg: 'bg-cyan-400/5', desc: 'High-level narrative with KPIs, trends, and strategic recommendations.' },
-  { id: 'board', label: 'Board Memo', icon: '🏛️', emoji: BarChart3, color: 'text-purple-400', border: 'border-purple-400/20', bg: 'bg-purple-400/5', desc: 'Formal board-ready memo with data evidence and strategic actions.' },
-  { id: 'kpi_trend', label: 'KPI & Trend Report', icon: '📈', emoji: TrendingUp, color: 'text-teal-400', border: 'border-teal-400/20', bg: 'bg-teal-400/5', desc: 'Detailed KPI performance with period-over-period trend decomposition.' },
-  { id: 'anomaly', label: 'Anomaly Report', icon: '⚠️', emoji: AlertTriangle, color: 'text-amber-400', border: 'border-amber-400/20', bg: 'bg-amber-400/5', desc: 'Detailed anomaly breakdown with severity ratings and mitigation steps.' },
-  { id: 'forecast', label: 'Forecast Report', icon: '🔮', emoji: TrendingUp, color: 'text-blue-400', border: 'border-blue-400/20', bg: 'bg-blue-400/5', desc: 'Forward-looking analysis with projections, assumptions, and confidence limits.' },
-  { id: 'quality', label: 'Data Quality Report', icon: '🔍', emoji: Shield, color: 'text-white/60', border: 'border-white/15', bg: 'bg-white/3', desc: 'Data profiling, issue log, quality score breakdown, and remediation steps.' },
-  { id: 'feedback', label: 'Feedback & Survey Insights', icon: '💬', emoji: MessageSquare, color: 'text-pink-400', border: 'border-pink-400/20', bg: 'bg-pink-400/5', desc: 'Satisfaction scores, NPS analysis, sentiment patterns, and response summaries.' },
+  { id: 'executive', label: 'Executive Summary',        icon: '📄', emoji: FileText,     color: 'text-cyan-400',   border: 'border-cyan-400/20',   bg: 'bg-cyan-400/5',   desc: 'C-suite narrative: KPIs, trend, risk, and strategic recommendations.' },
+  { id: 'board',     label: 'Board Memo',               icon: '🏛️', emoji: BarChart3,    color: 'text-purple-400', border: 'border-purple-400/20', bg: 'bg-purple-400/5', desc: 'Formal board-ready memo with data evidence and prioritised actions.' },
+  { id: 'kpi_trend', label: 'KPI & Trend Report',       icon: '📈', emoji: TrendingUp,   color: 'text-teal-400',   border: 'border-teal-400/20',   bg: 'bg-teal-400/5',   desc: 'Period-over-period KPI decomposition, trend signals, and forecasts.' },
+  { id: 'anomaly',   label: 'Anomaly & Risk Report',    icon: '⚠️', emoji: AlertTriangle, color: 'text-amber-400',  border: 'border-amber-400/20',  bg: 'bg-amber-400/5',  desc: 'Severity-ranked anomaly inventory with root-cause hypotheses and mitigations.' },
+  { id: 'forecast',  label: 'Forecast Report',          icon: '🔮', emoji: TrendingUp,   color: 'text-blue-400',   border: 'border-blue-400/20',   bg: 'bg-blue-400/5',   desc: 'Bull / Base / Bear projections with assumptions and confidence bounds.' },
+  { id: 'quality',   label: 'Data Quality Audit',       icon: '🔍', emoji: Shield,       color: 'text-white/60',   border: 'border-white/15',      bg: 'bg-white/3',      desc: 'Column-level profiling, issue log, quality score, and remediation roadmap.' },
+  { id: 'feedback',  label: 'Feedback & Survey Insights',icon: '💬', emoji: MessageSquare,color: 'text-pink-400',   border: 'border-pink-400/20',   bg: 'bg-pink-400/5',   desc: 'NPS, satisfaction scores, sentiment patterns, and response theme analysis.' },
 ];
 
 const fmt = (v) => {
@@ -37,18 +37,36 @@ export default function ReportsSection() {
   const buildContext = () => {
     if (!analysisResults || !table) return '';
     const r = analysisResults;
+    const numCols = table.columns?.filter(c => c.type === 'numeric') || [];
+    const catCols = table.columns?.filter(c => c.type === 'category') || [];
+    const colStats = numCols.slice(0, 6).map(c => {
+      const vals = (table.rows || []).map(row => Number(row[c.name])).filter(v => !isNaN(v));
+      if (!vals.length) return '';
+      const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+      const std = Math.sqrt(vals.reduce((a, b) => a + (b - mean) ** 2, 0) / vals.length);
+      const sorted = [...vals].sort((a, b) => a - b);
+      return `  ${c.name}: mean=${fmt(mean)}, std=${fmt(std)}, min=${fmt(sorted[0])}, max=${fmt(sorted[sorted.length-1])}, n=${vals.length}`;
+    }).filter(Boolean).join('\n');
     return `
 Dataset: ${table.name} (${table.rowCount?.toLocaleString()} rows, ${table.columns?.length} columns)
 Quality Score: ${table.qualityScore}%
 Issues: ${table.issues?.map(i => i.message).join('; ') || 'None'}
+Numeric Columns: ${numCols.map(c => c.name).join(', ') || 'None'}
+Category Columns: ${catCols.map(c => c.name).join(', ') || 'None'}
 Primary KPI: ${r.primaryLabel} = ${fmt(r.totalValue)}
-Growth Rate: ${r.growthRate != null ? `${r.growthRate}%` : 'N/A'}
+Secondary KPI: ${r.secondLabel || 'N/A'} = ${fmt(r.secondValue)}
+Growth Rate: ${r.growthRate != null ? `${r.growthRate}%` : 'N/A (no date column)'}
 Top Segments: ${r.breakdownData?.slice(0, 5).map(b => `${b.name}: ${fmt(b.value)}`).join(', ') || 'N/A'}
 Anomalies (${r.anomalies?.length || 0}): ${r.anomalies?.slice(0, 3).map(a => `${a.date || 'row'}: z=${a.zScore}, severity=${a.severity}`).join('; ') || 'None'}
 Key Correlations: ${r.correlations?.slice(0, 3).map(c => `${c.colA}↔${c.colB} r=${c.r}`).join(', ') || 'None'}
-Forecast Available: ${r.canForecast ? `Yes (${r.forecastData?.length} periods)` : 'No (no date column)'}
+Forecast Available: ${r.canForecast ? `Yes (${r.forecastData?.length} periods ahead)` : 'No (no date column)'}
+Forecast Values: ${r.forecastData?.slice(0, 3).map(f => `${f.date}: ${fmt(f.value)}`).join(', ') || 'N/A'}
 Executive Summary: ${r.executiveSummary || 'N/A'}
+Key Findings: ${r.keyFindings?.join(' | ') || 'N/A'}
 Recommendations: ${r.recommendations?.map(rec => `[${rec.priority}] ${rec.action}`).join(' | ') || 'None'}
+
+COLUMN STATISTICS:
+${colStats || 'N/A'}
     `.trim();
   };
 
@@ -59,113 +77,123 @@ Recommendations: ${r.recommendations?.map(rec => `[${rec.priority}] ${rec.action
     const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
     const prompts = {
-      executive: `Write a professional EXECUTIVE SUMMARY REPORT. Date: ${today}
+      executive: `Write a professional EXECUTIVE SUMMARY REPORT. Date: ${today}.
 Context:
 ${ctx}
 
-Format with these exact sections:
+Format with EXACTLY these sections using ## headers:
 ## Executive Summary
-## Performance Overview  
-## Key Findings
+## Business Performance Overview
+## Key Findings & Insights
 ## Risk Assessment
 ## Strategic Recommendations
-## Conclusion
+## Appendix: Methodology Notes
 
-Use professional business language. Include specific numbers. Keep each section 2-3 paragraphs. 400-500 words total.`,
+RULES: Professional C-suite language. INCLUDE specific numbers from the context (totals, %, growth rates). Each section 2-3 paragraphs. Include a **Key Takeaways** bullet list in the first section. Reference anomaly counts, top segments, correlation insights. 500-600 words.`,
 
-      board: `Write a formal BOARD OF DIRECTORS MEMO. Date: ${today}
+      board: `Write a formal BOARD OF DIRECTORS MEMO. Date: ${today}.
 Context:
 ${ctx}
 
 Format:
 TO: Board of Directors
-FROM: Analytics Team
-RE: ${table.name} Performance Analysis
+FROM: Analytics Intelligence Team
+RE: ${table.name} — Performance Analysis
 DATE: ${today}
+CLASSIFICATION: Confidential
 
-## Executive Overview
-## Performance Analysis
-## Risk & Anomaly Assessment  
-## Strategic Recommendations
-## Next Steps
+## 1. Executive Overview
+## 2. Financial & Operational Performance
+## 3. Key Metrics Dashboard
+## 4. Anomaly & Risk Register
+## 5. Strategic Recommendations
+## 6. Requested Board Actions
+## Appendix: Data Provenance
 
-Formal, concise, board-appropriate language. 300-400 words.`,
+RULES: Formal, concise, board-appropriate language. Include a metrics table (Markdown). Specific numbers only. 400-500 words.`,
 
-      kpi_trend: `Write a KPI & TREND ANALYSIS REPORT. Date: ${today}
+      kpi_trend: `Write a KPI & TREND ANALYSIS REPORT. Date: ${today}.
 Context:
 ${ctx}
 
 Format:
-## KPI Performance Summary
-## Key Metrics Dashboard
-## Period-Over-Period Analysis
-## Trend Decomposition
+## KPI Executive Dashboard
+## Primary Metric Performance
+## Period-over-Period Analysis
+## Trend Signal Assessment
+## Secondary Metrics Review
 ## Leading vs Lagging Indicators
-## KPI Health Assessment
+## Forecast Outlook
 ## Improvement Roadmap
 
-Data-focused, executive language. Include specific numbers. 400-500 words.`,
+RULES: Include a KPI Summary Table (Markdown). State growth rates, trend direction, and statistical basis (z-score, correlation). Reference forecast values if available. 450-550 words.`,
 
-      feedback: `Write a FEEDBACK & SURVEY INSIGHTS REPORT. Date: ${today}
+      feedback: `Write a FEEDBACK & SURVEY INSIGHTS REPORT. Date: ${today}.
 Context:
 ${ctx}
 
 Format:
 ## Feedback Analysis Overview
-## Satisfaction Score Breakdown
-## NPS & Engagement Trends
+## Satisfaction Score Summary
+## NPS & Loyalty Trends
 ## Top Positive Themes
-## Top Areas for Improvement
+## Critical Pain Points
 ## Segment-Level Sentiment Analysis
-## Recommended Actions
-## Priority Response Plan
+## Statistical Confidence Assessment
+## Priority Action Plan
+## Methodology Notes
 
-Focus on satisfaction, NPS, engagement, completion metrics. Professional and actionable. 350-450 words.`,
+RULES: Focus on satisfaction, NPS, engagement, completion metrics. Include a Sentiment Summary Table (Markdown). Professional and evidence-based. 400-500 words.`,
 
-      anomaly: `Write a DATA ANOMALY INVESTIGATION REPORT. Date: ${today}
-Context:
-${ctx}
-
-Format with:
-## Anomaly Detection Summary
-## Anomaly Inventory
-## Severity Assessment
-## Root Cause Hypotheses
-## Impact Analysis
-## Recommended Mitigation Steps
-
-Technical but readable. Include a clear anomaly table. 350-450 words.`,
-
-      forecast: `Write a FORECAST & TREND ANALYSIS REPORT. Date: ${today}
+      anomaly: `Write a DATA ANOMALY & RISK INVESTIGATION REPORT. Date: ${today}.
 Context:
 ${ctx}
 
 Format:
-## Forecast Overview
-## Methodology & Assumptions
-## Trend Analysis
-## 6-Period Forward Projection
-## Confidence & Uncertainty
-## Scenario Planning (Bull/Base/Bear case)
+## Anomaly Detection Summary
+## Severity-Ranked Anomaly Register
+## Statistical Methodology
+## Root Cause Hypotheses
+## Business Impact Assessment
+## Correlated Risk Signals
+## Mitigation Playbook
+## Monitoring Recommendations
+
+RULES: Include an Anomaly Inventory Table (Markdown) with date, value, expected, z-score, severity columns. Reference z-score thresholds (|z|>2 = medium, |z|>3 = high). Technical but executive-readable. 400-500 words.`,
+
+      forecast: `Write a FORECAST & SCENARIO ANALYSIS REPORT. Date: ${today}.
+Context:
+${ctx}
+
+Format:
+## Forecast Executive Summary
+## Methodology & Model Assumptions
+## Historical Trend Analysis
+## Base Case Projection (next 6 periods)
+## Bull Case Scenario (+20% upside)
+## Bear Case Scenario (-20% downside)
+## Confidence Intervals & Uncertainty
+## Key Risk Factors
 ## Strategic Implications
 
-Professional financial language. Include specific projected figures. 350-450 words.`,
+RULES: Include a Scenario Comparison Table (Markdown). State model type (Exp. Smoothing + Linear Regression blend). Include specific forecast values from context. Professional financial language. 450-550 words.`,
 
-      quality: `Write a DATA QUALITY ASSESSMENT REPORT. Date: ${today}
+      quality: `Write a DATA QUALITY AUDIT REPORT. Date: ${today}.
 Context:
 ${ctx}
 
 Format:
-## Data Quality Overview
-## Quality Score Breakdown
-## Issue Inventory
-## Column-Level Profile
+## Data Quality Executive Summary
+## Overall Quality Score Assessment
+## Column-Level Quality Profile
 ## Missing Data Analysis
-## Duplicate & Anomaly Summary
-## Remediation Recommendations
-## Quality Improvement Roadmap
+## Duplicate & Consistency Audit
+## Statistical Integrity Assessment
+## Issue Severity Register
+## Remediation Roadmap
+## Quality Governance Recommendations
 
-Technical but clear. Include a quality metrics table. Reference the actual score and issues. 350-450 words.`,
+RULES: Include a Quality Metrics Summary Table (Markdown) with column name, type, missing %, unique count. Reference the actual quality score (${table.qualityScore}%). Technical but clear. 400-500 words.`,
     };
 
     try {
@@ -203,27 +231,99 @@ Technical but clear. Include a quality metrics table. Reference the actual score
     setTimeout(() => setCopied(''), 2000);
   };
 
+  const buildReportHTML = (report) => {
+    const r = analysisResults;
+    const topSegments = r?.breakdownData?.slice(0, 5).map(b =>
+      `<tr><td>${b.name}</td><td>${fmt(b.value)}</td><td>${r.totalValue ? (b.value/r.totalValue*100).toFixed(1)+'%' : '—'}</td></tr>`
+    ).join('') || '<tr><td colspan="3">No segment data</td></tr>';
+    const anomalyRows = r?.anomalies?.slice(0, 8).map(a =>
+      `<tr><td>${a.date || '—'}</td><td>${fmt(a.value)}</td><td>${fmt(a.expected)}</td><td>${a.zScore}σ</td><td class="sev-${a.severity}">${a.severity?.toUpperCase()}</td></tr>`
+    ).join('') || '<tr><td colspan="5">No anomalies detected</td></tr>';
+    const content = (report.content || '')
+      .replace(/\n/g, '<br>')
+      .replace(/## (.*?)(<br>|$)/g, '<h2>$1</h2>')
+      .replace(/### (.*?)(<br>|$)/g, '<h3>$1</h3>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/\| (.*?) \|/g, (m) => '<tr>' + m.split('|').filter(Boolean).map(c => `<td>${c.trim()}</td>`).join('') + '</tr>')
+      .replace(/((<tr>.*<\/tr>\s*)+)/g, '<table class="data-table">$1</table>');
+    return `<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8">
+<title>${report.label} — ${report.tableName}</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Georgia', serif; background: #fafafa; color: #1a1a2e; }
+  .page { max-width: 900px; margin: 0 auto; padding: 60px 60px 80px; background: #fff; min-height: 100vh; }
+  .header { border-bottom: 3px solid #0d7d7d; padding-bottom: 20px; margin-bottom: 32px; }
+  .header h1 { font-size: 28px; color: #0d2137; font-weight: 700; margin-bottom: 6px; }
+  .meta-strip { display: flex; gap: 24px; margin-top: 10px; flex-wrap: wrap; }
+  .meta-item { font-size: 12px; color: #666; }
+  .meta-item strong { color: #0d2137; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 24px 0; }
+  .kpi-card { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 16px; }
+  .kpi-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #0369a1; margin-bottom: 4px; }
+  .kpi-card .value { font-size: 22px; font-weight: 700; color: #0d2137; font-family: 'Courier New', monospace; }
+  .kpi-card .sub { font-size: 11px; color: #0369a1; margin-top: 4px; }
+  h2 { font-size: 18px; color: #0d2137; border-bottom: 1px solid #e0e0e0; padding-bottom: 8px; margin: 28px 0 12px; font-weight: 600; }
+  h3 { font-size: 14px; color: #0d2137; margin: 20px 0 8px; font-weight: 600; }
+  p, br { line-height: 1.75; margin-bottom: 12px; font-size: 14px; }
+  ul, ol { padding-left: 22px; margin: 10px 0; }
+  li { margin: 5px 0; font-size: 14px; line-height: 1.6; }
+  .data-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 12px; }
+  .data-table th, .data-table td { border: 1px solid #e0e0e0; padding: 8px 12px; text-align: left; }
+  .data-table th { background: #f0f9ff; font-weight: 600; color: #0369a1; }
+  .data-table tr:nth-child(even) { background: #fafafa; }
+  .sev-high { color: #dc2626; font-weight: 700; }
+  .sev-medium { color: #d97706; font-weight: 600; }
+  .content { font-size: 14px; line-height: 1.8; }
+  .footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid #e0e0e0; font-size: 11px; color: #999; display: flex; justify-content: space-between; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-quality { background: ${table.qualityScore >= 90 ? '#dcfce7' : table.qualityScore >= 70 ? '#fef9c3' : '#fee2e2'}; color: ${table.qualityScore >= 90 ? '#166534' : table.qualityScore >= 70 ? '#854d0e' : '#991b1b'}; }
+  @media print { body { background: #fff; } .page { padding: 40px; } }
+</style>
+</head><body><div class="page">
+<div class="header">
+  <h1>${report.label}</h1>
+  <div class="meta-strip">
+    <div class="meta-item"><strong>Dataset:</strong> ${report.tableName}</div>
+    <div class="meta-item"><strong>Generated:</strong> ${new Date(report.generatedAt).toLocaleString()}</div>
+    <div class="meta-item"><strong>Rows Analyzed:</strong> ${table.rowCount?.toLocaleString()}</div>
+    <div class="meta-item"><strong>Quality Score:</strong> <span class="badge badge-quality">${table.qualityScore}%</span></div>
+    ${r?.growthRate != null ? `<div class="meta-item"><strong>Trend:</strong> ${r.growthRate > 0 ? '+' : ''}${r.growthRate}%</div>` : ''}
+  </div>
+</div>
+<div class="kpi-grid">
+  <div class="kpi-card"><div class="label">${r?.primaryLabel || 'Primary KPI'}</div><div class="value">${fmt(r?.totalValue)}</div><div class="sub">${r?.growthRate != null ? (r.growthRate > 0 ? '▲' : '▼') + ' ' + Math.abs(r.growthRate) + '% trend' : 'No trend data'}</div></div>
+  <div class="kpi-card"><div class="label">Records Analyzed</div><div class="value">${table.rowCount?.toLocaleString()}</div><div class="sub">${table.columns?.length} columns profiled</div></div>
+  <div class="kpi-card"><div class="label">Anomalies Detected</div><div class="value">${r?.anomalies?.length || 0}</div><div class="sub">${r?.anomalies?.length ? 'Requires investigation' : 'All within normal range'}</div></div>
+</div>
+${r?.breakdownData?.length ? `<h2>Segment Breakdown</h2><table class="data-table"><thead><tr><th>Segment</th><th>Value</th><th>Share</th></tr></thead><tbody>${topSegments}</tbody></table>` : ''}
+${r?.anomalies?.length ? `<h2>Anomaly Register</h2><table class="data-table"><thead><tr><th>Date/Period</th><th>Actual</th><th>Expected</th><th>Z-Score</th><th>Severity</th></tr></thead><tbody>${anomalyRows}</tbody></table>` : ''}
+<h2>Report Content</h2>
+<div class="content">${content}</div>
+<div class="footer">
+  <span>OmniData AI Analytics · ${report.label} · Confidential</span>
+  <span>Generated ${new Date(report.generatedAt).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' })}</span>
+</div>
+</div></body></html>`;
+  };
+
   const printReport = (report) => {
     const win = window.open('', '_blank');
-    win.document.write(`<!DOCTYPE html><html><head>
-      <title>${report.label} — ${report.tableName}</title>
-      <style>
-        body { font-family: 'Georgia', serif; max-width: 800px; margin: 40px auto; padding: 0 40px; color: #1a1a2e; line-height: 1.7; }
-        h1 { font-size: 28px; border-bottom: 3px solid #0d7d7d; padding-bottom: 12px; margin-bottom: 8px; color: #0d2137; }
-        h2 { font-size: 18px; margin-top: 28px; color: #0d2137; border-bottom: 1px solid #e0e0e0; padding-bottom: 6px; }
-        .meta { color: #666; font-size: 13px; margin-bottom: 32px; }
-        p { margin: 12px 0; }
-        ul, ol { padding-left: 24px; }
-        li { margin: 6px 0; }
-        @media print { body { margin: 0; } }
-      </style>
-    </head><body>
-      <h1>${report.label}</h1>
-      <div class="meta">Dataset: ${report.tableName} · Generated: ${new Date(report.generatedAt).toLocaleString()}</div>
-      <div>${report.content.replace(/\n/g, '<br>').replace(/## (.*)/g, '<h2>$1</h2>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</div>
-    </body></html>`);
+    win.document.write(buildReportHTML(report));
     win.document.close();
-    setTimeout(() => win.print(), 500);
+    setTimeout(() => win.print(), 600);
+  };
+
+  const downloadHTML = (report) => {
+    const html = buildReportHTML(report);
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${report.label?.replace(/\s+/g, '_')}_${report.tableName}_${new Date().toISOString().slice(0,10)}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const downloadBundle = () => {
@@ -366,7 +466,11 @@ Technical but clear. Include a quality metrics table. Reference the actual score
                       </button>
                       <button onClick={() => printReport(reportData)}
                         className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-white/50 hover:text-white/80 border border-white/8 hover:bg-white/5 transition-all">
-                        <Printer className="w-3 h-3" /> PDF
+                        <Printer className="w-3 h-3" /> Print/PDF
+                      </button>
+                      <button onClick={() => downloadHTML(reportData)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-white/50 hover:text-white/80 border border-white/8 hover:bg-white/5 transition-all">
+                        <Download className="w-3 h-3" /> HTML
                       </button>
                       <button onClick={() => copyReport(reportData)}
                         className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs border transition-all ${copied === reportData.id ? 'text-green-400 border-green-400/25' : 'text-white/50 hover:text-white/80 border-white/8 hover:bg-white/5'}`}>
