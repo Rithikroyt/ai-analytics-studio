@@ -173,7 +173,6 @@ export default function SQLSection() {
   const [view, setView] = useState('table');
   const [history, setHistory] = useState([]);
 
-
   const handleGenerate = async (q) => {
     const question = (q || query).trim();
     if (!question || !table) return;
