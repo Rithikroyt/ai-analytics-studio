@@ -455,7 +455,7 @@ Return JSON with an "columns" array.`,
                   <button key={s.name} onClick={() => handleSheetSelect(i)}
                     className="w-full flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/10 text-sm border border-white/8 hover:border-teal-400/30 transition-all group">
                     <span className="font-medium">{s.name}</span>
-                    <span className="text-xs text-muted-foreground group-hover:text-teal-400 transition-colors">{s.rows?.length?.toLocaleString()} rows</span>
+                    <span className="text-xs text-muted-foreground group-hover:text-teal-400 transition-colors">{(s.rows?.length ?? s.rowCount ?? '—').toLocaleString()} rows</span>
                   </button>
                 ))}
               </div>

@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 import OmniLogo from '@/components/ui/OmniLogo';
 import { Link } from 'react-router-dom';
 import {
