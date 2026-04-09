@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import WorkspaceSidebar from '@/components/workspace/WorkspaceSidebar';
+import AnnotationsPanel from '@/components/workspace/AnnotationsPanel';
+import { MessageSquare, X } from 'lucide-react';
 import WorkspaceTopBar from '@/components/workspace/WorkspaceTopBar';
 import OverviewSection from '@/components/workspace/OverviewSection';
 import IntakeSection from '@/components/workspace/IntakeSection';
@@ -31,6 +33,7 @@ const sectionComponents = {
 
 export default function Workspace() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [showAnnotations, setShowAnnotations] = useState(false);
   const { activeSection } = useWorkspaceStore();
 
   const ActiveSection = sectionComponents[activeSection] || OverviewSection;
@@ -45,7 +48,7 @@ export default function Workspace() {
       <div className="flex flex-col flex-1 overflow-hidden min-w-0">
         <WorkspaceTopBar onSearch={() => {}} />
 
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-auto relative">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeSection}
@@ -58,8 +61,35 @@ export default function Workspace() {
               <ActiveSection />
             </motion.div>
           </AnimatePresence>
+
+          {/* Annotations toggle button */}
+          <button
+            onClick={() => setShowAnnotations(v => !v)}
+            className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-3 py-2.5 bg-cyan-400/15 border border-cyan-400/30 text-cyan-400 rounded-xl text-xs font-semibold shadow-xl hover:bg-cyan-400/20 transition-all">
+            <MessageSquare className="w-4 h-4" />
+            <span className="hidden sm:inline">Annotate</span>
+          </button>
         </main>
       </div>
+
+      {/* Annotations slide-over */}
+      <AnimatePresence>
+        {showAnnotations && (
+          <motion.div
+            initial={{ x: 320, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 320, opacity: 0 }}
+            transition={{ type: 'spring', damping: 24, stiffness: 200 }}
+            className="fixed right-0 top-0 h-full w-80 z-50 bg-background border-l border-white/8 shadow-2xl flex flex-col"
+          >
+            <button onClick={() => setShowAnnotations(false)}
+              className="absolute top-3 right-3 p-1.5 text-white/40 hover:text-white/80 hover:bg-white/5 rounded-lg transition-all z-10">
+              <X className="w-4 h-4" />
+            </button>
+            <AnnotationsPanel />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

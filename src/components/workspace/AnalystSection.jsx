@@ -320,7 +320,6 @@ export default function AnalystSection() {
       setThinkingLabel('Generating LLM analysis + charts…');
 
       const result = await base44.integrations.Core.InvokeLLM({
-        model: 'claude_sonnet_4_6',
         prompt: `You are a senior data scientist and AI analyst. CRITICAL RULES:
 1. NEVER return a blank or empty answer field
 2. ALWAYS ground your answer in the statistics provided — never hallucinate data
@@ -424,14 +423,18 @@ ANSWER RULES:
         },
       });
 
+      // Guard: result may be a raw string if schema parsing failed
+      const parsed = typeof result === 'string' ? (() => { try { return JSON.parse(result); } catch { return null; } })() : result;
+      const finalResult = parsed || {};
+
       addChatMessage({
         role: 'assistant',
-        content: result?.answer || String(result),
-        charts: result?.charts || [],
-        steps: result?.steps || [],
-        confidence: result?.confidence || null,
-        methodology: result?.methodology || null,
-        followups: result?.followups || [],
+        content: finalResult?.answer || (typeof result === 'string' ? result : 'Analysis complete. See charts below.'),
+        charts: finalResult?.charts || [],
+        steps: finalResult?.steps || [],
+        confidence: finalResult?.confidence || null,
+        methodology: finalResult?.methodology || null,
+        followups: finalResult?.followups || [],
       });
     } catch (e) {
       addChatMessage({

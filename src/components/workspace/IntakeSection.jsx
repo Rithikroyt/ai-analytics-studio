@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import SheetPreview from '@/components/workspace/SheetPreview';
+import ConnectorsPanel from '@/components/workspace/ConnectorsPanel';
 import { inferRelationships } from '@/lib/relationshipInference';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWorkspaceStore } from '@/lib/store';
@@ -8,7 +9,7 @@ import { buildSemanticModel } from '@/lib/sampleData';
 import {
   Upload, FileSpreadsheet, FileJson, FileText, X, CheckCircle2,
   AlertTriangle, Database, Loader2, ChevronRight, Eye, Trash2,
-  Plus, Layers, Info
+  Plus, Layers, Info, Link2
 } from 'lucide-react';
 
 const ACCEPTED = '.csv,.tsv,.xlsx,.xls,.json,.txt,.md,.pdf,.docx';
@@ -159,6 +160,8 @@ export default function IntakeSection() {
 
   const { activeTableId } = useWorkspaceStore();
 
+  const [intakeTab, setIntakeTab] = useState('upload');
+
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6 overflow-auto">
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
@@ -166,10 +169,28 @@ export default function IntakeSection() {
           <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
           <span className="text-xs font-mono text-white/40 uppercase tracking-widest">Data Intake</span>
         </div>
-        <h1 className="text-2xl font-bold mb-1">Upload Data</h1>
-        <p className="text-sm text-muted-foreground">Upload CSV, Excel, JSON, or TXT files. Multi-sheet Excel is fully supported.</p>
+        <h1 className="text-2xl font-bold mb-1">Load Data</h1>
+        <p className="text-sm text-muted-foreground">Upload files or connect directly to a live data source.</p>
       </motion.div>
 
+      {/* Tab switcher */}
+      <div className="flex gap-1 p-1 bg-white/3 border border-white/8 rounded-xl w-fit">
+        {[
+          { id: 'upload', label: 'File Upload', icon: Upload },
+          { id: 'connectors', label: 'Live Connectors', icon: Link2 },
+        ].map(tab => (
+          <button key={tab.id} onClick={() => setIntakeTab(tab.id)}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+              intakeTab === tab.id ? 'bg-cyan-400/10 text-cyan-400 border border-cyan-400/20' : 'text-white/40 hover:text-white/70'
+            }`}>
+            <tab.icon className="w-3.5 h-3.5" />{tab.label}
+          </button>
+        ))}
+      </div>
+
+      {intakeTab === 'connectors' && <ConnectorsPanel />}
+
+      {intakeTab === 'upload' && <>
       {/* Drop zone */}
       <div
         onDrop={onDrop}
@@ -337,6 +358,8 @@ export default function IntakeSection() {
           ))}
         </div>
       )}
+      </>
+      }
     </div>
   );
 }
