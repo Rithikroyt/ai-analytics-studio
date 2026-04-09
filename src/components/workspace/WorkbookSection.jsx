@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
+
 import { useWorkspaceStore } from '@/lib/store';
 import {
   Database, BarChart3, LineChart, TrendingUp, TableProperties,

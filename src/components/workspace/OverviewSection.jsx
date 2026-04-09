@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+
 import { useWorkspaceStore } from '@/lib/store';
 import {
   Database, BarChart3, Brain, FileText, Zap,

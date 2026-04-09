@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+
 import { useWorkspaceStore } from '@/lib/store';
 import {
   CheckCircle2, AlertTriangle, Database, Calendar, Hash, Tag, Key,
