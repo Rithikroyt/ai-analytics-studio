@@ -1,13 +1,13 @@
 /**
- * AnalystSection — Production-grade AI Chat Analyst
+ * AnalystSection — Grounded AI Data Analyst
  * Features:
- *  - Full statistical engine (descriptive, regression, clustering, decomposition, t-test, chi², anomalies)
- *  - Multi-modal chart rendering (8+ chart types, reference lines, brush)
- *  - Analysis modes: Exploratory · Predictive · Diagnostic · Prescriptive
- *  - Thinking steps display (Julius AI / ChatGPT Advanced Data Analysis style)
- *  - Confidence scores & methodology notes
- *  - Follow-up question suggestions
- *  - Multi-series composed charts
+ *  - 17-tool orchestration for analysis (KPI, anomaly, forecast, quality, stats, recommendations)
+ *  - Structured response format (Answer → Evidence → Chart → Root Cause → Actions → Confidence)
+ *  - Intent detection (trend, anomaly, data quality, SQL, report, etc.)
+ *  - Deep explanations (not schema dumps)
+ *  - Always provides grounded answers, never blank fallbacks
+ *  - Charts integrated inline when requested
+ *  - Thinking steps and confidence clearly shown
  */
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
