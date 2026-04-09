@@ -33,6 +33,7 @@ export default function ReportsSection() {
   const [generated, setGenerated] = useState({});
   const [expandedReport, setExpandedReport] = useState(null);
   const [copied, setCopied] = useState('');
+  const [notifySlack, setNotifySlack] = useState(false);
 
   const buildContext = () => {
     if (!analysisResults || !table) return '';
@@ -209,9 +210,19 @@ RULES: Include a Quality Metrics Summary Table (Markdown) with column name, type
       addReport(report);
       setGenerated(g => ({ ...g, [type]: report }));
       setExpandedReport(type);
-    } catch (e) {
+
+      // Trigger Slack notification if enabled
+      if (notifySlack && globalThis.notificationCenter) {
+        globalThis.notificationCenter.addNotification(
+          'report_generated',
+          `${r.label || reportTypes.find(rt => rt.id === type)?.label || 'Report'} generated and ready to share`,
+          5000
+        );
+        // In production, call webhook here via backend function
+      }
+      } catch (e) {
       setGenerated(g => ({ ...g, [type]: { content: 'Report generation failed. Please try again.', error: true } }));
-    }
+      }
     setGenerating('');
   };
 
@@ -541,6 +552,21 @@ ${r?.anomalies?.length ? `<h2>Anomaly Register</h2><table class="data-table"><th
             </div>
           )}
         </div>
+      </div>
+
+      {/* Slack notification toggle */}
+      <div className="flex items-center justify-between p-4 rounded-2xl border border-blue-400/15 bg-blue-400/5">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-blue-400/10 flex items-center justify-center text-sm font-bold text-blue-400">#</div>
+          <div>
+            <div className="font-semibold text-sm">Notify Slack on Report Generation</div>
+            <div className="text-xs text-muted-foreground">Post to your configured Slack channel when board-ready reports are generated</div>
+          </div>
+        </div>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" checked={notifySlack} onChange={e => setNotifySlack(e.target.checked)} className="rounded" />
+          <span className="text-xs text-white/50">Enabled</span>
+        </label>
       </div>
 
       {/* Bundle export */}

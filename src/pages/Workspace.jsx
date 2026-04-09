@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import WorkspaceSidebar from '@/components/workspace/WorkspaceSidebar';
 import AnnotationsPanel from '@/components/workspace/AnnotationsPanel';
+import NotificationCenter from '@/components/workspace/NotificationCenter';
 import { MessageSquare, X } from 'lucide-react';
 import WorkspaceTopBar from '@/components/workspace/WorkspaceTopBar';
 import OverviewSection from '@/components/workspace/OverviewSection';
@@ -76,6 +77,9 @@ export default function Workspace() {
           </button>
         </main>
       </div>
+
+      {/* Notification Center */}
+      <NotificationCenter />
 
       {/* Annotations slide-over */}
       <AnimatePresence>

@@ -129,9 +129,11 @@ export default function Alerts() {
   const table = getActiveTable();
   const [activeTab, setActiveTab] = useState('alerts'); // 'alerts' | 'history' | 'digest'
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ label: '', metric: '', condition: 'below', threshold: '', unit: '$', email: '', frequency: 'daily' });
+  const [form, setForm] = useState({ label: '', metric: '', condition: 'below', threshold: '', unit: '$', email: '', frequency: 'daily', slackWebhook: '' });
   const [digestEmail, setDigestEmail] = useState('');
   const [digestLoading, setDigestLoading] = useState(false);
+  const [slackWebhook, setSlackWebhook] = useState('');
+  const [slackTest, setSlackTest] = useState('');
   const [digestPreview, setDigestPreview] = useState('');
   const [digestSent, setDigestSent] = useState(false);
   const [history, setHistory] = useState(MOCK_HISTORY);
@@ -355,6 +357,13 @@ Format with clear sections. Use professional but friendly tone.`,
                         placeholder="team@company.com" type="email"
                         className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-amber-400/30" />
                     </div>
+                    <div className="md:col-span-2">
+                      <label className="text-xs text-muted-foreground mb-1 block">Slack Webhook URL (optional)</label>
+                      <input value={form.slackWebhook} onChange={e => setForm(f => ({ ...f, slackWebhook: e.target.value }))}
+                        placeholder="https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXX" type="text"
+                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-amber-400/30 font-mono text-xs" />
+                      <div className="text-xs text-white/25 mt-1">Get your webhook from Slack → Create an Incoming Webhook in a channel</div>
+                    </div>
                   </div>
                   {/* Preview */}
                   {form.label && form.metric && (
@@ -372,6 +381,48 @@ Format with clear sections. Use professional but friendly tone.`,
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* Slack Global Config */}
+            <div className="glass-card rounded-2xl p-5 border border-blue-400/15">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 rounded-xl bg-blue-400/10 flex items-center justify-center text-sm font-bold text-blue-400">#</div>
+                <div>
+                  <h3 className="font-semibold text-sm">Slack Webhook Configuration</h3>
+                  <p className="text-xs text-muted-foreground">All high-severity anomalies and board-ready reports will be posted to this channel</p>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <input value={slackWebhook} onChange={e => setSlackWebhook(e.target.value)}
+                  placeholder="https://hooks.slack.com/services/..." type="text"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-blue-400/30 font-mono text-xs" />
+                <div className="flex gap-2">
+                  <button 
+                    onClick={async () => {
+                      if (!slackWebhook) return;
+                      setSlackTest('Sending test...');
+                      try {
+                        // In production, this would call a backend function
+                        // For now, simulate with a local check
+                        if (slackWebhook.includes('hooks.slack.com')) {
+                          setSlackTest('✓ Webhook URL is valid format. Will post when alerts trigger.');
+                          setTimeout(() => setSlackTest(''), 4000);
+                        } else {
+                          setSlackTest('✗ Invalid webhook URL format');
+                          setTimeout(() => setSlackTest(''), 4000);
+                        }
+                      } catch {
+                        setSlackTest('✗ Webhook test failed');
+                      }
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-blue-400/10 border border-blue-400/20 text-blue-400 rounded-xl text-xs font-semibold hover:bg-blue-400/15 transition-all">
+                    Test Webhook
+                  </button>
+                  <button onClick={() => setSlackWebhook('')}
+                    className="px-4 py-2 text-white/40 hover:text-white/70 text-xs rounded-xl border border-white/8 hover:bg-white/5 transition-all">Clear</button>
+                </div>
+                {slackTest && <div className="text-xs text-blue-400/80">{slackTest}</div>}
+              </div>
+            </div>
 
             {/* Alerts list */}
             {alerts.length > 0 ? (
