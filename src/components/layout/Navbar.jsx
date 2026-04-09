@@ -8,6 +8,7 @@ const navLinks = [
   { label: 'Platform', path: '/platform' },
   { label: 'Workflows', path: '/workflows' },
   { label: 'Universal Data', path: '/universal-data' },
+  { label: 'Dashboards', path: '/dashboards' },
 ];
 
 export default function Navbar() {

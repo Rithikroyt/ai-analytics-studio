@@ -40,16 +40,20 @@ export default function OverviewSection() {
 
   const handleLoadBundle = async (key) => {
     setLoadingBundle(key);
-    loadSampleBundle(key);
-    const { sampleBundles } = await import('@/lib/sampleData');
-    const bundle = sampleBundles[key];
-    if (bundle?.tables?.[0]) {
-      try {
-        const analysis = await runAIAnalysis(bundle.tables[0]);
-        setAnalysisResults(analysis);
-      } catch (e) {
-        setAnalysisResults(bundle.analysisResults);
+    try {
+      loadSampleBundle(key);
+      const { sampleBundles } = await import('@/lib/sampleData');
+      const bundle = sampleBundles[key];
+      if (bundle?.tables?.[0]) {
+        try {
+          const analysis = await runAIAnalysis(bundle.tables[0]);
+          setAnalysisResults(analysis);
+        } catch (e) {
+          setAnalysisResults(bundle.analysisResults);
+        }
       }
+    } catch (e) {
+      // fallback — bundle still loaded from loadSampleBundle
     }
     setLoadingBundle('');
     setActiveSection('story');
