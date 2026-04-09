@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import {
   LayoutDashboard, Upload, Settings2, BarChart3, BookOpen,
   Layers, Terminal, FileText, MessageSquare, Download,
-  ChevronLeft, Database, GitCompare, PieChart, Bell, Link2
+  ChevronLeft, Database, GitCompare, PieChart, Bell, Link2, Wand2
 } from 'lucide-react';
 import { useWorkspaceStore } from '@/lib/store';
 
@@ -91,6 +91,16 @@ export default function WorkspaceSidebar({ collapsed, onToggle }) {
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all text-sm text-muted-foreground hover:text-foreground hover:bg-white/5">
             <Link2 className="w-4 h-4 flex-shrink-0 text-cyan-400" />
             {!collapsed && <span className="font-medium truncate">Integrations</span>}
+          </Link>
+          <Link to="/data-mapping"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all text-sm text-muted-foreground hover:text-foreground hover:bg-white/5">
+            <Wand2 className="w-4 h-4 flex-shrink-0 text-purple-400" />
+            {!collapsed && <span className="font-medium truncate">Data Mapping</span>}
+          </Link>
+          <Link to="/reports"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all text-sm text-muted-foreground hover:text-foreground hover:bg-white/5">
+            <FileText className="w-4 h-4 flex-shrink-0 text-blue-400" />
+            {!collapsed && <span className="font-medium truncate">Reports</span>}
           </Link>
         </div>
       </nav>

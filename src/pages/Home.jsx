@@ -367,11 +367,13 @@ export default function Home() {
       <footer className="border-t border-white/5 py-8 px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <OmniLogo size="sm" showText={true} />
-          <div className="flex gap-6 text-xs text-muted-foreground">
+          <div className="flex gap-6 text-xs text-muted-foreground flex-wrap justify-center">
             <Link to="/platform" className="hover:text-foreground transition-colors">Platform</Link>
             <Link to="/workflows" className="hover:text-foreground transition-colors">Workflows</Link>
             <Link to="/universal-data" className="hover:text-foreground transition-colors">Universal Data</Link>
             <Link to="/workspace" className="hover:text-foreground transition-colors">Workspace</Link>
+            <Link to="/integrations" className="hover:text-foreground transition-colors">Integrations</Link>
+            <Link to="/reports" className="hover:text-foreground transition-colors">Reports</Link>
           </div>
           <div className="text-xs text-muted-foreground">© 2026 AI Agent Analytics. Enterprise AI for your data.</div>
         </div>

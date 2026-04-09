@@ -15,6 +15,7 @@ const sectionTitles = {
   analyst: { label: 'AI Analyst', sub: 'Natural language data Q&A' },
   reports: { label: 'Reports & Export', sub: 'Board memos · PDFs · CSVs' },
   compare: { label: 'Compare Datasets', sub: 'Side-by-side delta analysis' },
+  mapping: { label: 'Data Mapping', sub: 'AI schema detection & type suggestion' },
 };
 
 export default function WorkspaceTopBar({ onSearch }) {

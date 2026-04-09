@@ -5,7 +5,7 @@ import {
   Database, BarChart3, Brain, FileText, Zap,
   CheckCircle2, AlertTriangle, Loader2,
   Activity, Upload, Layers, GitBranch,
-  Bot, PieChart
+  Bot, PieChart, Link2, Wand2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -20,7 +20,7 @@ const quickActions = [
   { id: 'intake', icon: Upload, label: 'Upload Data', desc: 'Add CSV, XLSX, or JSON files', color: 'text-cyan-400', bg: 'bg-cyan-400/10', border: 'border-cyan-400/20' },
   { id: 'story', icon: BarChart3, label: 'View Dashboard', desc: 'Storytelling analytics view', color: 'text-teal-400', bg: 'bg-teal-400/10', border: 'border-teal-400/20' },
   { id: 'analyst', icon: Brain, label: 'Ask AI Analyst', desc: 'Natural language analysis', color: 'text-purple-400', bg: 'bg-purple-400/10', border: 'border-purple-400/20' },
-  { id: 'reports', icon: FileText, label: 'Generate Report', desc: 'Export board-ready docs', color: 'text-pink-400', bg: 'bg-pink-400/10', border: 'border-pink-400/20' },
+  { id: 'reports', icon: FileText, label: 'Reports & Export', desc: 'Export board-ready docs', color: 'text-pink-400', bg: 'bg-pink-400/10', border: 'border-pink-400/20' },
   { id: 'sql', icon: GitBranch, label: 'SQL Studio', desc: 'Query with natural language', color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/20' },
   { id: 'compare', icon: Layers, label: 'Compare Datasets', desc: 'Side-by-side delta analysis', color: 'text-blue-400', bg: 'bg-blue-400/10', border: 'border-blue-400/20' },
 ];
@@ -188,6 +188,15 @@ export default function OverviewSection() {
         </Link>
         <Link to="/alerts" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-lg border border-white/8 hover:border-white/15">
           <Activity className="w-3.5 h-3.5 text-amber-400" /> Alerts
+        </Link>
+        <Link to="/integrations" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-lg border border-white/8 hover:border-white/15">
+          <Link2 className="w-3.5 h-3.5 text-cyan-400" /> Integrations
+        </Link>
+        <Link to="/data-mapping" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-lg border border-white/8 hover:border-white/15">
+          <Wand2 className="w-3.5 h-3.5 text-purple-400" /> Data Mapping
+        </Link>
+        <Link to="/reports" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-lg border border-white/8 hover:border-white/15">
+          <FileText className="w-3.5 h-3.5 text-blue-400" /> Reports
         </Link>
       </div>
     </div>

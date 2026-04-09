@@ -16,8 +16,9 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
-  // Hide navbar on workspace pages
-  const isWorkspace = location.pathname === '/workspace' || location.pathname === '/dashboards' || location.pathname === '/story-builder' || location.pathname === '/alerts';
+  // Hide navbar on workspace/app pages
+  const appPages = ['/workspace', '/dashboards', '/story-builder', '/alerts', '/integrations', '/data-mapping', '/reports'];
+  const isWorkspace = appPages.some(p => location.pathname.startsWith(p));
   
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
