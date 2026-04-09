@@ -11,9 +11,11 @@ import { base44 } from '@/api/base44Client';
 const reportTypes = [
   { id: 'executive', label: 'Executive Summary', icon: '📄', emoji: FileText, color: 'text-cyan-400', border: 'border-cyan-400/20', bg: 'bg-cyan-400/5', desc: 'High-level narrative with KPIs, trends, and strategic recommendations.' },
   { id: 'board', label: 'Board Memo', icon: '🏛️', emoji: BarChart3, color: 'text-purple-400', border: 'border-purple-400/20', bg: 'bg-purple-400/5', desc: 'Formal board-ready memo with data evidence and strategic actions.' },
+  { id: 'kpi_trend', label: 'KPI & Trend Report', icon: '📈', emoji: TrendingUp, color: 'text-teal-400', border: 'border-teal-400/20', bg: 'bg-teal-400/5', desc: 'Detailed KPI performance with period-over-period trend decomposition.' },
   { id: 'anomaly', label: 'Anomaly Report', icon: '⚠️', emoji: AlertTriangle, color: 'text-amber-400', border: 'border-amber-400/20', bg: 'bg-amber-400/5', desc: 'Detailed anomaly breakdown with severity ratings and mitigation steps.' },
-  { id: 'forecast', label: 'Forecast Report', icon: '📈', emoji: TrendingUp, color: 'text-teal-400', border: 'border-teal-400/20', bg: 'bg-teal-400/5', desc: 'Forward-looking analysis with projections, assumptions, and confidence limits.' },
-  { id: 'quality', label: 'Data Quality Report', icon: '🔍', emoji: Shield, color: 'text-blue-400', border: 'border-blue-400/20', bg: 'bg-blue-400/5', desc: 'Data profiling, issue log, quality score breakdown, and remediation steps.' },
+  { id: 'forecast', label: 'Forecast Report', icon: '🔮', emoji: TrendingUp, color: 'text-blue-400', border: 'border-blue-400/20', bg: 'bg-blue-400/5', desc: 'Forward-looking analysis with projections, assumptions, and confidence limits.' },
+  { id: 'quality', label: 'Data Quality Report', icon: '🔍', emoji: Shield, color: 'text-white/60', border: 'border-white/15', bg: 'bg-white/3', desc: 'Data profiling, issue log, quality score breakdown, and remediation steps.' },
+  { id: 'feedback', label: 'Feedback & Survey Insights', icon: '💬', emoji: MessageSquare, color: 'text-pink-400', border: 'border-pink-400/20', bg: 'bg-pink-400/5', desc: 'Satisfaction scores, NPS analysis, sentiment patterns, and response summaries.' },
 ];
 
 const fmt = (v) => {
@@ -89,15 +91,46 @@ DATE: ${today}
 
 Formal, concise, board-appropriate language. 300-400 words.`,
 
+      kpi_trend: `Write a KPI & TREND ANALYSIS REPORT. Date: ${today}
+Context:
+${ctx}
+
+Format:
+## KPI Performance Summary
+## Key Metrics Dashboard
+## Period-Over-Period Analysis
+## Trend Decomposition
+## Leading vs Lagging Indicators
+## KPI Health Assessment
+## Improvement Roadmap
+
+Data-focused, executive language. Include specific numbers. 400-500 words.`,
+
+      feedback: `Write a FEEDBACK & SURVEY INSIGHTS REPORT. Date: ${today}
+Context:
+${ctx}
+
+Format:
+## Feedback Analysis Overview
+## Satisfaction Score Breakdown
+## NPS & Engagement Trends
+## Top Positive Themes
+## Top Areas for Improvement
+## Segment-Level Sentiment Analysis
+## Recommended Actions
+## Priority Response Plan
+
+Focus on satisfaction, NPS, engagement, completion metrics. Professional and actionable. 350-450 words.`,
+
       anomaly: `Write a DATA ANOMALY INVESTIGATION REPORT. Date: ${today}
 Context:
 ${ctx}
 
 Format with:
 ## Anomaly Detection Summary
-## Anomaly Inventory (list each with date, value, expected, severity, z-score)
+## Anomaly Inventory
 ## Severity Assessment
-## Root Cause Hypotheses  
+## Root Cause Hypotheses
 ## Impact Analysis
 ## Recommended Mitigation Steps
 
@@ -117,21 +150,6 @@ Format:
 ## Strategic Implications
 
 Professional financial language. Include specific projected figures. 350-450 words.`,
-
-      quality: `Write a DATA QUALITY AUDIT REPORT. Date: ${today}
-Context:
-${ctx}
-
-Format:
-## Data Quality Executive Summary
-## Quality Score Breakdown (${table.qualityScore}%)
-## Issue Inventory
-## Column Profiling Summary
-## Missing Data Analysis
-## Recommended Remediation Steps
-## Data Governance Notes
-
-Technical audit format. Specific and actionable. 350-450 words.`,
     };
 
     try {
@@ -190,6 +208,50 @@ Technical audit format. Specific and actionable. 350-450 words.`,
     </body></html>`);
     win.document.close();
     setTimeout(() => win.print(), 500);
+  };
+
+  const downloadBundle = () => {
+    if (!table) return;
+    // Download cleaned CSV
+    const cols = table.columns?.map(c => c.name).join(',');
+    const rowsStr = table.rows?.map(row =>
+      table.columns?.map(c => {
+        const val = String(row[c.name] ?? '');
+        return val.includes(',') ? `"${val}"` : val;
+      }).join(',')
+    ).join('\n');
+    const csvBlob = new Blob([cols + '\n' + rowsStr], { type: 'text/csv' });
+    const csvUrl = URL.createObjectURL(csvBlob);
+    const csvA = document.createElement('a');
+    csvA.href = csvUrl; csvA.download = `${table.name}_data.csv`; csvA.click();
+    URL.revokeObjectURL(csvUrl);
+    // Download insights CSV
+    const r = analysisResults;
+    const insightLines = [
+      'Section,Field,Value',
+      `KPI,Primary Metric,${r?.primaryLabel || ''}`,
+      `KPI,Total Value,${r?.totalValue || ''}`,
+      `KPI,Growth Rate,${r?.growthRate ?? ''}%`,
+      `KPI,Quality Score,${table.qualityScore}%`,
+      ...(r?.recommendations || []).map(rec => `Recommendation,${rec.priority},"${rec.action}"`),
+      ...(r?.anomalies || []).map(a => `Anomaly,${a.date},"value=${a.value} expected=${a.expected} z=${a.zScore} ${a.severity}"`),
+    ].join('\n');
+    const insBlob = new Blob([insightLines], { type: 'text/csv' });
+    const insUrl = URL.createObjectURL(insBlob);
+    const insA = document.createElement('a');
+    insA.href = insUrl; insA.download = `${table.name}_insights.csv`; insA.click();
+    URL.revokeObjectURL(insUrl);
+    // Download generated reports as one TXT
+    const reportTexts = Object.values(generated)
+      .filter(g => g?.content && !g.error)
+      .map(g => `===== ${g.label} =====\n${g.content}`).join('\n\n');
+    if (reportTexts) {
+      const txtBlob = new Blob([reportTexts], { type: 'text/plain' });
+      const txtUrl = URL.createObjectURL(txtBlob);
+      const txtA = document.createElement('a');
+      txtA.href = txtUrl; txtA.download = `${table.name}_reports.txt`; txtA.click();
+      URL.revokeObjectURL(txtUrl);
+    }
   };
 
   const downloadCSV = () => {
@@ -359,6 +421,23 @@ Technical audit format. Specific and actionable. 350-450 words.`,
             </div>
           )}
         </div>
+      </div>
+
+      {/* Bundle export */}
+      <div className="flex items-center justify-between p-4 rounded-2xl border border-purple-400/15 bg-purple-400/5">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-purple-400/10 flex items-center justify-center">
+            <Download className="w-4 h-4 text-purple-400" />
+          </div>
+          <div>
+            <div className="font-semibold text-sm">Download Full Bundle</div>
+            <div className="text-xs text-muted-foreground">Cleaned data CSV + AI insights CSV + all generated reports TXT</div>
+          </div>
+        </div>
+        <button onClick={downloadBundle}
+          className="flex items-center gap-1.5 px-4 py-2 bg-purple-400/15 border border-purple-400/25 text-purple-400 rounded-xl text-xs font-semibold hover:bg-purple-400/20 transition-all whitespace-nowrap">
+          <Download className="w-3.5 h-3.5" /> Export Bundle
+        </button>
       </div>
 
       <div className="flex items-start gap-3 p-4 bg-white/3 rounded-xl border border-white/5 text-sm text-muted-foreground">

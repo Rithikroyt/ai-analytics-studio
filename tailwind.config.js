@@ -120,6 +120,7 @@ module.exports = {
         'bg-amber-400/10', 'bg-purple-400/10', 'bg-blue-400/10', 'bg-pink-400/10',
         'border-cyan-400/20', 'border-teal-400/20', 'border-blue-400/20', 'border-purple-400/20',
         'border-cyan-400/30', 'border-teal-400/30', 'border-green-400/30', 'border-amber-400/20',
+        'border-pink-400/20', 'bg-pink-400/5', 'text-pink-400',
       ],
     },
   },
