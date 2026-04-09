@@ -6,8 +6,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useWorkspaceStore } from '@/lib/store';
-import { buildSemanticModel } from '@/lib/sampleData';
-import { inferColumns } from '@/lib/sampleData';
+import { buildSemanticModel, inferColumns } from '@/lib/sampleData';
 import {
   Sheet, Database, Cloud, CheckCircle2, Loader2, X, AlertTriangle,
   Link2, RefreshCw, ExternalLink, Lock, ChevronRight, Unplug, Zap
@@ -202,7 +201,6 @@ export default function ConnectorsPanel() {
       return row;
     });
 
-    const { inferColumns } = await import('@/lib/sampleData');
     const { computeQualityScore, detectIssues } = await import('@/lib/dataParser');
     const columns = inferColumns(rows);
     const id = `table-connector-${Date.now()}`;

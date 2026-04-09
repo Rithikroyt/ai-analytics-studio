@@ -150,6 +150,22 @@ Format:
 ## Strategic Implications
 
 Professional financial language. Include specific projected figures. 350-450 words.`,
+
+      quality: `Write a DATA QUALITY ASSESSMENT REPORT. Date: ${today}
+Context:
+${ctx}
+
+Format:
+## Data Quality Overview
+## Quality Score Breakdown
+## Issue Inventory
+## Column-Level Profile
+## Missing Data Analysis
+## Duplicate & Anomaly Summary
+## Remediation Recommendations
+## Quality Improvement Roadmap
+
+Technical but clear. Include a quality metrics table. Reference the actual score and issues. 350-450 words.`,
     };
 
     try {

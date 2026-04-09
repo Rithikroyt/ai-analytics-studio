@@ -611,7 +611,7 @@ ANSWER RULES:
         <div className="text-xs text-muted-foreground mt-1.5 flex items-center gap-3">
           <span>Enter to send · Shift+Enter for new line</span>
           <span className="opacity-50">·</span>
-          <span className={`${activeMode.color} opacity-70`}>claude-sonnet · stats pre-computed</span>
+          <span className={`${activeMode.color} opacity-70`}>AI Analyst · stats pre-computed</span>
         </div>
       </div>
     </div>
