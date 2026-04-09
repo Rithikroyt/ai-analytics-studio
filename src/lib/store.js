@@ -154,6 +154,14 @@ export const useWorkspaceStore = create(
         savedCharts: state.savedCharts,
         stories: state.stories,
         alerts: state.alerts,
+        // Persist tables but strip large row data to avoid localStorage limits
+        tables: state.tables.map(t => ({
+          ...t,
+          rows: t.rows?.slice(0, 500) ?? [], // cap at 500 rows for storage
+        })),
+        activeTableId: state.activeTableId,
+        semanticModel: state.semanticModel,
+        analysisResults: state.analysisResults,
       }),
     }
   )

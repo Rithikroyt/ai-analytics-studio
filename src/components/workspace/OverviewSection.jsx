@@ -11,9 +11,9 @@ import { runAIAnalysis } from '@/lib/aiAnalyzer';
 import { Link } from 'react-router-dom';
 
 const bundles = [
-  { key: 'sales', label: 'Sales & Revenue', desc: '2,304 rows · 12 columns · 2023–2024', icon: '📊', color: 'border-cyan-400/30 bg-cyan-400/5', tag: 'Revenue · Forecast · Regional' },
-  { key: 'workforce', label: 'Workforce & Payroll', desc: '131 employees · 10 columns', icon: '👥', color: 'border-teal-400/30 bg-teal-400/5', tag: 'HR · Attrition · Salary Bands' },
-  { key: 'healthcare', label: 'Healthcare Operations', desc: '84 rows · 11 columns · 12 months', icon: '🏥', color: 'border-blue-400/30 bg-blue-400/5', tag: 'Clinical · Quality · Throughput' },
+  { key: 'sales', label: 'Sales & Revenue', desc: '2,304 rows · 12 columns · 2023–2024', icon: '📊', color: 'border-cyan-400/30 bg-cyan-400/5', tag: 'Revenue · Forecast · Regional', accentColor: 'text-cyan-400' },
+  { key: 'workforce', label: 'Workforce & Payroll', desc: '131 employees · 10 columns', icon: '👥', color: 'border-teal-400/30 bg-teal-400/5', tag: 'HR · Attrition · Salary Bands', accentColor: 'text-teal-400' },
+  { key: 'healthcare', label: 'Healthcare Operations', desc: '84 rows · 11 columns · 12 months', icon: '🏥', color: 'border-blue-400/30 bg-blue-400/5', tag: 'Clinical · Quality · Throughput', accentColor: 'text-blue-400' },
 ];
 
 const quickActions = [

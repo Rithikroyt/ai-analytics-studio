@@ -14,7 +14,7 @@ import ExportPanel from '@/components/workspace/ExportPanel';
 import AdaptiveChart from '@/components/charts/AdaptiveChart';
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, ReferenceLine, Cell
+  Tooltip, ResponsiveContainer, Cell
 } from 'recharts';
 
 const THEME = { cyan: '#00e5ff', purple: '#9c27b0', orange: '#ff6b35', green: '#4caf50', pink: '#ff2d7a', yellow: '#ffcc02', teal: '#00bfa5' };

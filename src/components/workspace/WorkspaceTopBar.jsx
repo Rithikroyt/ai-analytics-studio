@@ -18,7 +18,7 @@ const sectionTitles = {
 };
 
 export default function WorkspaceTopBar({ onSearch }) {
-  const { activeSection, getActiveTable, reset, analysisResults } = useWorkspaceStore();
+  const { activeSection, getActiveTable, reset, analysisResults, setActiveSection } = useWorkspaceStore();
   const activeTable = getActiveTable();
   const section = sectionTitles[activeSection] || sectionTitles.overview;
   const [showReset, setShowReset] = useState(false);
@@ -72,12 +72,23 @@ export default function WorkspaceTopBar({ onSearch }) {
       <div className="flex-1" />
 
       {/* Search */}
-      <div className="relative w-48 flex-shrink-0">
+      <div className="relative w-52 flex-shrink-0">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
         <input
           type="text"
-          placeholder="Search workspace…"
-          onChange={e => onSearch(e.target.value)}
+          placeholder="Jump to section…"
+          onFocus={e => e.target.select()}
+          onChange={e => {
+            onSearch(e.target.value);
+          }}
+          onKeyDown={e => {
+            if (e.key === 'Enter') {
+              const val = e.target.value.toLowerCase();
+              const sectionMap = { intake: 'intake', upload: 'intake', prepare: 'prepare', profile: 'prepare', dashboard: 'story', story: 'story', analyst: 'analyst', ai: 'analyst', sql: 'sql', query: 'sql', report: 'reports', export: 'reports', semantic: 'semantic', model: 'semantic', docs: 'docs', evidence: 'docs', workbook: 'workbook', compare: 'compare', overview: 'overview' };
+              const match = Object.entries(sectionMap).find(([k]) => val.includes(k));
+              if (match) { setActiveSection(match[1]); e.target.value = ''; e.target.blur(); }
+            }
+          }}
           className="w-full pl-8 pr-3 py-1.5 bg-white/5 border border-white/8 rounded-lg text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-cyan-400/30 transition-colors"
         />
       </div>
@@ -99,7 +110,7 @@ export default function WorkspaceTopBar({ onSearch }) {
               <div className="text-xs text-white/35 mb-3">This clears all tables and analysis data. Saved charts and stories are preserved.</div>
               <div className="flex gap-2">
                 <button onClick={() => setShowReset(false)} className="flex-1 py-1.5 rounded-lg border border-white/10 text-xs text-white/50 hover:text-white/80">Cancel</button>
-                <button onClick={() => { reset(); setShowReset(false); }} className="flex-1 py-1.5 rounded-lg bg-red-400/15 border border-red-400/25 text-xs text-red-400 hover:bg-red-400/20">Reset</button>
+                <button onClick={() => { reset(); setShowReset(false); localStorage.removeItem('omnidata-workspace'); }} className="flex-1 py-1.5 rounded-lg bg-red-400/15 border border-red-400/25 text-xs text-red-400 hover:bg-red-400/20">Reset</button>
               </div>
             </motion.div>
           )}
