@@ -1,29 +1,29 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-
+import { motion, AnimatePresence } from 'framer-motion';
 import { useWorkspaceStore } from '@/lib/store';
 import {
   Database, BarChart3, Brain, FileText, Zap,
   CheckCircle2, AlertTriangle, Loader2,
   Activity, Upload, Layers, GitBranch,
-  Bot, PieChart, Link2, Wand2
+  Bot, PieChart, Link2, Wand2, TrendingUp,
+  Sparkles, ArrowRight, Shield
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const bundles = [
-  { key: 'sales', label: 'Sales & Revenue', desc: '2,304 rows · 12 cols · 2023–2024', icon: '📊', color: 'border-cyan-400/30 bg-cyan-400/5', tag: 'Revenue · Forecast · Regional' },
-  { key: 'workforce', label: 'Workforce & Payroll', desc: '131 employees · 10 columns', icon: '👥', color: 'border-teal-400/30 bg-teal-400/5', tag: 'HR · Attrition · Salary Bands' },
-  { key: 'healthcare', label: 'Healthcare Operations', desc: '84 rows · 11 cols · 12 months', icon: '🏥', color: 'border-blue-400/30 bg-blue-400/5', tag: 'Clinical · Quality · Throughput' },
-  { key: 'education', label: 'Student Engagement', desc: '480 rows · 12 cols · 2024', icon: '🎓', color: 'border-purple-400/30 bg-purple-400/5', tag: 'Retention · Completion · Revenue' },
+  { key: 'sales', label: 'Sales & Revenue', desc: '2,400 rows · 12 cols · 2023–2024', icon: '📊', color: 'border-cyan-400/30 bg-cyan-400/5', tag: 'Revenue · Forecast · Regional · Channel' },
+  { key: 'workforce', label: 'Workforce & Payroll', desc: '149 employees · 12 columns', icon: '👥', color: 'border-teal-400/30 bg-teal-400/5', tag: 'HR · Attrition · Salary · Engagement' },
+  { key: 'healthcare', label: 'Healthcare Operations', desc: '96 rows · 12 cols · 12 months', icon: '🏥', color: 'border-blue-400/30 bg-blue-400/5', tag: 'Clinical · Quality · Cost · Throughput' },
+  { key: 'education', label: 'Student Engagement', desc: '480 rows · 12 cols · 2024', icon: '🎓', color: 'border-purple-400/30 bg-purple-400/5', tag: 'Retention · Completion · NPS · Revenue' },
 ];
 
 const quickActions = [
-  { id: 'intake', icon: Upload, label: 'Upload Data', desc: 'Add CSV, XLSX, or JSON files', color: 'text-cyan-400', bg: 'bg-cyan-400/10', border: 'border-cyan-400/20' },
-  { id: 'story', icon: BarChart3, label: 'View Dashboard', desc: 'Storytelling analytics view', color: 'text-teal-400', bg: 'bg-teal-400/10', border: 'border-teal-400/20' },
-  { id: 'analyst', icon: Brain, label: 'Ask AI Analyst', desc: 'Natural language analysis', color: 'text-purple-400', bg: 'bg-purple-400/10', border: 'border-purple-400/20' },
-  { id: 'reports', icon: FileText, label: 'Reports & Export', desc: 'Export board-ready docs', color: 'text-pink-400', bg: 'bg-pink-400/10', border: 'border-pink-400/20' },
-  { id: 'sql', icon: GitBranch, label: 'SQL Studio', desc: 'Query with natural language', color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/20' },
-  { id: 'compare', icon: Layers, label: 'Compare Datasets', desc: 'Side-by-side delta analysis', color: 'text-blue-400', bg: 'bg-blue-400/10', border: 'border-blue-400/20' },
+  { id: 'intake', icon: Upload, label: 'Upload Data', desc: 'CSV, XLSX, JSON — real files', color: 'text-cyan-400', bg: 'bg-cyan-400/10', border: 'border-cyan-400/20' },
+  { id: 'story', icon: BarChart3, label: 'Dashboard', desc: 'Executive storytelling view', color: 'text-teal-400', bg: 'bg-teal-400/10', border: 'border-teal-400/20' },
+  { id: 'analyst', icon: Brain, label: 'AI Analyst', desc: 'Grounded, evidence-based answers', color: 'text-purple-400', bg: 'bg-purple-400/10', border: 'border-purple-400/20' },
+  { id: 'workbook', icon: GitBranch, label: 'Workbook', desc: 'Scorecards, trends, distributions', color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/20' },
+  { id: 'reports', icon: FileText, label: 'Reports', desc: 'Board memos & executive PDFs', color: 'text-pink-400', bg: 'bg-pink-400/10', border: 'border-pink-400/20' },
+  { id: 'compare', icon: Layers, label: 'Compare', desc: 'Side-by-side delta analysis', color: 'text-blue-400', bg: 'bg-blue-400/10', border: 'border-blue-400/20' },
 ];
 
 const fmtV = (v) => {
@@ -41,30 +41,36 @@ export default function OverviewSection() {
 
   const handleLoadBundle = async (key) => {
     setLoadingBundle(key);
-    // loadSampleBundle sets tables + pre-built analysisResults from sampleData
-    loadSampleBundle(key);
-    await new Promise(r => setTimeout(r, 100));
+    try {
+      loadSampleBundle(key);
+      await new Promise(r => setTimeout(r, 150));
+    } catch {}
     setLoadingBundle('');
     setActiveSection('story');
   };
 
   const r = analysisResults;
   const activeTable = tables[0] || null;
+  const hasData = tables.length > 0;
 
   return (
     <div className="p-6 space-y-8 max-w-6xl mx-auto overflow-auto">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="flex items-center gap-2 mb-1">
+        <div className="flex items-center gap-2 mb-2">
           <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
           <span className="text-xs font-mono text-white/40 uppercase tracking-widest">AI Agent Analytics Workspace</span>
         </div>
-        <h1 className="text-2xl font-black mb-1">Welcome back</h1>
-        <p className="text-sm text-muted-foreground">Upload data or load a sample bundle to begin your analysis.</p>
+        <h1 className="text-2xl font-black mb-1">
+          {hasData ? `Analysis Ready` : 'Welcome'}
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          {hasData ? 'Your workspace has active data. Jump to any module below.' : 'Upload data or load a sample bundle to begin.'}
+        </p>
       </motion.div>
 
-      {/* Stats strip — shown when workspace has data */}
-      {(tables.length > 0 || savedCharts.length > 0 || stories.length > 0) && (
+      {/* Stats strip when data loaded */}
+      {hasData && (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
           className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
@@ -86,31 +92,37 @@ export default function OverviewSection() {
         </motion.div>
       )}
 
-      {/* Active dataset status */}
+      {/* Active dataset status with KPIs */}
       {activeTable && (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-          className="glass-card rounded-2xl p-5 border border-cyan-400/15">
-          <div className="flex items-start justify-between flex-wrap gap-3">
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
-                <CheckCircle2 className="w-4 h-4 text-cyan-400" />
-                <span className="font-semibold">{activeTable.name}</span>
+          className="glass-card rounded-2xl p-5 border border-cyan-400/15 bg-cyan-400/3">
+          <div className="flex items-start justify-between flex-wrap gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                <CheckCircle2 className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+                <span className="font-bold text-base">{activeTable.name}</span>
                 <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-400/10 text-cyan-400 border border-cyan-400/20">Active</span>
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Shield className={`w-3 h-3 ${activeTable.qualityScore >= 90 ? 'text-green-400' : 'text-amber-400'}`} />
+                  {activeTable.qualityScore}% quality
+                </div>
               </div>
               <div className="text-sm text-muted-foreground mb-3">
-                {activeTable.rowCount?.toLocaleString()} rows · {activeTable.columns?.length} columns · Quality Score: {activeTable.qualityScore}%
+                {activeTable.rowCount?.toLocaleString()} rows · {activeTable.columns?.length} columns ·{' '}
+                {activeTable.columns?.filter(c => c.type === 'numeric').length} numeric KPIs ·{' '}
+                {activeTable.columns?.filter(c => c.type === 'category').length} dimensions
               </div>
               {activeTable.issues?.length > 0 && (
-                <div className="flex items-center gap-1.5 text-xs text-amber-400 mb-2">
+                <div className="flex items-center gap-1.5 text-xs text-amber-400 mb-3">
                   <AlertTriangle className="w-3 h-3" />
-                  {activeTable.issues.length} data quality {activeTable.issues.length === 1 ? 'issue' : 'issues'} detected
+                  {activeTable.issues.length} data quality issue{activeTable.issues.length !== 1 ? 's' : ''} — see Prepare for details
                 </div>
               )}
               {r && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2">
                   {[
-                    { label: r.primaryLabel || 'KPI', value: fmtV(r.totalValue), color: 'text-cyan-400' },
-                    { label: 'Growth Rate', value: r.growthRate != null ? `${r.growthRate > 0 ? '+' : ''}${r.growthRate}%` : '—', color: Number(r.growthRate) >= 0 ? 'text-green-400' : 'text-red-400' },
+                    { label: r.primaryLabel || 'Primary KPI', value: fmtV(r.totalValue), color: 'text-cyan-400' },
+                    { label: 'Trend', value: r.growthRate != null ? `${r.growthRate > 0 ? '+' : ''}${r.growthRate}%` : '—', color: Number(r.growthRate) >= 0 ? 'text-green-400' : 'text-red-400' },
                     { label: 'Anomalies', value: String(r.anomalies?.length || 0), color: (r.anomalies?.length || 0) > 0 ? 'text-amber-400' : 'text-green-400' },
                     { label: 'Correlations', value: String(r.correlations?.length || 0), color: 'text-purple-400' },
                   ].map((m) => (
@@ -123,15 +135,23 @@ export default function OverviewSection() {
               )}
               {r?.executiveSummary && (
                 <div className="mt-3 pt-3 border-t border-white/5 text-xs text-muted-foreground leading-relaxed italic">
-                  {r.executiveSummary}
+                  "{r.executiveSummary}"
                 </div>
               )}
             </div>
-            <div className="flex flex-col gap-2">
-              <button onClick={() => setActiveSection('story')} className="text-xs px-4 py-2 bg-cyan-400/10 border border-cyan-400/20 text-cyan-400 rounded-xl hover:bg-cyan-400/20 transition-colors flex items-center gap-1.5">
+            <div className="flex flex-col gap-2 flex-shrink-0">
+              <button onClick={() => setActiveSection('story')}
+                className="text-xs px-4 py-2 bg-cyan-400/10 border border-cyan-400/20 text-cyan-400 rounded-xl hover:bg-cyan-400/20 transition-colors flex items-center gap-1.5 whitespace-nowrap">
                 <BarChart3 className="w-3.5 h-3.5" /> View Dashboard
               </button>
-              <button onClick={() => setActiveSection('analyst')} className="text-xs px-4 py-2 bg-purple-400/10 border border-purple-400/20 text-purple-400 rounded-xl hover:bg-purple-400/20 transition-colors flex items-center gap-1.5">
+              {!r && (
+                <button onClick={() => setActiveSection('prepare')}
+                  className="text-xs px-4 py-2 bg-green-400/10 border border-green-400/20 text-green-400 rounded-xl hover:bg-green-400/20 transition-colors flex items-center gap-1.5 whitespace-nowrap">
+                  <Sparkles className="w-3.5 h-3.5" /> Run Analysis
+                </button>
+              )}
+              <button onClick={() => setActiveSection('analyst')}
+                className="text-xs px-4 py-2 bg-purple-400/10 border border-purple-400/20 text-purple-400 rounded-xl hover:bg-purple-400/20 transition-colors flex items-center gap-1.5 whitespace-nowrap">
                 <Bot className="w-3.5 h-3.5" /> Ask AI Analyst
               </button>
             </div>
@@ -141,12 +161,12 @@ export default function OverviewSection() {
 
       {/* Quick actions */}
       <div>
-        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4">Quick Actions</h2>
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4">Workspace Modules</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {quickActions.map((action, i) => (
-            <motion.button key={action.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
+            <motion.button key={action.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
               onClick={() => setActiveSection(action.id)}
-              className={`glass-card rounded-xl p-4 text-left border ${action.border} hover:border-opacity-70 transition-all group`}>
+              className={`glass-card rounded-xl p-4 text-left border ${action.border} hover:scale-[1.02] transition-all`}>
               <div className={`w-8 h-8 rounded-lg ${action.bg} flex items-center justify-center mb-3`}>
                 <action.icon className={`w-4 h-4 ${action.color}`} />
               </div>
@@ -159,20 +179,23 @@ export default function OverviewSection() {
 
       {/* Sample bundles */}
       <div>
-        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2">Sample Bundles</h2>
-        <p className="text-sm text-muted-foreground mb-4">Load a pre-built dataset with full AI analysis to explore the platform immediately.</p>
+        <div className="flex items-center gap-3 mb-3">
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Sample Bundles</h2>
+          <span className="text-xs text-white/25">— demo-ready, zero setup</span>
+        </div>
+        <p className="text-sm text-muted-foreground mb-4">Load a pre-built dataset with full AI analysis, charts, and insights to explore the platform immediately.</p>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           {bundles.map((b, i) => (
-            <motion.button key={b.key} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
+            <motion.button key={b.key} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
               onClick={() => handleLoadBundle(b.key)}
               disabled={!!loadingBundle}
               className={`glass-card rounded-2xl p-5 text-left border ${b.color} hover:scale-[1.01] transition-all disabled:opacity-60`}>
               <div className="text-3xl mb-3">{b.icon}</div>
-              <div className="font-semibold text-sm mb-1">{b.label}</div>
+              <div className="font-bold text-sm mb-1">{b.label}</div>
               <div className="text-xs text-muted-foreground mb-2">{b.desc}</div>
-              <div className="text-xs text-white/30 mb-3">{b.tag}</div>
+              <div className="text-xs text-white/30 mb-3 leading-relaxed">{b.tag}</div>
               <div className="flex items-center gap-1 text-xs text-cyan-400">
-                {loadingBundle === b.key ? <><Loader2 className="w-3 h-3 animate-spin" /> Analyzing…</> : <><Zap className="w-3 h-3" /> Load & AI Analyze</>}
+                {loadingBundle === b.key ? <><Loader2 className="w-3 h-3 animate-spin" /> Loading…</> : <><Zap className="w-3 h-3" /> Load & AI Analyze</>}
               </div>
             </motion.button>
           ))}
@@ -180,25 +203,21 @@ export default function OverviewSection() {
       </div>
 
       {/* Navigation links */}
-      <div className="flex flex-wrap items-center gap-3 pt-2">
-        <Link to="/dashboards" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-lg border border-white/8 hover:border-white/15">
-          <PieChart className="w-3.5 h-3.5 text-cyan-400" /> Dashboards
-        </Link>
-        <Link to="/story-builder" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-lg border border-white/8 hover:border-white/15">
-          <FileText className="w-3.5 h-3.5 text-purple-400" /> Story Builder
-        </Link>
-        <Link to="/alerts" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-lg border border-white/8 hover:border-white/15">
-          <Activity className="w-3.5 h-3.5 text-amber-400" /> Alerts
-        </Link>
-        <Link to="/integrations" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-lg border border-white/8 hover:border-white/15">
-          <Link2 className="w-3.5 h-3.5 text-cyan-400" /> Integrations
-        </Link>
-        <Link to="/data-mapping" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-lg border border-white/8 hover:border-white/15">
-          <Wand2 className="w-3.5 h-3.5 text-purple-400" /> Data Mapping
-        </Link>
-        <Link to="/reports" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-lg border border-white/8 hover:border-white/15">
-          <FileText className="w-3.5 h-3.5 text-blue-400" /> Reports
-        </Link>
+      <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-white/5">
+        <span className="text-xs text-white/25">Other modules:</span>
+        {[
+          { to: '/dashboards', icon: PieChart, label: 'Dashboards', color: 'text-cyan-400' },
+          { to: '/story-builder', icon: FileText, label: 'Story Builder', color: 'text-purple-400' },
+          { to: '/alerts', icon: Activity, label: 'Alerts', color: 'text-amber-400' },
+          { to: '/integrations', icon: Link2, label: 'Integrations', color: 'text-cyan-400' },
+          { to: '/data-mapping', icon: Wand2, label: 'Data Mapping', color: 'text-purple-400' },
+          { to: '/reports', icon: FileText, label: 'Reports', color: 'text-blue-400' },
+        ].map(link => (
+          <Link key={link.to} to={link.to}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-lg border border-white/8 hover:border-white/15">
+            <link.icon className={`w-3.5 h-3.5 ${link.color}`} /> {link.label}
+          </Link>
+        ))}
       </div>
     </div>
   );

@@ -5,40 +5,20 @@ import { sampleBundles } from '@/lib/sampleData';
 export const useWorkspaceStore = create(
   persist(
     (set, get) => ({
-      // Tables / datasets
       tables: [],
       activeTableId: null,
-      
-      // Semantic model
       semanticModel: null,
-      
-      // Analysis results
       analysisResults: null,
-      
-      // AI Chat
       chatMessages: [],
-      
-      // Current workspace section
       activeSection: 'overview',
-      
-      // Upload state
       isProcessing: false,
       processingStep: '',
-      
-      // Reports
       reports: [],
-
-      // Saved dashboard items
       savedCharts: [],
-
-      // Story Builder slides
-      stories: [], // [{id, title, slides: [{id, type:'chart'|'insight', chartId?, text?, narration?}]}]
-
-      // Alerts
-      alerts: [], // [{id, label, metric, condition, threshold, unit, email, active, lastTriggered}]
-
-      // Integrations / Connections
-      connections: {}, // { [connectorId]: { status, schedule, config, lastSync, rowCount, error } }
+      stories: [],
+      alerts: [],
+      connections: {},
+      documents: [],
 
       setActiveSection: (section) => set({ activeSection: section }),
 
@@ -47,9 +27,9 @@ export const useWorkspaceStore = create(
         activeTableId: state.activeTableId || table.id,
       })),
 
-      setTables: (tables) => set({ 
-        tables, 
-        activeTableId: tables.length > 0 ? tables[0].id : null 
+      setTables: (tables) => set({
+        tables,
+        activeTableId: tables.length > 0 ? tables[0].id : null,
       }),
 
       setActiveTable: (id) => set({ activeTableId: id }),
@@ -60,18 +40,19 @@ export const useWorkspaceStore = create(
 
       removeTable: (id) => set((state) => ({
         tables: state.tables.filter(t => t.id !== id),
-        activeTableId: state.activeTableId === id 
+        activeTableId: state.activeTableId === id
           ? (state.tables.find(t => t.id !== id)?.id || null)
           : state.activeTableId,
+        analysisResults: state.activeTableId === id ? null : state.analysisResults,
       })),
 
       setSemanticModel: (model) => set({ semanticModel: model }),
       setAnalysisResults: (results) => set({ analysisResults: results }),
-      
+
       addChatMessage: (message) => set((state) => ({
         chatMessages: [...state.chatMessages, message],
       })),
-      
+
       updateLastMessage: (updates) => set((state) => {
         const messages = [...state.chatMessages];
         if (messages.length > 0) {
@@ -85,10 +66,12 @@ export const useWorkspaceStore = create(
       setProcessing: (isProcessing, step = '') => set({ isProcessing, processingStep: step }),
 
       addReport: (report) => set((state) => ({
-        reports: [...state.reports, report],
+        reports: [{ ...report, id: Date.now().toString(), createdAt: new Date().toISOString() }, ...state.reports],
+      })),
+      removeReport: (id) => set((state) => ({
+        reports: state.reports.filter(r => r.id !== id),
       })),
 
-      // Dashboard / saved charts
       saveToDashboard: (item) => set((state) => ({
         savedCharts: [...state.savedCharts, { ...item, id: Date.now().toString(), savedAt: new Date().toISOString() }],
       })),
@@ -99,7 +82,6 @@ export const useWorkspaceStore = create(
         savedCharts: state.savedCharts.map(c => c.id === id ? { ...c, label } : c),
       })),
 
-      // Story Builder
       addStory: (story) => set((state) => ({
         stories: [...state.stories, { ...story, id: Date.now().toString(), createdAt: new Date().toISOString() }],
       })),
@@ -110,7 +92,6 @@ export const useWorkspaceStore = create(
         stories: state.stories.filter(s => s.id !== id),
       })),
 
-      // Alerts
       addAlert: (alert) => set((state) => ({
         alerts: [...state.alerts, { ...alert, id: Date.now().toString(), createdAt: new Date().toISOString(), active: true }],
       })),
@@ -119,6 +100,13 @@ export const useWorkspaceStore = create(
       })),
       removeAlert: (id) => set((state) => ({
         alerts: state.alerts.filter(a => a.id !== id),
+      })),
+
+      addDocument: (doc) => set((state) => ({
+        documents: [...state.documents, doc],
+      })),
+      removeDocument: (id) => set((state) => ({
+        documents: state.documents.filter(d => d.id !== id),
       })),
 
       loadSampleBundle: (bundleKey) => {
@@ -152,19 +140,30 @@ export const useWorkspaceStore = create(
       }),
     }),
     {
-      name: 'omnidata-workspace',
+      name: 'omnidata-workspace-v2',
       partialize: (state) => ({
         savedCharts: state.savedCharts,
         stories: state.stories,
         alerts: state.alerts,
-        // Persist tables but strip large row data to avoid localStorage limits
+        activeSection: state.activeSection,
+        // Cap rows to prevent localStorage overflow
         tables: state.tables.map(t => ({
           ...t,
-          rows: t.rows?.slice(0, 500) ?? [], // cap at 500 rows for storage
+          rows: t.rows?.slice(0, 800) ?? [],
         })),
         activeTableId: state.activeTableId,
         semanticModel: state.semanticModel,
-        analysisResults: state.analysisResults,
+        documents: (state.documents || []).map(d => ({ ...d, content: d.content?.slice(0, 2000) })),
+        // Cap analysisResults colStats + trendData to avoid bloat
+        analysisResults: state.analysisResults ? {
+          ...state.analysisResults,
+          colStats: {},
+          allBreakdowns: {},
+          allTrends: {},
+          numericCols: state.analysisResults.numericCols,
+          catCols: state.analysisResults.catCols,
+          dateCol: state.analysisResults.dateCol,
+        } : null,
       }),
     }
   )

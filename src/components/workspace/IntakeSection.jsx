@@ -1,118 +1,148 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Upload, X, CheckCircle2, AlertTriangle, FileSpreadsheet,
-  FileJson, FileText, Loader2, ChevronRight, Database,
-  Trash2, Eye, ArrowRight, Info, File
-} from 'lucide-react';
 import { useWorkspaceStore } from '@/lib/store';
-import { processUploadedFile, buildTableSemanticModel } from '@/lib/dataParser';
+import { processUploadedFile } from '@/lib/dataParser';
+import { buildSemanticModel } from '@/lib/sampleData';
+import {
+  Upload, FileSpreadsheet, FileJson, FileText, X, CheckCircle2,
+  AlertTriangle, Database, Loader2, ChevronRight, Eye, Trash2,
+  Plus, Layers, Info
+} from 'lucide-react';
 
-const AcceptedTypes = ['.csv', '.xlsx', '.xls', '.json', '.txt'];
+const ACCEPTED = '.csv,.tsv,.xlsx,.xls,.json,.txt,.md';
+const MAX_MB = 25;
 
-const FORMAT_INFO = [
-  { ext: ['csv', 'tsv'], icon: FileSpreadsheet, color: 'text-cyan-400', bg: 'bg-cyan-400/10', label: 'CSV / TSV', desc: 'Auto-detect separator, headers, column types' },
-  { ext: ['xlsx', 'xls'], icon: FileSpreadsheet, color: 'text-teal-400', bg: 'bg-teal-400/10', label: 'Excel XLSX', desc: 'Sheet selection, header cleaning, type inference' },
-  { ext: ['json'], icon: FileJson, color: 'text-blue-400', bg: 'bg-blue-400/10', label: 'JSON', desc: 'Flat or nested arrays, auto-flattening' },
-  { ext: ['txt'], icon: FileText, color: 'text-purple-400', bg: 'bg-purple-400/10', label: 'TXT / Docs', desc: 'Evidence context for AI Analyst grounding' },
-];
-
-function FileTypeIcon({ name, size = 5 }) {
-  const ext = name?.split('.').pop()?.toLowerCase();
-  const cls = `w-${size} h-${size}`;
-  if (ext === 'xlsx' || ext === 'xls') return <FileSpreadsheet className={`${cls} text-teal-400`} />;
-  if (ext === 'json') return <FileJson className={`${cls} text-blue-400`} />;
-  if (ext === 'txt') return <FileText className={`${cls} text-purple-400`} />;
-  return <FileSpreadsheet className={`${cls} text-cyan-400`} />;
+function FileIcon({ ext }) {
+  if (ext === 'xlsx' || ext === 'xls') return <FileSpreadsheet className="w-5 h-5 text-teal-400" />;
+  if (ext === 'json') return <FileJson className="w-5 h-5 text-blue-400" />;
+  if (ext === 'csv' || ext === 'tsv') return <FileSpreadsheet className="w-5 h-5 text-cyan-400" />;
+  return <FileText className="w-5 h-5 text-purple-400" />;
 }
 
-function QualityBar({ score }) {
+function QualityDot({ score }) {
   const color = score >= 90 ? 'bg-green-400' : score >= 70 ? 'bg-amber-400' : 'bg-red-400';
-  const textColor = score >= 90 ? 'text-green-400' : score >= 70 ? 'text-amber-400' : 'text-red-400';
+  return <div className={`w-2 h-2 rounded-full ${color} flex-shrink-0`} />;
+}
+
+function TableCard({ table, isActive, onSelect, onRemove, onAnalyze }) {
+  const numCols = table.columns?.filter(c => c.type === 'numeric').length || 0;
+  const catCols = table.columns?.filter(c => c.type === 'category').length || 0;
+  const dateCols = table.columns?.filter(c => c.type === 'date').length || 0;
   return (
-    <div className="flex items-center gap-2 mt-1">
-      <div className="flex-1 h-1 bg-white/8 rounded-full overflow-hidden">
-        <div className={`h-full rounded-full ${color} transition-all`} style={{ width: `${score}%` }} />
+    <motion.div layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+      onClick={onSelect}
+      className={`glass-card rounded-2xl p-4 border cursor-pointer transition-all hover:scale-[1.01] ${isActive ? 'border-cyan-400/30 bg-cyan-400/5' : 'border-white/8 hover:border-white/15'}`}>
+      <div className="flex items-start gap-3">
+        <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/8 flex items-center justify-center flex-shrink-0">
+          <Database className={`w-4 h-4 ${isActive ? 'text-cyan-400' : 'text-white/40'}`} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="font-semibold text-sm truncate">{table.name}</span>
+            {isActive && <span className="text-xs px-1.5 py-0.5 rounded-full bg-cyan-400/15 text-cyan-400 border border-cyan-400/20 flex-shrink-0">Active</span>}
+          </div>
+          <div className="text-xs text-muted-foreground mb-2">
+            {table.rowCount?.toLocaleString()} rows · {table.columns?.length} cols
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {numCols > 0 && <span className="text-xs px-1.5 py-0.5 rounded bg-blue-400/10 text-blue-400">{numCols} numeric</span>}
+            {catCols > 0 && <span className="text-xs px-1.5 py-0.5 rounded bg-purple-400/10 text-purple-400">{catCols} category</span>}
+            {dateCols > 0 && <span className="text-xs px-1.5 py-0.5 rounded bg-teal-400/10 text-teal-400">{dateCols} date</span>}
+          </div>
+          {table.issues?.length > 0 && (
+            <div className="flex items-center gap-1 mt-2 text-xs text-amber-400">
+              <AlertTriangle className="w-3 h-3" /> {table.issues.length} issue{table.issues.length > 1 ? 's' : ''}
+            </div>
+          )}
+        </div>
+        <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+          <div className="flex items-center gap-1">
+            <QualityDot score={table.qualityScore} />
+            <span className="text-xs text-muted-foreground">{table.qualityScore}%</span>
+          </div>
+          <button onClick={(e) => { e.stopPropagation(); onRemove(); }}
+            className="p-1 text-white/25 hover:text-red-400 transition-colors">
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
-      <span className={`text-xs font-mono font-semibold ${textColor}`}>{score}%</span>
-    </div>
+      {isActive && (
+        <button onClick={(e) => { e.stopPropagation(); onAnalyze(); }}
+          className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 bg-cyan-400/10 border border-cyan-400/20 text-cyan-400 rounded-lg text-xs font-semibold hover:bg-cyan-400/15 transition-colors">
+          Prepare & Analyze <ChevronRight className="w-3 h-3" />
+        </button>
+      )}
+    </motion.div>
   );
 }
 
 export default function IntakeSection() {
+  const { tables, addTable, removeTable, setActiveTable, setSemanticModel, setActiveSection, addDocument } = useWorkspaceStore();
   const [dragging, setDragging] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [processingFile, setProcessingFile] = useState('');
-  const [processingStep, setProcessingStep] = useState('');
   const [error, setError] = useState('');
-  const [sheetModal, setSheetModal] = useState(null);
-  const [docs, setDocs] = useState([]);
-  const [previewTable, setPreviewTable] = useState(null);
-  const { addTable, setSemanticModel, setActiveSection, tables, removeTable } = useWorkspaceStore();
+  const [multisheet, setMultisheet] = useState(null); // { sheets, fileName, baseName }
 
   const handleFiles = useCallback(async (files) => {
     const fileArr = Array.from(files);
     setError('');
     for (const file of fileArr) {
-      const ext = file.name.split('.').pop().toLowerCase();
-      if (!['csv', 'xlsx', 'xls', 'json', 'txt'].includes(ext)) {
-        setError(`Unsupported file type: ${file.name}. Please upload CSV, XLSX, JSON, or TXT files.`);
-        continue;
-      }
+      const sizeMB = file.size / 1024 / 1024;
+      if (sizeMB > MAX_MB) { setError(`"${file.name}" exceeds ${MAX_MB}MB limit.`); continue; }
       setProcessing(true);
       setProcessingFile(file.name);
-      setProcessingStep('Reading file…');
       try {
-        setProcessingStep('Parsing columns and rows…');
         const result = await processUploadedFile(file);
-
-        if (result.type === 'multisheet') {
-          setSheetModal({ file, sheets: result.sheets });
-          setProcessing(false);
-          return;
-        }
-        if (result.type === 'document') {
-          setDocs(d => [...d, { name: file.name, content: result.content, size: file.size }]);
-          setProcessing(false);
-          setProcessingFile('');
-          continue;
-        }
         if (result.type === 'single') {
-          setProcessingStep('Profiling data quality…');
-          await new Promise(r => setTimeout(r, 200));
-          setProcessingStep('Building semantic model…');
           addTable(result.table);
-          const model = buildTableSemanticModel(result.table);
-          setSemanticModel(model);
+          const sem = buildSemanticModel(result.table.id, result.table.columns, result.table.name);
+          setSemanticModel(sem);
+          setActiveTable(result.table.id);
+        } else if (result.type === 'multisheet') {
+          setMultisheet({ ...result, _file: file });
+        } else if (result.type === 'document') {
+          // Store as context document — addDocument added via store
+          const doc = { id: `doc-${Date.now()}`, name: result.name, fileName: result.fileName, content: result.content, addedAt: new Date().toISOString() };
+          try { addDocument(doc); } catch {}
         }
       } catch (e) {
-        setError(`Failed to parse "${file.name}": ${e.message}. Please check the file format and try again.`);
+        setError(e.message || `Failed to process "${file.name}". Please check the file format.`);
+      } finally {
+        setProcessing(false);
+        setProcessingFile('');
       }
-      setProcessing(false);
-      setProcessingFile('');
-      setProcessingStep('');
     }
-  }, [addTable, setSemanticModel]);
+  }, [addTable, setSemanticModel, setActiveTable]);
 
   const handleSheetSelect = async (sheetIdx) => {
-    const { file } = sheetModal;
-    setSheetModal(null);
+    if (!multisheet) return;
+    const savedMultisheet = { ...multisheet };
     setProcessing(true);
-    setProcessingFile(file.name);
-    setProcessingStep(`Loading sheet ${sheetIdx + 1}…`);
+    setProcessingFile(savedMultisheet.fileName);
+    setMultisheet(null);
     try {
-      const result = await processUploadedFile(file, sheetIdx);
-      if (result.type === 'single') {
-        addTable(result.table);
-        const model = buildTableSemanticModel(result.table);
-        setSemanticModel(model);
-      }
+      // Use pre-parsed sheet data (already parsed during initial XLSX read)
+      const sheet = savedMultisheet.sheets[sheetIdx];
+      const id = `table-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      const { computeQualityScore, detectIssues } = await import('@/lib/dataParser');
+      const table = {
+        id, name: sheet.name, fileName: savedMultisheet.fileName,
+        rows: sheet.rows, columns: sheet.columns,
+        rowCount: sheet.rows.length,
+        qualityScore: computeQualityScore(sheet.rows, sheet.columns),
+        issues: detectIssues(sheet.rows, sheet.columns),
+      };
+      addTable(table);
+      const sem = buildSemanticModel(table.id, table.columns, table.name);
+      setSemanticModel(sem);
+      setActiveTable(table.id);
     } catch (e) {
-      setError(`Error loading sheet: ${e.message}`);
+      setError(e.message || 'Failed to load sheet.');
+    } finally {
+      setProcessing(false);
+      setProcessingFile('');
     }
-    setProcessing(false);
-    setProcessingFile('');
-    setProcessingStep('');
   };
 
   const onDrop = useCallback((e) => {
@@ -121,244 +151,162 @@ export default function IntakeSection() {
     handleFiles(e.dataTransfer.files);
   }, [handleFiles]);
 
+  const onDragOver = (e) => { e.preventDefault(); setDragging(true); };
+  const onDragLeave = () => setDragging(false);
+
+  const { activeTableId } = useWorkspaceStore();
+
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
+    <div className="p-6 max-w-5xl mx-auto space-y-6 overflow-auto">
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold mb-1">Data Intake</h1>
-        <p className="text-sm text-muted-foreground">Upload structured data files or context documents. We auto-detect types, clean headers, and profile quality.</p>
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+          <span className="text-xs font-mono text-white/40 uppercase tracking-widest">Data Intake</span>
+        </div>
+        <h1 className="text-2xl font-bold mb-1">Upload Data</h1>
+        <p className="text-sm text-muted-foreground">Upload CSV, Excel, JSON, or TXT files. Multi-sheet Excel is fully supported.</p>
       </motion.div>
 
       {/* Drop zone */}
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
-        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-        onDragLeave={() => setDragging(false)}
+      <div
         onDrop={onDrop}
-        className={`relative border-2 border-dashed rounded-2xl p-10 text-center transition-all cursor-pointer ${
-          dragging ? 'border-cyan-400 bg-cyan-400/8 scale-[1.01]' : 'border-white/15 hover:border-cyan-400/50 hover:bg-white/2'
-        }`}
-        onClick={() => { if (!processing) document.getElementById('file-input')?.click(); }}
+        onDragOver={onDragOver}
+        onDragLeave={onDragLeave}
+        className={`relative rounded-2xl border-2 border-dashed transition-all duration-200 ${dragging ? 'border-cyan-400 bg-cyan-400/5 scale-[1.01]' : 'border-white/15 hover:border-white/30 bg-white/2 hover:bg-white/3'}`}
       >
-        <input id="file-input" type="file" multiple accept={AcceptedTypes.join(',')} className="hidden"
-          onChange={e => handleFiles(e.target.files)} />
-
-        {processing ? (
-          <div className="space-y-4">
-            <div className="w-16 h-16 rounded-2xl bg-cyan-400/10 border border-cyan-400/20 flex items-center justify-center mx-auto">
-              <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
-            </div>
-            <div>
-              <div className="text-sm font-semibold mb-1">{processingFile}</div>
-              <div className="text-xs text-cyan-400">{processingStep}</div>
-            </div>
-            <div className="flex gap-1 justify-center">
-              {[0, 1, 2].map(i => (
-                <div key={i} className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto transition-all ${dragging ? 'bg-cyan-400/20 border border-cyan-400/40' : 'bg-white/5 border border-white/10'}`}>
-              <Upload className={`w-7 h-7 ${dragging ? 'text-cyan-400' : 'text-muted-foreground'}`} />
-            </div>
-            <div>
-              <div className="text-base font-semibold mb-1">Drop files here or click to browse</div>
-              <div className="text-sm text-muted-foreground">CSV, XLSX, JSON, TXT · Up to 50MB per file · Multiple files supported</div>
-            </div>
-            <div className="flex gap-2 justify-center flex-wrap">
-              {AcceptedTypes.map(t => (
-                <span key={t} className="px-2.5 py-1 bg-white/5 rounded-lg text-xs text-muted-foreground border border-white/8">{t}</span>
-              ))}
-            </div>
-          </div>
-        )}
-      </motion.div>
-
-      {/* Format info strip */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {FORMAT_INFO.map((f) => (
-          <div key={f.label} className="glass rounded-xl p-3 border border-white/5">
-            <div className="flex items-center gap-2 mb-1">
-              <f.icon className={`w-3.5 h-3.5 ${f.color}`} />
-              <span className={`text-xs font-semibold ${f.color}`}>{f.label}</span>
-            </div>
-            <div className="text-xs text-muted-foreground leading-relaxed">{f.desc}</div>
-          </div>
-        ))}
+        <input type="file" multiple accept={ACCEPTED} className="absolute inset-0 opacity-0 cursor-pointer z-10"
+          onChange={(e) => handleFiles(e.target.files)} />
+        <div className="flex flex-col items-center justify-center py-14 px-6 text-center pointer-events-none">
+          {processing ? (
+            <>
+              <div className="w-14 h-14 rounded-2xl bg-cyan-400/10 border border-cyan-400/20 flex items-center justify-center mb-4">
+                <Loader2 className="w-7 h-7 text-cyan-400 animate-spin" />
+              </div>
+              <p className="text-sm font-semibold text-cyan-400 mb-1">Processing {processingFile}…</p>
+              <p className="text-xs text-muted-foreground">Parsing, profiling, and inferring schema…</p>
+            </>
+          ) : (
+            <>
+              <div className={`w-14 h-14 rounded-2xl border flex items-center justify-center mb-4 transition-all ${dragging ? 'bg-cyan-400/15 border-cyan-400/40' : 'bg-white/5 border-white/10'}`}>
+                <Upload className={`w-7 h-7 ${dragging ? 'text-cyan-400' : 'text-white/35'}`} />
+              </div>
+              <p className="text-base font-semibold mb-1">{dragging ? 'Drop files to upload' : 'Drag & drop or click to upload'}</p>
+              <p className="text-sm text-muted-foreground mb-3">CSV, XLSX, XLS, JSON, TXT — up to {MAX_MB}MB per file</p>
+              <div className="flex flex-wrap gap-2 justify-center text-xs text-muted-foreground">
+                {[{ ext: 'CSV', icon: '📄', color: 'text-cyan-400' }, { ext: 'XLSX', icon: '📊', color: 'text-teal-400' }, { ext: 'JSON', icon: '{ }', color: 'text-blue-400' }, { ext: 'TXT', icon: '📝', color: 'text-purple-400' }].map(f => (
+                  <span key={f.ext} className={`px-2 py-1 rounded-lg bg-white/5 border border-white/8 ${f.color} font-mono`}>{f.ext}</span>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Error */}
       <AnimatePresence>
         {error && (
-          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="flex items-start gap-3 p-4 bg-red-400/5 border border-red-400/25 rounded-xl">
-            <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
-            <div className="text-sm text-red-400 flex-1">{error}</div>
-            <button onClick={() => setError('')} className="text-white/30 hover:text-white/60 transition-colors">
-              <X className="w-4 h-4" />
-            </button>
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            className="flex items-start gap-3 p-4 bg-red-400/5 border border-red-400/20 rounded-xl">
+            <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 text-sm text-red-400 leading-relaxed">{error}</div>
+            <button onClick={() => setError('')} className="text-red-400/60 hover:text-red-400"><X className="w-3.5 h-3.5" /></button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Multisheet picker */}
+      <AnimatePresence>
+        {multisheet && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            className="glass-card rounded-2xl p-5 border border-amber-400/20">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <div className="font-semibold text-sm mb-0.5">Select Sheet to Import</div>
+                <div className="text-xs text-muted-foreground">{multisheet.fileName} has {multisheet.sheets.length} sheets with data</div>
+              </div>
+              <button onClick={() => setMultisheet(null)} className="text-white/40 hover:text-white/70"><X className="w-4 h-4" /></button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+              {multisheet.sheets.map((sheet, i) => (
+                <button key={sheet.name} onClick={() => handleSheetSelect(i)}
+                  className="flex items-start gap-3 p-3 rounded-xl border border-white/8 bg-white/3 hover:border-cyan-400/30 hover:bg-cyan-400/5 transition-all text-left">
+                  <FileSpreadsheet className="w-4 h-4 text-teal-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <div className="text-sm font-semibold">{sheet.name}</div>
+                    <div className="text-xs text-muted-foreground">{sheet.rowCount?.toLocaleString()} rows · {sheet.columns?.length} cols</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+            <div className="mt-3 text-xs text-muted-foreground flex items-center gap-1.5">
+              <Info className="w-3 h-3" /> You can import multiple sheets by repeating the upload for each.
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Uploaded tables */}
-      <AnimatePresence>
-        {tables.length > 0 && (
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Uploaded Tables ({tables.length})</h2>
+      {tables.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-xs font-semibold text-white/40 uppercase tracking-widest">
+              Loaded Datasets ({tables.length})
             </div>
-            <div className="space-y-3">
-              {tables.map((table) => (
-                <div key={table.id} className="glass-card rounded-xl border border-white/8 p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-cyan-400/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <FileTypeIcon name={table.name} size={4} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <div className="font-semibold text-sm truncate">{table.name}</div>
-                        <CheckCircle2 className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
-                      </div>
-                      <div className="text-xs text-muted-foreground mb-1.5">
-                        {table.rowCount?.toLocaleString()} rows · {table.columns?.length} columns · {table.columns?.filter(c => c.type === 'numeric').length} numeric · {table.columns?.filter(c => c.type === 'category').length} category
-                      </div>
-                      <QualityBar score={table.qualityScore} />
-                      {table.issues?.length > 0 && (
-                        <div className="mt-2 space-y-1">
-                          {table.issues.slice(0, 2).map((issue, i) => (
-                            <div key={i} className="flex items-start gap-1.5 text-xs text-amber-400">
-                              <AlertTriangle className="w-3 h-3 flex-shrink-0 mt-0.5" />
-                              {issue.message}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <button onClick={() => setPreviewTable(previewTable?.id === table.id ? null : table)}
-                        className="p-1.5 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/5 transition-all" title="Preview">
-                        <Eye className="w-3.5 h-3.5" />
-                      </button>
-                      <button onClick={() => removeTable(table.id)}
-                        className="p-1.5 rounded-lg text-white/30 hover:text-red-400 hover:bg-red-400/10 transition-all" title="Remove">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Inline preview */}
-                  <AnimatePresence>
-                    {previewTable?.id === table.id && (
-                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-                        className="overflow-hidden mt-3 pt-3 border-t border-white/8">
-                        <div className="text-xs text-muted-foreground mb-2">First 5 rows preview</div>
-                        <div className="overflow-auto rounded-lg border border-white/8">
-                          <table className="w-full text-xs">
-                            <thead>
-                              <tr className="bg-white/5">
-                                {table.columns?.slice(0, 6).map(col => (
-                                  <th key={col.name} className="px-3 py-2 text-left font-mono text-white/50 whitespace-nowrap border-b border-white/5">{col.name}</th>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {table.rows?.slice(0, 5).map((row, i) => (
-                                <tr key={i} className="border-b border-white/5 hover:bg-white/2">
-                                  {table.columns?.slice(0, 6).map(col => (
-                                    <td key={col.name} className="px-3 py-2 text-white/60 whitespace-nowrap max-w-32 truncate">{String(row[col.name] ?? '—')}</td>
-                                  ))}
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                        {table.columns?.length > 6 && (
-                          <div className="text-xs text-white/30 mt-1.5">+{table.columns.length - 6} more columns not shown</div>
-                        )}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              ))}
-            </div>
-
-            <button onClick={() => setActiveSection('prepare')}
-              className="mt-4 w-full flex items-center justify-center gap-2 py-3 bg-cyan-400 rounded-xl text-sm font-bold hover:bg-cyan-300 transition-all"
-              style={{ color: 'hsl(222,47%,6%)' }}>
-              Continue to Prepare <ChevronRight className="w-4 h-4" />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Context documents */}
-      {docs.length > 0 && (
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">Context Documents ({docs.length})</h2>
-          <div className="flex items-start gap-2 p-3 bg-purple-400/5 border border-purple-400/20 rounded-xl mb-3 text-xs text-purple-300">
-            <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-            These documents are used as evidence context for the AI Analyst — they ground answers with relevant information from your uploaded files.
-          </div>
-          <div className="space-y-2">
-            {docs.map((doc) => (
-              <div key={doc.name} className="flex items-center gap-3 p-3 glass rounded-xl border border-white/8">
-                <FileText className="w-4 h-4 text-purple-400 flex-shrink-0" />
-                <span className="text-sm flex-1 truncate">{doc.name}</span>
-                <span className="text-xs text-muted-foreground">{(doc.content?.length / 1000).toFixed(1)}k chars</span>
-                <button onClick={() => setDocs(d => d.filter(x => x.name !== doc.name))}
-                  className="p-1 rounded text-white/25 hover:text-red-400 transition-colors">
-                  <X className="w-3.5 h-3.5" />
-                </button>
+            {tables.length > 1 && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Layers className="w-3 h-3" /> Multi-table workspace
               </div>
-            ))}
+            )}
           </div>
-        </motion.div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <AnimatePresence>
+              {tables.map(table => (
+                <TableCard
+                  key={table.id}
+                  table={table}
+                  isActive={table.id === activeTableId}
+                  onSelect={() => setActiveTable(table.id)}
+                  onRemove={() => removeTable(table.id)}
+                  onAnalyze={() => setActiveSection('prepare')}
+                />
+              ))}
+            </AnimatePresence>
+          </div>
+
+          <div className="flex gap-2 mt-4">
+            <button onClick={() => setActiveSection('prepare')}
+              className="flex items-center gap-1.5 px-4 py-2.5 bg-cyan-400/10 border border-cyan-400/20 text-cyan-400 rounded-xl text-xs font-semibold hover:bg-cyan-400/15 transition-colors">
+              <ChevronRight className="w-3.5 h-3.5" /> Continue to Prepare & Analyze
+            </button>
+          </div>
+        </div>
       )}
 
-      {/* Sheet selection modal */}
-      <AnimatePresence>
-        {sheetModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
-            onClick={() => setSheetModal(null)}>
-            <motion.div initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.92, opacity: 0 }}
-              className="glass-card rounded-2xl p-6 w-full max-w-sm border border-white/12 m-4 shadow-2xl"
-              onClick={e => e.stopPropagation()}>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-9 h-9 rounded-xl bg-teal-400/10 flex items-center justify-center">
-                  <FileSpreadsheet className="w-4 h-4 text-teal-400" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-sm">Select a Sheet</h3>
-                  <p className="text-xs text-muted-foreground">{sheetModal.file.name}</p>
-                </div>
+      {/* Format guide */}
+      {tables.length === 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[
+            { ext: 'CSV / TSV', icon: '📄', color: 'text-cyan-400', border: 'border-cyan-400/15', features: ['Auto-detect separator', 'Header detection', 'Type inference', 'Quality scoring'] },
+            { ext: 'Excel XLSX', icon: '📊', color: 'text-teal-400', border: 'border-teal-400/15', features: ['Multi-sheet picker', 'Clean blank rows', 'Date cell support', 'Merged header fix'] },
+            { ext: 'JSON', icon: '{ }', color: 'text-blue-400', border: 'border-blue-400/15', features: ['Array unwrapping', 'Object flattening', 'Schema detection', 'Nested key support'] },
+            { ext: 'TXT / MD', icon: '📝', color: 'text-purple-400', border: 'border-purple-400/15', features: ['Context document', 'AI analyst grounding', 'Evidence retrieval', 'Semantic enrichment'] },
+          ].map(f => (
+            <div key={f.ext} className={`glass-card rounded-xl p-4 border ${f.border}`}>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-xl">{f.icon}</span>
+                <span className={`font-bold text-sm ${f.color}`}>{f.ext}</span>
               </div>
-              <p className="text-xs text-muted-foreground mb-4">
-                This workbook has {sheetModal.sheets.length} sheet{sheetModal.sheets.length !== 1 ? 's' : ''}. Choose which one to analyze.
-              </p>
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {sheetModal.sheets.map((s, i) => (
-                  <button key={s.name} onClick={() => handleSheetSelect(i)}
-                    className="w-full flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/10 text-sm transition-all border border-white/8 hover:border-teal-400/30 group">
-                    <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 rounded bg-teal-400/15 flex items-center justify-center text-xs font-mono text-teal-400">{i + 1}</div>
-                      <span className="font-medium">{s.name}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">{s.rows?.length?.toLocaleString()} rows</span>
-                      <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-teal-400 transition-colors" />
-                    </div>
-                  </button>
+              <ul className="space-y-1.5">
+                {f.features.map(feat => (
+                  <li key={feat} className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <CheckCircle2 className="w-3 h-3 text-green-400 flex-shrink-0" /> {feat}
+                  </li>
                 ))}
-              </div>
-              <button onClick={() => setSheetModal(null)} className="mt-4 w-full py-2 rounded-xl border border-white/10 text-sm text-white/50 hover:text-white/80 transition-all">
-                Cancel
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

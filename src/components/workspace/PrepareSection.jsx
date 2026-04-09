@@ -1,28 +1,27 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-
 import { useWorkspaceStore } from '@/lib/store';
 import {
   CheckCircle2, AlertTriangle, Database, Calendar, Hash, Tag, Key,
   TrendingUp, ChevronRight, Info, Shield, FileText, Sparkles, Loader2,
-  Eye, EyeOff, ArrowRight, BarChart3, Activity
+  Eye, EyeOff, ArrowRight, BarChart3, Activity, X
 } from 'lucide-react';
 import { runAIAnalysis } from '@/lib/aiAnalyzer';
 
 const TYPE_META = {
-  date:    { color: 'text-teal-400',   bg: 'bg-teal-400/10',   border: 'border-teal-400/25',   icon: Calendar,    label: 'Date' },
-  numeric: { color: 'text-blue-400',   bg: 'bg-blue-400/10',   border: 'border-blue-400/25',   icon: Hash,        label: 'Numeric' },
-  category:{ color: 'text-purple-400', bg: 'bg-purple-400/10', border: 'border-purple-400/25', icon: Tag,         label: 'Category' },
-  id:      { color: 'text-amber-400',  bg: 'bg-amber-400/10',  border: 'border-amber-400/25',  icon: Key,         label: 'ID' },
-  text:    { color: 'text-white/40',   bg: 'bg-white/5',       border: 'border-white/10',      icon: FileText,    label: 'Text' },
+  date:    { color: 'text-teal-400',   bg: 'bg-teal-400/10',   border: 'border-teal-400/25',   icon: Calendar,  label: 'Date' },
+  numeric: { color: 'text-blue-400',   bg: 'bg-blue-400/10',   border: 'border-blue-400/25',   icon: Hash,      label: 'Numeric' },
+  category:{ color: 'text-purple-400', bg: 'bg-purple-400/10', border: 'border-purple-400/25', icon: Tag,       label: 'Category' },
+  id:      { color: 'text-amber-400',  bg: 'bg-amber-400/10',  border: 'border-amber-400/25',  icon: Key,       label: 'ID' },
+  text:    { color: 'text-white/40',   bg: 'bg-white/5',       border: 'border-white/10',      icon: FileText,  label: 'Text' },
 };
 
 const ANALYSIS_STEPS = [
   { label: 'Profiling columns & computing descriptive statistics…', icon: BarChart3 },
-  { label: 'Running anomaly detection (Z-score + IQR)…', icon: Activity },
-  { label: 'Calculating Pearson correlations across numeric columns…', icon: TrendingUp },
+  { label: 'Running anomaly detection (Z-score + IQR method)…', icon: Activity },
+  { label: 'Calculating Pearson correlations…', icon: TrendingUp },
   { label: 'Building semantic model & KPI inference…', icon: Database },
-  { label: 'Calling AI model for chart layout & insights…', icon: Sparkles },
+  { label: 'Generating AI chart panels & executive insights…', icon: Sparkles },
   { label: 'Finalizing executive dashboard…', icon: CheckCircle2 },
 ];
 
@@ -32,13 +31,11 @@ function QualityBar({ score }) {
   const label = score >= 90 ? 'Excellent' : score >= 70 ? 'Good — minor issues' : 'Needs attention';
   return (
     <div className="space-y-1.5">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="h-2 flex-1 w-40 bg-white/5 rounded-full overflow-hidden">
-            <div className={`h-full rounded-full transition-all duration-700 ${color}`} style={{ width: `${score}%` }} />
-          </div>
-          <span className={`text-lg font-black font-mono ${textColor}`}>{score}%</span>
+      <div className="flex items-center gap-2">
+        <div className="h-2 flex-1 bg-white/5 rounded-full overflow-hidden">
+          <div className={`h-full rounded-full transition-all duration-700 ${color}`} style={{ width: `${score}%` }} />
         </div>
+        <span className={`text-lg font-black font-mono ${textColor}`}>{score}%</span>
       </div>
       <div className="text-xs text-muted-foreground">{label}</div>
     </div>
@@ -56,12 +53,13 @@ function TypeBadge({ type }) {
 }
 
 export default function PrepareSection() {
-  const { getActiveTable, setActiveSection, setAnalysisResults } = useWorkspaceStore();
+  const { getActiveTable, setActiveSection, setAnalysisResults, updateTable } = useWorkspaceStore();
   const activeTable = getActiveTable();
   const [analyzing, setAnalyzing] = useState(false);
   const [done, setDone] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const [showFullSchema, setShowFullSchema] = useState(false);
+  const [error, setError] = useState('');
 
   if (!activeTable) {
     return (
@@ -70,7 +68,7 @@ export default function PrepareSection() {
           <Database className="w-7 h-7 text-white/25" />
         </div>
         <h2 className="text-lg font-semibold mb-2">No Data Yet</h2>
-        <p className="text-muted-foreground text-sm mb-6">Upload a file in the Intake section to begin data profiling and analysis.</p>
+        <p className="text-muted-foreground text-sm mb-6 max-w-xs">Upload a dataset in Intake to begin data profiling and AI analysis.</p>
         <button onClick={() => setActiveSection('intake')}
           className="flex items-center gap-2 px-5 py-2.5 bg-cyan-400/10 border border-cyan-400/20 text-cyan-400 rounded-xl text-sm font-semibold hover:bg-cyan-400/15 transition-colors">
           Go to Intake <ArrowRight className="w-4 h-4" />
@@ -79,50 +77,65 @@ export default function PrepareSection() {
     );
   }
 
-  const { columns, qualityScore, issues, rowCount, name } = activeTable;
+  const { columns = [], qualityScore = 0, issues = [], rowCount = 0, name } = activeTable;
   const dateColumns = columns.filter(c => c.type === 'date');
   const numericColumns = columns.filter(c => c.type === 'numeric');
   const catColumns = columns.filter(c => c.type === 'category');
-  const idColumns = columns.filter(c => c.type === 'id');
-  const displayedColumns = showFullSchema ? columns : columns.slice(0, 8);
+  const displayedColumns = showFullSchema ? columns : columns.slice(0, 10);
 
   const handleAnalyze = async () => {
     setAnalyzing(true);
     setDone(false);
+    setError('');
+
     try {
-      for (let i = 0; i < ANALYSIS_STEPS.length - 1; i++) {
+      for (let i = 0; i < 4; i++) {
         setStepIndex(i);
-        await new Promise(r => setTimeout(r, i === 4 ? 300 : 250));
+        await new Promise(r => setTimeout(r, 300));
       }
       setStepIndex(4);
+
       let analysis;
       try {
         analysis = await runAIAnalysis(activeTable);
-      } catch {
-        // Fallback to local analysis if LLM call fails
-        const { buildAnalysis, inferColumns } = await import('@/lib/sampleData');
+      } catch (llmErr) {
+        console.warn('[Prepare] LLM failed, using local fallback:', llmErr?.message);
+        // Local fallback
+        const { buildAnalysis } = await import('@/lib/sampleData');
         analysis = buildAnalysis(activeTable.rows, activeTable.columns, activeTable.name);
       }
+
       setStepIndex(5);
       setAnalysisResults(analysis);
-      await new Promise(r => setTimeout(r, 400));
+      await new Promise(r => setTimeout(r, 350));
       setDone(true);
-      setTimeout(() => setActiveSection('story'), 500);
+      setTimeout(() => setActiveSection('story'), 600);
     } catch (e) {
+      setError(e.message || 'Analysis failed. Please check your data and try again.');
       setStepIndex(0);
     } finally {
       setAnalyzing(false);
     }
   };
 
+  const highSeverityIssues = issues.filter(i => i.severity === 'high');
+  const canAnalyze = numericColumns.length > 0;
+
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
+    <div className="p-6 max-w-4xl mx-auto space-y-6 overflow-auto">
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold mb-1">Prepare & Profile</h1>
-        <p className="text-sm text-muted-foreground">Auto-detected schema, quality assessment, and column classifications for <span className="text-white/70 font-mono">{name}</span>.</p>
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+          <span className="text-xs font-mono text-white/40 uppercase tracking-widest">Prepare & Profile</span>
+        </div>
+        <h1 className="text-2xl font-bold mb-1">Data Profile</h1>
+        <p className="text-sm text-muted-foreground">
+          Auto-detected schema, quality assessment, and column classifications for{' '}
+          <span className="text-white/70 font-mono">{name}</span>.
+        </p>
       </motion.div>
 
-      {/* Summary cards */}
+      {/* KPI summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="glass-card rounded-xl p-4 border border-white/8 col-span-2 md:col-span-1">
           <div className="flex items-center gap-1.5 mb-3 text-xs text-white/40 uppercase tracking-widest">
@@ -130,32 +143,35 @@ export default function PrepareSection() {
           </div>
           <QualityBar score={qualityScore} />
         </div>
-        <div className="glass-card rounded-xl p-4 border border-white/8">
-          <div className="text-xs text-muted-foreground mb-1 uppercase tracking-widest">Rows</div>
-          <div className="text-xl font-black text-cyan-400 font-mono">{rowCount?.toLocaleString()}</div>
-          <div className="text-xs text-muted-foreground mt-0.5">{columns.length} columns</div>
-        </div>
-        <div className="glass-card rounded-xl p-4 border border-white/8">
-          <div className="text-xs text-muted-foreground mb-2 uppercase tracking-widest">Numeric</div>
-          <div className="text-xl font-black text-blue-400 font-mono">{numericColumns.length}</div>
-          <div className="text-xs text-muted-foreground mt-0.5">KPI candidates</div>
-        </div>
-        <div className="glass-card rounded-xl p-4 border border-white/8">
-          <div className="text-xs text-muted-foreground mb-2 uppercase tracking-widest">Category</div>
-          <div className="text-xl font-black text-purple-400 font-mono">{catColumns.length}</div>
-          <div className="text-xs text-muted-foreground mt-0.5">Dimensions</div>
-        </div>
+        {[
+          { label: 'Rows', value: rowCount?.toLocaleString(), sub: `${columns.length} columns`, color: 'text-cyan-400' },
+          { label: 'Numeric KPIs', value: numericColumns.length, sub: 'measurable metrics', color: 'text-blue-400' },
+          { label: 'Dimensions', value: catColumns.length, sub: 'category segments', color: 'text-purple-400' },
+        ].map(m => (
+          <div key={m.label} className="glass-card rounded-xl p-4 border border-white/8">
+            <div className="text-xs text-muted-foreground mb-1 uppercase tracking-widest">{m.label}</div>
+            <div className={`text-xl font-black font-mono ${m.color}`}>{m.value}</div>
+            <div className="text-xs text-muted-foreground mt-0.5">{m.sub}</div>
+          </div>
+        ))}
       </div>
 
       {/* Inferred KPI / Date / Dimension */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        {numericColumns[0] && (
+        {numericColumns[0] ? (
           <div className="glass-card p-4 rounded-xl border border-blue-400/20 bg-blue-400/5">
             <div className="flex items-center gap-1.5 text-blue-400 text-xs font-semibold mb-2 uppercase tracking-widest">
               <TrendingUp className="w-3.5 h-3.5" /> Suggested Primary KPI
             </div>
-            <div className="font-mono text-sm font-semibold text-white/80">{numericColumns[0].name.replace(/_/g, ' ')}</div>
-            <div className="text-xs text-white/30 mt-1">{numericColumns.length} numeric column{numericColumns.length !== 1 ? 's' : ''} available</div>
+            <div className="font-mono text-sm font-semibold text-white/85">{numericColumns[0].name.replace(/_/g, ' ')}</div>
+            <div className="text-xs text-white/35 mt-1">{numericColumns.length} numeric column{numericColumns.length !== 1 ? 's' : ''} available</div>
+          </div>
+        ) : (
+          <div className="glass-card p-4 rounded-xl border border-red-400/20 bg-red-400/5">
+            <div className="flex items-center gap-1.5 text-red-400 text-xs font-semibold mb-2 uppercase tracking-widest">
+              <AlertTriangle className="w-3.5 h-3.5" /> No Numeric KPIs
+            </div>
+            <div className="text-xs text-red-400/80">No numeric columns detected. AI analysis requires at least one measurable metric.</div>
           </div>
         )}
         {dateColumns[0] ? (
@@ -163,7 +179,7 @@ export default function PrepareSection() {
             <div className="flex items-center gap-1.5 text-teal-400 text-xs font-semibold mb-2 uppercase tracking-widest">
               <Calendar className="w-3.5 h-3.5" /> Date / Time Field
             </div>
-            <div className="font-mono text-sm font-semibold text-white/80">{dateColumns[0].name.replace(/_/g, ' ')}</div>
+            <div className="font-mono text-sm font-semibold text-white/85">{dateColumns[0].name.replace(/_/g, ' ')}</div>
             <div className="text-xs text-green-400 mt-1 flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Forecasting enabled</div>
           </div>
         ) : (
@@ -172,49 +188,70 @@ export default function PrepareSection() {
               <Calendar className="w-3.5 h-3.5" /> Date / Time Field
             </div>
             <div className="text-sm text-white/50">None detected</div>
-            <div className="text-xs text-amber-400/70 mt-1">Forecasting disabled</div>
+            <div className="text-xs text-amber-400/70 mt-1">Forecasting disabled — descriptive analytics active</div>
           </div>
         )}
-        {catColumns[0] && (
+        {catColumns[0] ? (
           <div className="glass-card p-4 rounded-xl border border-purple-400/20 bg-purple-400/5">
             <div className="flex items-center gap-1.5 text-purple-400 text-xs font-semibold mb-2 uppercase tracking-widest">
               <Tag className="w-3.5 h-3.5" /> Primary Dimension
             </div>
-            <div className="font-mono text-sm font-semibold text-white/80">{catColumns[0].name.replace(/_/g, ' ')}</div>
-            <div className="text-xs text-white/30 mt-1">{catColumns.length} dimension{catColumns.length !== 1 ? 's' : ''} for segmentation</div>
+            <div className="font-mono text-sm font-semibold text-white/85">{catColumns[0].name.replace(/_/g, ' ')}</div>
+            <div className="text-xs text-white/35 mt-1">{catColumns.length} dimension{catColumns.length !== 1 ? 's' : ''} for segmentation</div>
+          </div>
+        ) : (
+          <div className="glass-card p-4 rounded-xl border border-white/10 bg-white/3">
+            <div className="flex items-center gap-1.5 text-white/40 text-xs font-semibold mb-2 uppercase tracking-widest">
+              <Tag className="w-3.5 h-3.5" /> Dimension
+            </div>
+            <div className="text-sm text-white/35">No category columns</div>
+            <div className="text-xs text-white/25 mt-1">Segment breakdown unavailable</div>
           </div>
         )}
       </div>
 
-      {/* Issues */}
+      {/* Alerts */}
       <AnimatePresence>
         {issues?.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
-            <div className="text-xs font-semibold text-white/40 uppercase tracking-widest">Data Quality Issues</div>
+            <div className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-2">
+              Data Quality Issues ({issues.length})
+            </div>
             {issues.map((issue, i) => (
-              <div key={i} className="flex items-start gap-3 p-3 bg-amber-400/5 border border-amber-400/20 rounded-xl">
-                <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
-                <div className="text-sm text-amber-400/90 leading-relaxed">{issue.message}</div>
+              <div key={i} className={`flex items-start gap-3 p-3 rounded-xl border ${issue.severity === 'high' ? 'bg-red-400/5 border-red-400/20' : 'bg-amber-400/5 border-amber-400/20'}`}>
+                <AlertTriangle className={`w-4 h-4 mt-0.5 flex-shrink-0 ${issue.severity === 'high' ? 'text-red-400' : 'text-amber-400'}`} />
+                <div className={`text-sm leading-relaxed ${issue.severity === 'high' ? 'text-red-400/90' : 'text-amber-400/90'}`}>{issue.message}</div>
               </div>
             ))}
           </motion.div>
         )}
       </AnimatePresence>
 
+      {!canAnalyze && (
+        <div className="flex items-start gap-3 p-4 bg-red-400/5 border border-red-400/20 rounded-xl">
+          <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+          <div className="text-sm text-red-400 leading-relaxed">
+            <strong>Analysis not available:</strong> This dataset has no numeric columns. AI analysis requires at least one measurable KPI column (e.g. revenue, count, score). Please upload a dataset with numeric data.
+          </div>
+        </div>
+      )}
+
       {!dateColumns.length && numericColumns.length > 0 && (
-        <div className="flex items-start gap-3 p-4 bg-blue-400/5 border border-blue-400/20 rounded-xl">
+        <div className="flex items-start gap-3 p-3 bg-blue-400/5 border border-blue-400/20 rounded-xl">
           <Info className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
-          <div className="text-sm text-blue-400">No date column detected — time-series forecasting is disabled. Descriptive statistics, anomaly detection, correlations, and breakdown analysis will be used instead.</div>
+          <div className="text-xs text-blue-400 leading-relaxed">No date column detected — time-series forecasting is disabled. Descriptive, correlation, anomaly, and segment analysis will be used.</div>
         </div>
       )}
 
       {/* Schema table */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <div className="text-xs font-semibold text-white/40 uppercase tracking-widest">Inferred Schema ({columns.length} columns)</div>
-          {columns.length > 8 && (
+          <div className="text-xs font-semibold text-white/40 uppercase tracking-widest">
+            Inferred Schema ({columns.length} columns)
+          </div>
+          {columns.length > 10 && (
             <button onClick={() => setShowFullSchema(v => !v)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
-              {showFullSchema ? <><EyeOff className="w-3 h-3" /> Show less</> : <><Eye className="w-3 h-3" /> Show all {columns.length}</>}
+              {showFullSchema ? <><EyeOff className="w-3 h-3" /> Collapse</> : <><Eye className="w-3 h-3" /> Show all {columns.length}</>}
             </button>
           )}
         </div>
@@ -222,7 +259,7 @@ export default function PrepareSection() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/8 bg-white/3">
-                {['Column', 'Type', 'Unique', 'Missing', 'Min', 'Max', 'Sample'].map(h => (
+                {['Column', 'Type', 'Unique', 'Missing %', 'Min', 'Max', 'Sample Values'].map(h => (
                   <th key={h} className="px-3 py-2.5 text-left text-xs text-muted-foreground font-medium whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -234,30 +271,46 @@ export default function PrepareSection() {
                   <td className="px-3 py-2.5"><TypeBadge type={col.type} /></td>
                   <td className="px-3 py-2.5 text-xs text-muted-foreground font-mono">{col.uniqueCount?.toLocaleString()}</td>
                   <td className="px-3 py-2.5 text-xs">
-                    <span className={col.nullCount > 0 ? 'text-amber-400 font-mono' : 'text-muted-foreground font-mono'}>{col.nullCount || '0'}</span>
+                    <span className={col.nullCount > 0 ? (col.missingPct > 20 ? 'text-red-400 font-mono' : 'text-amber-400 font-mono') : 'text-muted-foreground font-mono'}>
+                      {col.missingPct || 0}%
+                    </span>
                   </td>
                   <td className="px-3 py-2.5 text-xs text-muted-foreground font-mono">{col.min != null ? String(col.min).slice(0, 12) : '—'}</td>
                   <td className="px-3 py-2.5 text-xs text-muted-foreground font-mono">{col.max != null ? String(col.max).slice(0, 12) : '—'}</td>
-                  <td className="px-3 py-2.5 text-xs text-muted-foreground max-w-40 truncate">{col.sample?.slice(0, 3).map(v => String(v)).join(', ')}</td>
+                  <td className="px-3 py-2.5 text-xs text-muted-foreground max-w-48 truncate">{col.sample?.slice(0, 3).map(v => String(v)).join(', ')}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        {!showFullSchema && columns.length > 8 && (
-          <div className="text-center mt-2 text-xs text-white/30">+{columns.length - 8} more columns</div>
+        {!showFullSchema && columns.length > 10 && (
+          <div className="text-center mt-2 text-xs text-white/30">+{columns.length - 10} more columns — click "Show all" to expand</div>
         )}
       </div>
 
-      {/* Analysis button + progress */}
+      {/* Error feedback */}
+      <AnimatePresence>
+        {error && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            className="flex items-start gap-3 p-4 bg-red-400/5 border border-red-400/20 rounded-xl">
+            <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 text-sm text-red-400 leading-relaxed">{error}</div>
+            <button onClick={() => setError('')} className="text-red-400/60 hover:text-red-400"><X className="w-3.5 h-3.5" /></button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Analysis CTA */}
       <div className="space-y-3">
-        <button onClick={handleAnalyze} disabled={analyzing || done}
-          className="w-full flex items-center justify-center gap-2 py-4 bg-cyan-400 rounded-xl font-bold text-sm hover:bg-cyan-300 transition-all disabled:opacity-60 relative overflow-hidden"
+        <button onClick={handleAnalyze} disabled={analyzing || done || !canAnalyze}
+          className="w-full flex items-center justify-center gap-2 py-4 bg-cyan-400 rounded-xl font-bold text-sm hover:bg-cyan-300 transition-all disabled:opacity-50 relative overflow-hidden"
           style={{ color: 'hsl(222,47%,6%)' }}>
           {analyzing ? (
             <><Loader2 className="w-4 h-4 animate-spin" /> {ANALYSIS_STEPS[stepIndex]?.label}</>
           ) : done ? (
-            <><CheckCircle2 className="w-4 h-4" /> Analysis Complete — Redirecting to Dashboard…</>
+            <><CheckCircle2 className="w-4 h-4" /> Analysis Complete — Opening Dashboard…</>
+          ) : !canAnalyze ? (
+            <><AlertTriangle className="w-4 h-4" /> No Numeric Columns — Cannot Analyze</>
           ) : (
             <><Sparkles className="w-4 h-4" /> Run AI Analysis & Generate Dashboard <ChevronRight className="w-4 h-4" /></>
           )}
@@ -266,7 +319,7 @@ export default function PrepareSection() {
         {analyzing && (
           <div className="space-y-2">
             <div className="flex gap-1">
-              {ANALYSIS_STEPS.map((step, i) => (
+              {ANALYSIS_STEPS.map((_, i) => (
                 <div key={i} className={`flex-1 h-1 rounded-full transition-all duration-500 ${i <= stepIndex ? 'bg-cyan-400' : 'bg-white/10'}`} />
               ))}
             </div>

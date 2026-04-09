@@ -207,6 +207,18 @@ export default function StorySection() {
   const r = analysisResults;
   const rows = activeTable.rows || [];
   const columns = activeTable.columns || [];
+  // Safe colStats restoration if stripped by persist
+  if (r && (!r.colStats || !Object.keys(r.colStats).length)) {
+    const numCols = columns.filter(c => c.type === 'numeric');
+    numCols.forEach(col => {
+      if (!r.colStats) r.colStats = {};
+      const vals = rows.map(row => Number(row[col.name])).filter(v => !isNaN(v));
+      if (!vals.length) return;
+      const sorted = [...vals].sort((a, b) => a - b);
+      const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+      r.colStats[col.name] = { mean, std: Math.sqrt(vals.reduce((a, b) => a + (b - mean) ** 2, 0) / vals.length), min: sorted[0], max: sorted[sorted.length - 1], median: sorted[Math.floor(vals.length / 2)] };
+    });
+  }
   const primaryColor = THEME[r.chartPanels?.[0]?.color_theme] || THEME.cyan;
 
   const tabs = [

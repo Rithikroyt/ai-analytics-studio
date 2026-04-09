@@ -321,8 +321,13 @@ export default function AnalystSection() {
 
       const result = await base44.integrations.Core.InvokeLLM({
         model: 'claude_sonnet_4_6',
-        prompt: `You are a world-class AI data scientist — equivalent to a senior data scientist using Python (pandas, numpy, scipy, scikit-learn, statsmodels). 
-You have access to pre-computed statistics from the dataset. Use them as factual ground truth.
+        prompt: `You are a senior data scientist and AI analyst. CRITICAL RULES:
+1. NEVER return a blank or empty answer field
+2. ALWAYS ground your answer in the statistics provided — never hallucinate data
+3. If uncertain, state what IS known and what is uncertain
+4. Always provide at least 1 chart
+5. Always provide at least 2 followup questions
+
 Analysis mode: **${mode.toUpperCase()}** — ${modeInstructions[mode]}
 
 ${statContext}
@@ -429,7 +434,14 @@ ANSWER RULES:
         followups: result?.followups || [],
       });
     } catch (e) {
-      addChatMessage({ role: 'assistant', content: `**Error:** ${e.message}`, charts: [] });
+      addChatMessage({
+        role: 'assistant',
+        content: `**Analysis Note:** I encountered an issue processing that request. Here's what I can tell you based on the available data:\n\n${statContext.slice(0, 500)}\n\nPlease try rephrasing your question or ask about a specific column or metric.`,
+        charts: [],
+        confidence: 40,
+        methodology: 'Fallback response',
+        followups: ['What are the key statistics for this dataset?', 'Show me a distribution of the main metric.', 'Which columns have the most interesting patterns?'],
+      });
     }
     setLoading(false);
     setThinkingLabel('');
