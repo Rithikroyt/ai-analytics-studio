@@ -14,6 +14,7 @@ import Workspace from '@/pages/Workspace';
 import Dashboards from '@/pages/Dashboards';
 import StoryBuilder from '@/pages/StoryBuilder';
 import Alerts from '@/pages/Alerts';
+import Integrations from '@/pages/Integrations';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -50,6 +51,7 @@ const AuthenticatedApp = () => {
         <Route path="/dashboards" element={<Dashboards />} />
         <Route path="/story-builder" element={<StoryBuilder />} />
         <Route path="/alerts" element={<Alerts />} />
+        <Route path="/integrations" element={<Integrations />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </>

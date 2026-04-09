@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import {
   LayoutDashboard, Upload, Settings2, BarChart3, BookOpen,
   Layers, Terminal, FileText, MessageSquare, Download,
-  ChevronLeft, Database, GitCompare, PieChart, Bell
+  ChevronLeft, Database, GitCompare, PieChart, Bell, Link2
 } from 'lucide-react';
 import { useWorkspaceStore } from '@/lib/store';
 
@@ -86,6 +86,11 @@ export default function WorkspaceSidebar({ collapsed, onToggle }) {
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all text-sm text-muted-foreground hover:text-foreground hover:bg-white/5">
             <Bell className="w-4 h-4 flex-shrink-0 text-amber-400" />
             {!collapsed && <span className="font-medium truncate">Alerts</span>}
+          </Link>
+          <Link to="/integrations"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all text-sm text-muted-foreground hover:text-foreground hover:bg-white/5">
+            <Link2 className="w-4 h-4 flex-shrink-0 text-cyan-400" />
+            {!collapsed && <span className="font-medium truncate">Integrations</span>}
           </Link>
         </div>
       </nav>

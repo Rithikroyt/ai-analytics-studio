@@ -37,6 +37,9 @@ export const useWorkspaceStore = create(
       // Alerts
       alerts: [], // [{id, label, metric, condition, threshold, unit, email, active, lastTriggered}]
 
+      // Integrations / Connections
+      connections: {}, // { [connectorId]: { status, schedule, config, lastSync, rowCount, error } }
+
       setActiveSection: (section) => set({ activeSection: section }),
 
       addTable: (table) => set((state) => ({
