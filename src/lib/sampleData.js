@@ -149,11 +149,14 @@ const generateEducationData = () => {
 // ── Column inference engine ──────────────────────────────────────
 export const inferColumns = (rows) => {
   if (!rows || rows.length === 0) return [];
-  const keys = Object.keys(rows[0]);
-  return keys.map(key => {
+  // Collect keys from multiple rows to handle sparse JSON
+  const keySet = new Set();
+  rows.slice(0, 20).forEach(r => Object.keys(r || {}).forEach(k => keySet.add(k)));
+  const keys = [...keySet];
+  return keys.map((key, colIdx) => {
     const allValues = rows.map(r => r[key]);
     const values = allValues.filter(v => v != null && String(v).trim() !== '' && String(v).toLowerCase() !== 'null' && String(v).toLowerCase() !== 'undefined' && String(v).toLowerCase() !== 'nan');
-    if (!values.length) return { name: key, type: 'text', nullCount: rows.length, uniqueCount: 0, mean: null, min: null, max: null, sample: [], missingPct: 100 };
+    if (!values.length) return { name: key, type: 'text', nullCount: rows.length, uniqueCount: 0, mean: null, std: null, min: null, max: null, sample: [], missingPct: 100 };
 
     const numericCount = values.filter(v => !isNaN(Number(v)) && String(v).trim() !== '').length;
     const isNumeric = numericCount > values.length * 0.72;
@@ -180,6 +183,9 @@ export const inferColumns = (rows) => {
     const mean = numVals.length ? sum / numVals.length : null;
     const nullCount = rows.length - values.length;
     const sorted = [...numVals].sort((a, b) => a - b);
+    const variance = mean !== null && numVals.length > 1
+      ? numVals.reduce((a, b) => a + (b - mean) ** 2, 0) / numVals.length
+      : 0;
 
     return {
       name: key,
@@ -188,6 +194,7 @@ export const inferColumns = (rows) => {
       uniqueCount,
       missingPct: parseFloat(((nullCount / rows.length) * 100).toFixed(1)),
       mean: mean !== null ? parseFloat(mean.toFixed(2)) : null,
+      std: mean !== null ? parseFloat(Math.sqrt(variance).toFixed(2)) : null,
       min: numVals.length ? sorted[0] : null,
       max: numVals.length ? sorted[sorted.length - 1] : null,
       median: numVals.length ? sorted[Math.floor(numVals.length / 2)] : null,

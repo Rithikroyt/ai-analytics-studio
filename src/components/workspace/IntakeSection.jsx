@@ -54,7 +54,12 @@ function TableCard({ table, isActive, onSelect, onRemove, onAnalyze }) {
           </div>
           {table.issues?.length > 0 && (
             <div className="flex items-center gap-1 mt-2 text-xs text-amber-400">
-              <AlertTriangle className="w-3 h-3" /> {table.issues.length} issue{table.issues.length > 1 ? 's' : ''}
+              <AlertTriangle className="w-3 h-3" /> {table.issues.length} quality issue{table.issues.length > 1 ? 's' : ''}
+            </div>
+          )}
+          {table.parseWarnings?.length > 0 && (
+            <div className="flex items-center gap-1 mt-1 text-xs text-orange-400/80">
+              <Info className="w-3 h-3" /> {table.parseWarnings[0].slice(0, 60)}{table.parseWarnings[0].length > 60 ? '…' : ''}
             </div>
           )}
         </div>
@@ -119,15 +124,18 @@ export default function IntakeSection() {
     }
   }, [addTable, setSemanticModel, setActiveTable]);
 
-  const handleSheetSelect = async (sheetIdx) => {
-    if (!multisheet) return;
-    const savedMultisheet = { ...multisheet };
+  const handleSheetSelect = async (sheetIdx, savedMultisheetArg) => {
+    const savedMultisheet = savedMultisheetArg || multisheet;
+    if (!savedMultisheet) return;
     setProcessing(true);
     setProcessingFile(savedMultisheet.fileName);
-    setMultisheet(null);
+    if (!savedMultisheetArg) setMultisheet(null);
     try {
-      // Use pre-parsed sheet data (already parsed during initial XLSX read)
       const sheet = savedMultisheet.sheets[sheetIdx];
+      if (!sheet || !sheet.rows?.length) {
+        setError(`Sheet "${sheet?.name || sheetIdx}" has no data rows — skipped.`);
+        return;
+      }
       const id = `table-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
       const { computeQualityScore, detectIssues } = await import('@/lib/dataParser');
       const table = {
@@ -136,6 +144,7 @@ export default function IntakeSection() {
         rowCount: sheet.rows.length,
         qualityScore: computeQualityScore(sheet.rows, sheet.columns),
         issues: detectIssues(sheet.rows, sheet.columns),
+        parseWarnings: sheet.parseError ? [`Sheet had parsing issues: ${sheet.parseError}`] : [],
       };
       addTable(table);
       const sem = buildSemanticModel(table.id, table.columns, table.name);
@@ -246,9 +255,22 @@ export default function IntakeSection() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <div className="font-semibold text-sm mb-0.5">Select Sheet to Import</div>
-                <div className="text-xs text-muted-foreground">{multisheet.fileName} has {multisheet.sheets.length} sheets with data</div>
+                <div className="text-xs text-muted-foreground">{multisheet.fileName} has {multisheet.sheets.length} readable sheets</div>
               </div>
-              <button onClick={() => setMultisheet(null)} className="text-white/40 hover:text-white/70"><X className="w-4 h-4" /></button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={async () => {
+                    const saved = { ...multisheet };
+                    setMultisheet(null);
+                    for (let idx = 0; idx < saved.sheets.length; idx++) {
+                      await handleSheetSelect(idx, saved);
+                    }
+                  }}
+                  className="text-xs px-3 py-1.5 bg-teal-400/10 border border-teal-400/20 text-teal-400 rounded-lg hover:bg-teal-400/15 transition-colors">
+                  Import All Sheets
+                </button>
+                <button onClick={() => setMultisheet(null)} className="text-white/40 hover:text-white/70"><X className="w-4 h-4" /></button>
+              </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               {multisheet.sheets.map((sheet, i) => (
@@ -309,15 +331,17 @@ export default function IntakeSection() {
           </div>
 
           {tables.length >= 2 && inferRelationships(tables).length > 0 && (
-            <div className="mt-3 p-4 rounded-xl border border-blue-400/15 bg-blue-400/5">
-              <div className="text-xs font-semibold text-blue-400 uppercase tracking-widest mb-2">Detected Table Relationships</div>
+            <div className="mt-3 p-4 rounded-xl border border-blue-400/15 bg-blue-400/5 space-y-2">
+              <div className="text-xs font-semibold text-blue-400 uppercase tracking-widest">Detected Table Relationships</div>
+              <div className="text-xs text-white/35">AI-inferred join keys based on column names and value overlap sampling.</div>
               {inferRelationships(tables).map((rel, i) => (
-                <div key={i} className="flex items-center gap-2 text-xs mb-1 flex-wrap">
-                  <span className="font-mono text-white/65">{rel.tableA}</span>
-                  <span className="text-white/30">↔</span>
-                  <span className="font-mono text-white/65">{rel.tableB}</span>
-                  <span className="text-blue-400 font-mono">via {rel.suggestedJoinKey}</span>
-                  <span className={`px-1.5 py-0.5 rounded-full text-xs font-semibold ${
+                <div key={i} className="flex items-center gap-2 text-xs flex-wrap p-2 rounded-lg bg-white/3">
+                  <span className="font-mono text-white/70 font-semibold">{rel.tableA}</span>
+                  <span className="text-white/25">↔</span>
+                  <span className="font-mono text-white/70 font-semibold">{rel.tableB}</span>
+                  <span className="text-blue-400 font-mono bg-blue-400/10 px-1.5 py-0.5 rounded">via {rel.suggestedJoinKey}</span>
+                  {rel.valueOverlapPct > 0 && <span className="text-white/30">{rel.valueOverlapPct}% value overlap</span>}
+                  <span className={`ml-auto px-1.5 py-0.5 rounded-full text-xs font-semibold ${
                     rel.confidence === 'high' ? 'bg-green-400/15 text-green-400' : rel.confidence === 'medium' ? 'bg-amber-400/15 text-amber-400' : 'bg-white/5 text-white/35'
                   }`}>{rel.confidence}</span>
                 </div>

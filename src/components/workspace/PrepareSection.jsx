@@ -105,9 +105,43 @@ export default function PrepareSection() {
         });
       } catch (llmErr) {
         console.warn('[Prepare] LLM failed, using local fallback:', llmErr?.message);
-        // Local fallback
-        const { buildAnalysis } = await import('@/lib/sampleData');
-        analysis = buildAnalysis(activeTable.rows, activeTable.columns, activeTable.name);
+        try {
+          const { buildAnalysis } = await import('@/lib/sampleData');
+          analysis = buildAnalysis(activeTable.rows, activeTable.columns, activeTable.name);
+        } catch (localErr) {
+          // Absolute last-resort: produce a minimal safe analysis object so we never hard-fail
+          console.warn('[Prepare] Local fallback also failed:', localErr?.message);
+          analysis = {
+            tableName: activeTable.name,
+            domain: 'general',
+            domainLabel: activeTable.name,
+            primaryMetric: null,
+            primaryLabel: 'No numeric KPI detected',
+            totalValue: 0,
+            growthRate: null,
+            trendData: [],
+            forecastData: [],
+            breakdownData: [],
+            allTrends: {},
+            allBreakdowns: {},
+            anomalies: [],
+            correlations: [],
+            colStats: {},
+            canForecast: false,
+            chartPanels: null,
+            keyFindings: [
+              `Dataset "${activeTable.name}" has ${activeTable.rowCount?.toLocaleString()} rows and ${activeTable.columns?.length} columns.`,
+              'No numeric KPI columns detected — quantitative analysis is limited.',
+              'Category and text columns are available for segmentation analysis.',
+            ],
+            executiveSummary: `"${activeTable.name}" was profiled successfully. No numeric KPI columns were detected, so quantitative trend and anomaly analysis is unavailable. Review the schema and consider whether numeric columns need type correction.`,
+            recommendations: [
+              { priority: 'high', action: 'Verify that numeric columns are not stored as text. Re-export the file ensuring number formatting is correct.' },
+              { priority: 'medium', action: 'Add a numeric measure column (e.g. revenue, count, score) to enable full AI analysis.' },
+            ],
+            dataStory: `${activeTable.name} was prepared. Schema profiling complete — quantitative analysis requires numeric columns.`,
+          };
+        }
       }
 
       setStepIndex(5);
@@ -124,7 +158,9 @@ export default function PrepareSection() {
   };
 
   const highSeverityIssues = issues.filter(i => i.severity === 'high');
-  const canAnalyze = numericColumns.length > 0;
+  // Phase 2: always allow analysis — fall back to descriptive profile if no numeric cols
+  const canAnalyze = true;
+  const hasNumericKpis = numericColumns.length > 0;
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6 overflow-auto">
@@ -232,11 +268,11 @@ export default function PrepareSection() {
         )}
       </AnimatePresence>
 
-      {!canAnalyze && (
-        <div className="flex items-start gap-3 p-4 bg-red-400/5 border border-red-400/20 rounded-xl">
-          <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
-          <div className="text-sm text-red-400 leading-relaxed">
-            <strong>Analysis not available:</strong> This dataset has no numeric columns. AI analysis requires at least one measurable KPI column (e.g. revenue, count, score). Please upload a dataset with numeric data.
+      {!hasNumericKpis && (
+        <div className="flex items-start gap-3 p-4 bg-amber-400/5 border border-amber-400/20 rounded-xl">
+          <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+          <div className="text-sm text-amber-400 leading-relaxed">
+            <strong>Limited analysis mode:</strong> No numeric columns detected. Quantitative KPI analysis, trends, and forecasting will be skipped. A descriptive profile and schema summary will still be generated. To enable full analysis, ensure your dataset has at least one numeric column (e.g. revenue, count, score).
           </div>
         </div>
       )}
@@ -245,6 +281,17 @@ export default function PrepareSection() {
         <div className="flex items-start gap-3 p-3 bg-blue-400/5 border border-blue-400/20 rounded-xl">
           <Info className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
           <div className="text-xs text-blue-400 leading-relaxed">No date column detected — time-series forecasting is disabled. Descriptive, correlation, anomaly, and segment analysis will be used.</div>
+        </div>
+      )}
+
+      {activeTable.parseWarnings?.length > 0 && (
+        <div className="space-y-1.5">
+          <div className="text-xs font-semibold text-orange-400/80 uppercase tracking-widest">Parse Warnings</div>
+          {activeTable.parseWarnings.map((w, i) => (
+            <div key={i} className="flex items-start gap-2.5 p-2.5 rounded-lg bg-orange-400/5 border border-orange-400/15 text-xs text-orange-400/80">
+              <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" /> {w}
+            </div>
+          ))}
         </div>
       )}
 
@@ -355,15 +402,15 @@ export default function PrepareSection() {
 
       {/* Analysis CTA */}
       <div className="space-y-3">
-        <button onClick={handleAnalyze} disabled={analyzing || done || !canAnalyze}
+        <button onClick={handleAnalyze} disabled={analyzing || done}
           className="w-full flex items-center justify-center gap-2 py-4 bg-cyan-400 rounded-xl font-bold text-sm hover:bg-cyan-300 transition-all disabled:opacity-50 relative overflow-hidden"
           style={{ color: 'hsl(222,47%,6%)' }}>
           {analyzing ? (
             <><Loader2 className="w-4 h-4 animate-spin" /> {ANALYSIS_STEPS[stepIndex]?.label}</>
           ) : done ? (
             <><CheckCircle2 className="w-4 h-4" /> Analysis Complete — Opening Dashboard…</>
-          ) : !canAnalyze ? (
-            <><AlertTriangle className="w-4 h-4" /> No Numeric Columns — Cannot Analyze</>
+          ) : !hasNumericKpis ? (
+            <><Sparkles className="w-4 h-4" /> Run Descriptive Profile (Limited Mode) <ChevronRight className="w-4 h-4" /></>
           ) : (
             <><Sparkles className="w-4 h-4" /> Run AI Analysis & Generate Dashboard <ChevronRight className="w-4 h-4" /></>
           )}

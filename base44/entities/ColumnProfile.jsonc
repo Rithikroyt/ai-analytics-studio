@@ -1,0 +1,80 @@
+{
+  "name": "ColumnProfile",
+  "type": "object",
+  "properties": {
+    "tableId": {
+      "type": "string",
+      "title": "Parent Table ID"
+    },
+    "columnName": {
+      "type": "string",
+      "title": "Column Name"
+    },
+    "inferredType": {
+      "type": "string",
+      "title": "Inferred Type",
+      "enum": [
+        "numeric",
+        "date",
+        "category",
+        "id",
+        "text"
+      ]
+    },
+    "nullCount": {
+      "type": "number",
+      "title": "Null Count"
+    },
+    "missingPct": {
+      "type": "number",
+      "title": "Missing %"
+    },
+    "uniqueCount": {
+      "type": "number",
+      "title": "Unique Count"
+    },
+    "mean": {
+      "type": "number",
+      "title": "Mean (numeric)"
+    },
+    "std": {
+      "type": "number",
+      "title": "Std Dev (numeric)"
+    },
+    "min": {
+      "type": "string",
+      "title": "Min Value"
+    },
+    "max": {
+      "type": "string",
+      "title": "Max Value"
+    },
+    "median": {
+      "type": "number",
+      "title": "Median (numeric)"
+    },
+    "sampleValues": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Sample Values"
+    },
+    "isKpiCandidate": {
+      "type": "boolean",
+      "default": false
+    },
+    "isDateCandidate": {
+      "type": "boolean",
+      "default": false
+    },
+    "isSegmentCandidate": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "tableId",
+    "columnName"
+  ]
+}
