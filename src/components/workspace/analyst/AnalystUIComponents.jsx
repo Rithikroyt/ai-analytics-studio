@@ -1,198 +1,178 @@
 /**
- * AnalystUIComponents — Structured response rendering for AI Analyst
- * Handles the new response format: Answer → Insights → Evidence → Actions → Confidence
+ * Analyst UI Components — Structured response rendering
  */
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ChevronDown, ChevronUp, CheckCircle2, Lightbulb, BarChart2, Target,
-  AlertCircle, Clock, Zap
+  ChevronDown, ChevronRight, CheckCircle2, AlertTriangle, Lightbulb,
+  Target, Zap, Loader2
 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 
-export function StructuredResponse({ message }) {
-  const [expandedSections, setExpandedSections] = useState({ answer: true }); // answer open by default
-
-  const sections = [
-    { id: 'answer', label: 'Answer', icon: CheckCircle2, color: 'text-cyan-400' },
-    { id: 'insights', label: 'Key Insights', icon: Lightbulb, color: 'text-cyan-400' },
-    { id: 'evidence', label: 'Supporting Evidence', icon: BarChart2, color: 'text-teal-400' },
-    { id: 'actions', label: 'Recommended Actions', icon: Target, color: 'text-green-400' },
-    { id: 'confidence', label: 'Confidence & Limitations', icon: AlertCircle, color: 'text-amber-400' },
+// ── Thinking Indicator ──────────────────────────────────────
+export function ThinkingIndicator({ step = 0, totalSteps = 7 }) {
+  const steps = [
+    'Intent detection',
+    'Context loading',
+    'Tool selection',
+    'Analysis',
+    'Chart support',
+    'Recommendations',
+    'Confidence'
   ];
-
-  const toggleSection = (id) => {
-    setExpandedSections(s => ({ ...s, [id]: !s[id] }));
-  };
-
-  const renderContent = (id) => {
-    switch (id) {
-      case 'answer':
-        return <p className="text-sm leading-relaxed text-white/80">{message.answer || 'No direct answer available.'}</p>;
-
-      case 'insights':
-        return (
-          <ul className="space-y-1.5">
-            {message.insights && message.insights.length > 0 ? (
-              message.insights.map((insight, i) => (
-                <li key={i} className="flex items-start gap-2.5 text-sm text-white/70">
-                  <span className="text-cyan-400 font-bold text-lg leading-none mt-0.5">•</span>
-                  <span>{insight}</span>
-                </li>
-              ))
-            ) : (
-              <li className="text-xs text-white/40 italic">No additional insights available.</li>
-            )}
-          </ul>
-        );
-
-      case 'evidence':
-        return (
-          <div className="space-y-2">
-            {message.evidence && message.evidence.length > 0 ? (
-              message.evidence.map((ev, i) => (
-                <div key={i} className="flex items-start gap-2 p-2.5 rounded-lg bg-white/3 border border-white/5 text-sm">
-                  <span className="text-teal-400 text-xs font-mono flex-shrink-0 mt-0.5 font-bold">#</span>
-                  <span className="text-white/70">{ev}</span>
-                </div>
-              ))
-            ) : (
-              <p className="text-xs text-white/40 italic">No specific evidence or data points to cite.</p>
-            )}
-          </div>
-        );
-
-      case 'actions':
-        return (
-          <ol className="space-y-1.5 list-decimal list-inside">
-            {message.recommendations && message.recommendations.length > 0 ? (
-              message.recommendations.map((rec, i) => (
-                <li key={i} className="text-sm text-white/70 ml-2">
-                  <span className="text-green-400 font-semibold text-xs uppercase">[{rec.priority}]</span> {rec.action}
-                </li>
-              ))
-            ) : (
-              <li className="text-xs text-white/40 italic">No specific recommendations at this time.</li>
-            )}
-          </ol>
-        );
-
-      case 'confidence':
-        return (
-          <div className="space-y-2 text-sm">
-            <div className="flex items-center gap-3">
-              <span className="text-white/60 font-semibold">Confidence Score:</span>
-              <div className="flex items-center gap-2">
-                <div className="w-24 h-2 bg-white/10 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all ${
-                      message.confidence >= 80
-                        ? 'bg-green-400'
-                        : message.confidence >= 60
-                        ? 'bg-amber-400'
-                        : 'bg-orange-400'
-                    }`}
-                    style={{ width: `${message.confidence || 70}%` }}
-                  />
-                </div>
-                <span className="text-xs font-mono font-bold">{message.confidence || 70}%</span>
-              </div>
-            </div>
-            {message.limitations && message.limitations.length > 0 && (
-              <div>
-                <div className="text-white/60 font-semibold mb-1">Limitations:</div>
-                <ul className="ml-3 space-y-0.5">
-                  {message.limitations.map((lim, i) => (
-                    <li key={i} className="text-xs text-white/50 flex items-start gap-1.5">
-                      <span className="text-orange-400 flex-shrink-0 mt-0.5">⚠</span> {lim}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        );
-
-      default:
-        return null;
-    }
-  };
-
+  
   return (
-    <div className="space-y-1.5">
-      {sections.map(s => {
-        const Icon = s.icon;
-        const isOpen = expandedSections[s.id];
-        const hasContent =
-          (s.id === 'answer' && message.answer) ||
-          (s.id === 'insights' && message.insights?.length) ||
-          (s.id === 'evidence' && message.evidence?.length) ||
-          (s.id === 'actions' && message.recommendations?.length) ||
-          (s.id === 'confidence' && (message.confidence || message.limitations?.length));
-
-        if (!hasContent && s.id !== 'answer' && s.id !== 'confidence') return null;
-
-        return (
-          <div key={s.id}>
-            <button
-              onClick={() => toggleSection(s.id)}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-white/3 border border-white/5 hover:border-white/15 hover:bg-white/5 transition-all text-left"
-            >
-              <Icon className={`w-3.5 h-3.5 ${s.color} flex-shrink-0`} />
-              <span className="text-xs font-semibold flex-1 text-white/80">{s.label}</span>
-              {isOpen ? (
-                <ChevronUp className="w-3 h-3 text-white/35" />
-              ) : (
-                <ChevronDown className="w-3 h-3 text-white/35" />
-              )}
-            </button>
-            <AnimatePresence>
-              {isOpen && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.15 }}
-                  className="overflow-hidden"
-                >
-                  <div className="p-3 mt-1 rounded-lg bg-white/2 border border-white/5 ml-1">
-                    {renderContent(s.id)}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        );
-      })}
+    <div className="space-y-2 mb-3 pb-3 border-b border-white/10">
+      <div className="flex items-center gap-2 text-xs text-white/40">
+        <Loader2 className="w-3 h-3 animate-spin text-cyan-400" />
+        <span>Step {step}/{totalSteps}</span>
+      </div>
+      <div className="flex gap-1">
+        {steps.map((s, i) => (
+          <div
+            key={i}
+            className={`flex-1 h-1 rounded-full transition-all ${
+              i < step ? 'bg-cyan-400' : 'bg-white/10'
+            }`}
+          />
+        ))}
+      </div>
     </div>
   );
 }
 
-export function ThinkingIndicator({ step, totalSteps = 5 }) {
-  const steps = [
-    'Detecting intent...',
-    'Loading context...',
-    'Selecting tools...',
-    'Analyzing data...',
-    'Generating insights...',
-  ];
+// ── Expandable Section ──────────────────────────────────────
+function ExpandableSection({ title, icon: Icon, content, color = 'text-cyan-400', defaultOpen = true, children }) {
+  const [open, setOpen] = useState(defaultOpen);
+  
+  return (
+    <div className="border border-white/8 rounded-xl overflow-hidden">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-2 px-4 py-3 bg-white/3 hover:bg-white/5 transition-colors text-left"
+      >
+        <Icon className={`w-4 h-4 ${color}`} />
+        <span className="flex-1 font-semibold text-sm">{title}</span>
+        {open ? <ChevronDown className="w-4 h-4 text-white/40" /> : <ChevronRight className="w-4 h-4 text-white/40" />}
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="px-4 py-3 border-t border-white/5 space-y-2">
+              {typeof content === 'string' ? (
+                <ReactMarkdown className="prose prose-sm prose-invert max-w-none text-sm [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+                  {content}
+                </ReactMarkdown>
+              ) : Array.isArray(content) ? (
+                <ul className="space-y-1 text-sm text-white/70">
+                  {content.map((item, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className="text-cyan-400 mt-0.5">•</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                children
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ── Structured Response ─────────────────────────────────────
+export function StructuredResponse({ message }) {
+  if (!message || message.role === 'user') return null;
+
+  const {
+    answer,
+    insights = [],
+    evidence = [],
+    recommendations = [],
+    confidence = 50,
+    limitations = [],
+    steps = [],
+  } = message;
+
+  const confidenceColor =
+    confidence >= 80 ? 'text-green-400 border-green-400/25 bg-green-400/8'
+    : confidence >= 60 ? 'text-yellow-400 border-yellow-400/25 bg-yellow-400/8'
+    : 'text-orange-400 border-orange-400/25 bg-orange-400/8';
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2">
-        <div className="w-5 h-5 rounded-lg bg-purple-400/10 border border-purple-400/20 flex items-center justify-center">
-          <Clock className="w-3 h-3 text-purple-400 animate-spin" />
+    <div className="space-y-3">
+      {/* Thinking progress */}
+      {steps && steps.length > 0 && <ThinkingIndicator step={steps.length} totalSteps={7} />}
+
+      {/* Answer (always visible) */}
+      {answer && (
+        <ExpandableSection
+          title="Answer"
+          icon={Lightbulb}
+          content={answer}
+          color="text-cyan-400"
+          defaultOpen={true}
+        />
+      )}
+
+      {/* Insights */}
+      {insights.length > 0 && (
+        <ExpandableSection
+          title={`Key Insights (${insights.length})`}
+          icon={Zap}
+          content={insights}
+          color="text-purple-400"
+          defaultOpen={true}
+        />
+      )}
+
+      {/* Evidence */}
+      {evidence.length > 0 && (
+        <ExpandableSection
+          title={`Supporting Evidence (${evidence.length})`}
+          icon={CheckCircle2}
+          content={evidence}
+          color="text-teal-400"
+          defaultOpen={false}
+        />
+      )}
+
+      {/* Recommendations */}
+      {recommendations.length > 0 && (
+        <ExpandableSection
+          title={`Recommended Actions (${recommendations.length})`}
+          icon={Target}
+          content={recommendations.map(r => `[${r.priority?.toUpperCase()}] ${r.action}`)}
+          color="text-green-400"
+          defaultOpen={true}
+        />
+      )}
+
+      {/* Confidence & Limitations */}
+      <div className={`flex items-start gap-3 p-3 rounded-xl border ${confidenceColor}`}>
+        <div className="flex-1">
+          <div className="text-xs font-semibold uppercase tracking-widest mb-1">
+            Confidence: {confidence}%
+          </div>
+          {limitations.length > 0 && (
+            <div className="text-xs space-y-0.5">
+              {limitations.map((lim, i) => (
+                <div key={i} className="flex items-start gap-1.5">
+                  <AlertTriangle className="w-3 h-3 flex-shrink-0 mt-0.5" />
+                  <span>{lim}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-        <span className="text-xs text-purple-400 font-medium">{steps[Math.min(step, steps.length - 1)]}</span>
-      </div>
-      <div className="flex gap-1">
-        {Array.from({ length: totalSteps }).map((_, i) => (
-          <div
-            key={i}
-            className={`flex-1 h-1 rounded-full transition-all ${
-              i < step ? 'bg-purple-400' : 'bg-white/10'
-            }`}
-          />
-        ))}
       </div>
     </div>
   );
