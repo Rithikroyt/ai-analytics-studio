@@ -60,6 +60,7 @@ export default function PrepareSection() {
   const [stepIndex, setStepIndex] = useState(0);
   const [showFullSchema, setShowFullSchema] = useState(false);
   const [error, setError] = useState('');
+  const [overrides, setOverrides] = useState({ primaryMetric: '', dateCol: '', segments: [] });
 
   if (!activeTable) {
     return (
@@ -97,7 +98,11 @@ export default function PrepareSection() {
 
       let analysis;
       try {
-        analysis = await runAIAnalysis(activeTable);
+        analysis = await runAIAnalysis(activeTable, {
+          primaryMetric: overrides.primaryMetric || undefined,
+          dateCol: overrides.dateCol || undefined,
+          segments: overrides.segments.length ? overrides.segments : undefined,
+        });
       } catch (llmErr) {
         console.warn('[Prepare] LLM failed, using local fallback:', llmErr?.message);
         // Local fallback
@@ -299,6 +304,54 @@ export default function PrepareSection() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Analysis Configuration */}
+      {canAnalyze && (
+        <div className="glass-card rounded-2xl p-5 border border-white/8 space-y-4">
+          <div className="text-xs font-semibold text-white/40 uppercase tracking-widest">Analysis Configuration <span className="normal-case font-normal text-white/25">— optional overrides</span></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">Primary KPI</label>
+              <select value={overrides.primaryMetric} onChange={e => setOverrides(v => ({ ...v, primaryMetric: e.target.value }))}
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-cyan-400/30 text-foreground">
+                <option value="">Auto-detect best KPI</option>
+                {numericColumns.map(c => <option key={c.name} value={c.name}>{c.name.replace(/_/g, ' ')}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">Date / Time Field</label>
+              <select value={overrides.dateCol} onChange={e => setOverrides(v => ({ ...v, dateCol: e.target.value }))}
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-cyan-400/30 text-foreground">
+                <option value="">Auto-detect date column</option>
+                <option value="none">No date — descriptive analytics only</option>
+                {dateColumns.map(c => <option key={c.name} value={c.name}>{c.name.replace(/_/g, ' ')}</option>)}
+                {catColumns.filter(c => /month|year|period|quarter|week|date/i.test(c.name)).map(c => (
+                  <option key={c.name} value={c.name}>{c.name.replace(/_/g, ' ')} (category)</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          {catColumns.length > 0 && (
+            <div>
+              <label className="text-xs text-muted-foreground mb-2 block">Segment Columns <span className="text-white/25">(for breakdowns)</span></label>
+              <div className="flex flex-wrap gap-2">
+                {catColumns.map(c => {
+                  const selected = overrides.segments.includes(c.name);
+                  return (
+                    <button key={c.name}
+                      onClick={() => setOverrides(v => ({ ...v, segments: selected ? v.segments.filter(s => s !== c.name) : [...v.segments, c.name] }))}
+                      className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
+                        selected ? 'bg-purple-400/15 border-purple-400/30 text-purple-400' : 'bg-white/5 border-white/10 text-white/45 hover:border-white/25'
+                      }`}>
+                      {c.name.replace(/_/g, ' ')}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Analysis CTA */}
       <div className="space-y-3">

@@ -1,0 +1,58 @@
+{
+  "name": "TableProfile",
+  "type": "object",
+  "properties": {
+    "tableId": {
+      "type": "string",
+      "title": "Table ID"
+    },
+    "tableName": {
+      "type": "string",
+      "title": "Table Name"
+    },
+    "qualityScore": {
+      "type": "number",
+      "title": "Quality Score"
+    },
+    "rowCount": {
+      "type": "number"
+    },
+    "duplicateCount": {
+      "type": "number"
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "title": "Issues"
+    },
+    "numericColumns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "dateColumns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "categoryColumns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "idColumns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "tableId"
+  ]
+}

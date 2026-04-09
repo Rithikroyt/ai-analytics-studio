@@ -75,12 +75,14 @@ export function detectDomain(tableName, columns) {
 
 // ── Main analysis pipeline ────────────────────────────────────────
 
-export async function runAIAnalysis(table) {
+export async function runAIAnalysis(table, overrides = {}) {
   const { rows, columns, name: tableName } = table;
   if (!rows?.length || !columns?.length) throw new Error('Empty table');
 
   const domain = detectDomain(tableName, columns);
-  const dateCol = columns.find(c => c.type === 'date');
+  const dateCol = overrides.dateCol === 'none' ? null
+    : overrides.dateCol ? (columns.find(c => c.name === overrides.dateCol) || columns.find(c => c.type === 'date'))
+    : columns.find(c => c.type === 'date');
   const numericCols = columns.filter(c => c.type === 'numeric');
   const catCols = columns.filter(c => c.type === 'category');
   const formatLabel = s => s?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || '';
@@ -108,8 +110,12 @@ export async function runAIAnalysis(table) {
     return 3 + cv;
   };
   const rankedCols = [...numericCols].sort((a, b) => rankMetric(b) - rankMetric(a));
-  const primaryMetric = rankedCols[0];
-  const secondMetric = rankedCols[1];
+  let primaryMetric = rankedCols[0];
+  if (overrides.primaryMetric) {
+    const om = columns.find(c => c.name === overrides.primaryMetric && c.type === 'numeric');
+    if (om) primaryMetric = om;
+  }
+  const secondMetric = rankedCols.find(c => c !== primaryMetric) || rankedCols[1];
 
   // 3. Time-series aggregation
   const trendMap = {};

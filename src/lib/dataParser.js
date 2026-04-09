@@ -218,8 +218,10 @@ export const processUploadedFile = async (file, selectedSheet = null) => {
     const { content } = await parseTXT(file);
     return { type: 'document', content, fileName: file.name, name: baseName };
 
+  } else if (ext === 'pdf' || ext === 'docx' || ext === 'doc') {
+    return { type: 'document', content: `[${ext.toUpperCase()} uploaded: "${file.name}" — saved as context reference. For full text extraction, use a TXT export.]`, fileName: file.name, name: baseName };
   } else {
-    throw new Error(`Unsupported file type: .${ext}. Supported formats: CSV, XLSX, XLS, JSON, TXT.`);
+    throw new Error(`Unsupported file type: .${ext}. Supported: CSV, XLSX, XLS, JSON, TXT, PDF, DOCX.`);
   }
 };
 

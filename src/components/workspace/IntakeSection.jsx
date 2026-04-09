@@ -1,4 +1,6 @@
 import { useState, useCallback } from 'react';
+import SheetPreview from '@/components/workspace/SheetPreview';
+import { inferRelationships } from '@/lib/relationshipInference';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWorkspaceStore } from '@/lib/store';
 import { processUploadedFile } from '@/lib/dataParser';
@@ -9,7 +11,7 @@ import {
   Plus, Layers, Info
 } from 'lucide-react';
 
-const ACCEPTED = '.csv,.tsv,.xlsx,.xls,.json,.txt,.md';
+const ACCEPTED = '.csv,.tsv,.xlsx,.xls,.json,.txt,.md,.pdf,.docx';
 const MAX_MB = 25;
 
 function FileIcon({ ext }) {
@@ -82,7 +84,8 @@ export default function IntakeSection() {
   const [processing, setProcessing] = useState(false);
   const [processingFile, setProcessingFile] = useState('');
   const [error, setError] = useState('');
-  const [multisheet, setMultisheet] = useState(null); // { sheets, fileName, baseName }
+  const [multisheet, setMultisheet] = useState(null);
+  const [previewSheet, setPreviewSheet] = useState(null);
 
   const handleFiles = useCallback(async (files) => {
     const fileArr = Array.from(files);
@@ -228,7 +231,7 @@ export default function IntakeSection() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               {multisheet.sheets.map((sheet, i) => (
-                <button key={sheet.name} onClick={() => handleSheetSelect(i)}
+                <button key={sheet.name} onClick={() => setPreviewSheet({ idx: i, sheet })}
                   className="flex items-start gap-3 p-3 rounded-xl border border-white/8 bg-white/3 hover:border-cyan-400/30 hover:bg-cyan-400/5 transition-all text-left">
                   <FileSpreadsheet className="w-4 h-4 text-teal-400 flex-shrink-0 mt-0.5" />
                   <div>
@@ -242,6 +245,17 @@ export default function IntakeSection() {
               <Info className="w-3 h-3" /> You can import multiple sheets by repeating the upload for each.
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Sheet Preview */}
+      <AnimatePresence>
+        {previewSheet && (
+          <SheetPreview
+            sheet={previewSheet.sheet}
+            onConfirm={() => { handleSheetSelect(previewSheet.idx); setPreviewSheet(null); }}
+            onCancel={() => setPreviewSheet(null)}
+          />
         )}
       </AnimatePresence>
 
@@ -273,6 +287,22 @@ export default function IntakeSection() {
             </AnimatePresence>
           </div>
 
+          {tables.length >= 2 && inferRelationships(tables).length > 0 && (
+            <div className="mt-3 p-4 rounded-xl border border-blue-400/15 bg-blue-400/5">
+              <div className="text-xs font-semibold text-blue-400 uppercase tracking-widest mb-2">Detected Table Relationships</div>
+              {inferRelationships(tables).map((rel, i) => (
+                <div key={i} className="flex items-center gap-2 text-xs mb-1 flex-wrap">
+                  <span className="font-mono text-white/65">{rel.tableA}</span>
+                  <span className="text-white/30">↔</span>
+                  <span className="font-mono text-white/65">{rel.tableB}</span>
+                  <span className="text-blue-400 font-mono">via {rel.suggestedJoinKey}</span>
+                  <span className={`px-1.5 py-0.5 rounded-full text-xs font-semibold ${
+                    rel.confidence === 'high' ? 'bg-green-400/15 text-green-400' : rel.confidence === 'medium' ? 'bg-amber-400/15 text-amber-400' : 'bg-white/5 text-white/35'
+                  }`}>{rel.confidence}</span>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="flex gap-2 mt-4">
             <button onClick={() => setActiveSection('prepare')}
               className="flex items-center gap-1.5 px-4 py-2.5 bg-cyan-400/10 border border-cyan-400/20 text-cyan-400 rounded-xl text-xs font-semibold hover:bg-cyan-400/15 transition-colors">

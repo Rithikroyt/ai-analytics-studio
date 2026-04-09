@@ -1,0 +1,43 @@
+{
+  "name": "RelationshipSuggestion",
+  "type": "object",
+  "properties": {
+    "workspaceId": {
+      "type": "string"
+    },
+    "tableA": {
+      "type": "string",
+      "title": "Table A"
+    },
+    "tableB": {
+      "type": "string",
+      "title": "Table B"
+    },
+    "suggestedJoinKey": {
+      "type": "string",
+      "title": "Suggested Join Key"
+    },
+    "commonColumns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "confidence": {
+      "type": "string",
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ]
+    },
+    "confirmed": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "tableA",
+    "tableB"
+  ]
+}

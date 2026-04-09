@@ -1,0 +1,48 @@
+{
+  "name": "DataTable",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "Table Name"
+    },
+    "fileName": {
+      "type": "string",
+      "title": "Source File"
+    },
+    "rowCount": {
+      "type": "number",
+      "title": "Row Count"
+    },
+    "columnCount": {
+      "type": "number",
+      "title": "Column Count"
+    },
+    "qualityScore": {
+      "type": "number",
+      "title": "Quality Score (%)"
+    },
+    "workspaceId": {
+      "type": "string",
+      "title": "Workspace ID"
+    },
+    "primaryMetric": {
+      "type": "string",
+      "title": "Primary KPI Column"
+    },
+    "dateColumn": {
+      "type": "string",
+      "title": "Date Column"
+    },
+    "segments": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Segment Columns"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

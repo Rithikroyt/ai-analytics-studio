@@ -1,0 +1,45 @@
+{
+  "name": "WorkspaceModel",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "Workspace Name"
+    },
+    "primaryTableId": {
+      "type": "string"
+    },
+    "primaryMetric": {
+      "type": "string"
+    },
+    "dateColumn": {
+      "type": "string"
+    },
+    "segments": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "domain": {
+      "type": "string"
+    },
+    "analysisStatus": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "ready",
+        "analyzed"
+      ]
+    },
+    "tableIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "name"
+  ]
+}
