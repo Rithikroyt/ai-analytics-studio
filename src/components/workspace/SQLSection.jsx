@@ -5,10 +5,12 @@ import { Terminal, Sparkles, Play, Copy, CheckCircle2, AlertTriangle, Database, 
 import { base44 } from '@/api/base44Client';
 
 const EXAMPLE_QUERIES = [
-  'What is the total revenue by region?',
-  'Show me the top 5 segments by performance',
-  'What is the month-over-month trend?',
-  'Which dimension has the highest average value?',
+  'What is the total by region?',
+  'Show top 5 segments by value',
+  'What changed month over month?',
+  'Which segment has the highest average?',
+  'Count records by category',
+  'Show revenue trend by date',
 ];
 
 export default function SQLSection() {
@@ -79,55 +81,54 @@ If you cannot generate SQL, respond: {"sql": null, "explanation": "...", "can_ge
   }
 
   return (
-    <div className="p-8 max-w-4xl mx-auto space-y-8">
+    <div className="p-6 max-w-4xl mx-auto space-y-6">
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold mb-2">SQL Studio</h1>
-        <p className="text-muted-foreground text-sm">Ask questions in plain English — get SQL + results.</p>
+        <h1 className="text-2xl font-bold mb-1">SQL Studio</h1>
+        <p className="text-muted-foreground text-sm">Ask questions in plain English — get AI-generated SQL and instant results.</p>
       </motion.div>
 
       {/* Schema info */}
-      <div className="glass rounded-xl p-4 border border-white/5 flex items-center gap-3">
-        <Database className="w-4 h-4 text-cyan-400 flex-shrink-0" />
-        <div className="text-xs text-muted-foreground">
-          <span className="text-cyan-400 font-semibold">{table.name}</span>
-          {' · '}
-          {table.columns?.map(c => `${c.name}`).join(', ')}
+      <div className="glass rounded-xl p-4 border border-white/5">
+        <div className="flex items-center gap-2 mb-2">
+          <Database className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
+          <span className="text-xs font-semibold text-cyan-400">{table.name}</span>
+          <span className="text-xs text-muted-foreground">· {table.rowCount?.toLocaleString()} rows</span>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {table.columns?.map(c => (
+            <span key={c.name} className={`text-xs px-2 py-0.5 rounded font-mono ${c.type === 'numeric' ? 'bg-blue-400/10 text-blue-400/70' : c.type === 'date' ? 'bg-teal-400/10 text-teal-400/70' : c.type === 'category' ? 'bg-purple-400/10 text-purple-400/70' : 'bg-white/5 text-white/35'}`}>
+              {c.name}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Example prompts */}
+      <div>
+        <div className="text-xs text-white/30 uppercase tracking-widest mb-2">Example queries</div>
+        <div className="flex flex-wrap gap-2">
+          {EXAMPLE_QUERIES.map(q => (
+            <button key={q} onClick={() => setQuery(q)}
+              className="px-3 py-1.5 bg-white/4 border border-white/8 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:border-cyan-400/25 transition-all">
+              {q}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Query box */}
       <div className="space-y-3">
-        <div className="relative">
-          <textarea
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleGenerate(); }}
-            placeholder="Ask a question about your data… (Ctrl+Enter to run)"
-            rows={3}
-            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm placeholder:text-muted-foreground focus:outline-none focus:border-cyan-400/30 resize-none font-mono text-foreground"
-          />
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleGenerate}
-            disabled={loading || !query.trim()}
-            className="flex items-center gap-2 px-5 py-2.5 bg-cyan-400 rounded-xl text-sm font-bold disabled:opacity-50 hover:bg-cyan-300 transition-colors"
-            style={{ color: 'hsl(222,47%,6%)' }}
-          >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Sparkles className="w-4 h-4" /> Generate SQL</>}
-          </button>
-          <div className="flex gap-2">
-            {EXAMPLE_QUERIES.slice(0, 2).map(q => (
-              <button
-                key={q}
-                onClick={() => setQuery(q)}
-                className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {q.slice(0, 30)}…
-              </button>
-            ))}
-          </div>
-        </div>
+        <textarea value={query} onChange={e => setQuery(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleGenerate(); }}
+          placeholder="Ask a question about your data in plain English… (Ctrl+Enter to run)"
+          rows={3}
+          className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm placeholder:text-muted-foreground focus:outline-none focus:border-cyan-400/30 resize-none font-mono text-foreground"
+        />
+        <button onClick={handleGenerate} disabled={loading || !query.trim()}
+          className="flex items-center gap-2 px-5 py-2.5 bg-cyan-400 rounded-xl text-sm font-bold disabled:opacity-50 hover:bg-cyan-300 transition-colors"
+          style={{ color: 'hsl(222,47%,6%)' }}>
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Sparkles className="w-4 h-4" /> Generate SQL</>}
+        </button>
       </div>
 
       {/* Results */}
