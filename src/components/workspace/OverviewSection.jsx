@@ -2,12 +2,11 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useWorkspaceStore } from '@/lib/store';
 import {
-  Database, BarChart3, Brain, FileText, Zap, ArrowRight,
-  CheckCircle2, AlertTriangle, Loader2, TrendingUp, TrendingDown,
-  Activity, Target, Upload, Layers, GitBranch, Shield,
-  Sparkles, Bot, Clock, PieChart
+  Database, BarChart3, Brain, FileText, Zap,
+  CheckCircle2, AlertTriangle, Loader2,
+  Activity, Upload, Layers, GitBranch,
+  Bot, PieChart
 } from 'lucide-react';
-import { runAIAnalysis } from '@/lib/aiAnalyzer';
 import { Link } from 'react-router-dom';
 
 const bundles = [
@@ -36,26 +35,14 @@ const fmtV = (v) => {
 };
 
 export default function OverviewSection() {
-  const { loadSampleBundle, setActiveSection, setAnalysisResults, tables, analysisResults, savedCharts, stories, alerts } = useWorkspaceStore();
+  const { loadSampleBundle, setActiveSection, tables, analysisResults, savedCharts, stories, alerts } = useWorkspaceStore();
   const [loadingBundle, setLoadingBundle] = useState('');
 
   const handleLoadBundle = async (key) => {
     setLoadingBundle(key);
-    try {
-      loadSampleBundle(key);
-      const { sampleBundles } = await import('@/lib/sampleData');
-      const bundle = sampleBundles[key];
-      if (bundle?.tables?.[0]) {
-        try {
-          const analysis = await runAIAnalysis(bundle.tables[0]);
-          setAnalysisResults(analysis);
-        } catch (e) {
-          setAnalysisResults(bundle.analysisResults);
-        }
-      }
-    } catch (e) {
-      // fallback — bundle still loaded from loadSampleBundle
-    }
+    // loadSampleBundle sets tables + pre-built analysisResults from sampleData
+    loadSampleBundle(key);
+    await new Promise(r => setTimeout(r, 100));
     setLoadingBundle('');
     setActiveSection('story');
   };

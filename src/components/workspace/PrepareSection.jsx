@@ -94,17 +94,24 @@ export default function PrepareSection() {
         await new Promise(r => setTimeout(r, i === 4 ? 300 : 250));
       }
       setStepIndex(4);
-      const analysis = await runAIAnalysis(activeTable);
+      let analysis;
+      try {
+        analysis = await runAIAnalysis(activeTable);
+      } catch {
+        // Fallback to local analysis if LLM call fails
+        const { buildAnalysis, inferColumns } = await import('@/lib/sampleData');
+        analysis = buildAnalysis(activeTable.rows, activeTable.columns, activeTable.name);
+      }
       setStepIndex(5);
       setAnalysisResults(analysis);
       await new Promise(r => setTimeout(r, 400));
       setDone(true);
       setTimeout(() => setActiveSection('story'), 500);
     } catch (e) {
-      setAnalyzing(false);
       setStepIndex(0);
+    } finally {
+      setAnalyzing(false);
     }
-    setAnalyzing(false);
   };
 
   return (

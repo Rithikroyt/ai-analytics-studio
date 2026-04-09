@@ -305,6 +305,32 @@ const buildAnalysis = (rows, columns, tableName) => {
     ? parseFloat(((trendData[trendData.length-1].value - trendData[0].value) / trendData[0].value * 100).toFixed(1))
     : null;
 
+  // Correlations between numeric columns
+  const correlations = [];
+  for (let i = 0; i < Math.min(numericCols.length, 5); i++) {
+    for (let j = i + 1; j < Math.min(numericCols.length, 5); j++) {
+      const xs = rows.map(r => Number(r[numericCols[i].name])).filter(v => !isNaN(v));
+      const ys = rows.map(r => Number(r[numericCols[j].name])).filter(v => !isNaN(v));
+      const n = Math.min(xs.length, ys.length);
+      if (n < 3) continue;
+      const mx = xs.reduce((a, b) => a + b, 0) / n;
+      const my = ys.reduce((a, b) => a + b, 0) / n;
+      const num = xs.reduce((s, x, k) => s + (x - mx) * (ys[k] - my), 0);
+      const den = Math.sqrt(xs.reduce((s, x) => s + (x - mx) ** 2, 0) * ys.reduce((s, y) => s + (y - my) ** 2, 0));
+      const r = den === 0 ? 0 : parseFloat((num / den).toFixed(3));
+      if (Math.abs(r) > 0.3) correlations.push({ colA: numericCols[i].name, colB: numericCols[j].name, r });
+    }
+  }
+
+  // Key findings
+  const keyFindings = [
+    primaryMetric && `Total ${primaryMetric.name.replace(/_/g, ' ')} is ${totalValue.toLocaleString()}.`,
+    growthRate != null && `Overall trend shows ${growthRate > 0 ? '+' : ''}${growthRate}% change over the period.`,
+    breakdownData[0] && `Top segment: "${breakdownData[0].name}" with ${breakdownData[0].value.toLocaleString()}.`,
+    anomalies.length > 0 && `${anomalies.length} statistical anomalies detected in time-series data.`,
+    correlations.length > 0 && `Strong correlation found: ${correlations[0].colA} ↔ ${correlations[0].colB} (r=${correlations[0].r}).`,
+  ].filter(Boolean);
+
   return {
     tableName,
     primaryMetric: primaryMetric?.name,
@@ -317,13 +343,21 @@ const buildAnalysis = (rows, columns, tableName) => {
     trendData,
     forecastData,
     breakdownData,
+    allTrends: {},
+    allBreakdowns: {},
     anomalies,
+    correlations,
+    colStats: {},
     growthRate,
     primaryDimension: dimCols[0]?.name,
     secondDimension: dimCols[1]?.name,
     canForecast: trendData.length >= 6,
+    chartPanels: null,
+    keyFindings,
     executiveSummary: buildExecutiveSummary(tableName, primaryMetric, totalValue, growthRate, anomalies, breakdownData),
     recommendations: buildRecommendations(tableName, growthRate, anomalies, breakdownData),
+    domainLabel: tableName,
+    dataStory: '',
   };
 };
 
