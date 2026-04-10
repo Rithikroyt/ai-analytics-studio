@@ -9,7 +9,7 @@ export function useAnalystChat() {
   const [chatMessages, setChatMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [thinkingLabel, setThinkingLabel] = useState('');
-  const { analysisResults, getActiveTable } = useWorkspaceStore();
+  const { getActiveTable } = useWorkspaceStore();
 
   const addMessage = useCallback((msg) => {
     setChatMessages(prev => [...prev, msg]);
@@ -18,7 +18,10 @@ export function useAnalystChat() {
   const sendQuestion = useCallback(async (question) => {
     if (!question.trim() || loading) return;
 
-    const activeTable = getActiveTable();
+    // Always pull fresh state to avoid stale closures
+    const freshState = useWorkspaceStore.getState();
+    const activeTable = freshState.getActiveTable();
+    const freshAnalysis = freshState.analysisResults;
     if (!activeTable) {
       addMessage({
         role: 'assistant',
@@ -39,7 +42,7 @@ export function useAnalystChat() {
       const response = await executeAnalystWorkflow(
         question,
         useWorkspaceStore.getState(),
-        analysisResults,
+        freshAnalysis,
         activeTable
       );
 
@@ -69,7 +72,7 @@ export function useAnalystChat() {
       setLoading(false);
       setThinkingLabel('');
     }
-  }, [loading, getActiveTable, analysisResults, addMessage]);
+  }, [loading, getActiveTable, addMessage]);
 
   const clearChat = useCallback(() => {
     setChatMessages([]);

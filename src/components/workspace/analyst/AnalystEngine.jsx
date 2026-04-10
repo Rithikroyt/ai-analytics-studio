@@ -5,7 +5,10 @@
 import * as localTools from '@/lib/analystToolsLocal.js';
 import { assessConfidence } from '@/lib/analystTools';
 
-export async function executeAnalystWorkflow(question, store, analysisResults, activeTable) {
+export async function executeAnalystWorkflow(question, store, analysisResultsArg, activeTableArg) {
+  // Safely resolve active table and analysis from store or argument
+  const activeTable = activeTableArg || store?.tables?.find(t => t.id === store?.activeTableId) || store?.tables?.[0] || null;
+  const analysisResults = analysisResultsArg || store?.analysisResults || null;
   const steps = [];
   let response = {
     role: 'assistant',
@@ -125,8 +128,8 @@ export async function executeAnalystWorkflow(question, store, analysisResults, a
       }
     }
 
-    // STEP 5: Chart Support
-    if (intents.includes('chart') || (analysisResults?.breakdownData?.length && !answer.includes('chart'))) {
+    // STEP 5: Always attach a chart if breakdown data is available
+    if (intents.includes('chart') || analysisResults?.breakdownData?.length) {
       steps.push('Generating chart...');
       const chartSpec = await localTools.getChartSpecForQuestion(store, question);
       if (chartSpec) {

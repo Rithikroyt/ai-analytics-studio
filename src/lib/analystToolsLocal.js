@@ -1,19 +1,28 @@
 /**
  * analystToolsLocal — Local implementations of analyst tools
- * Derives structured results directly from the workspace store's analysisResults
+ * Derives structured results directly from the workspace store's state object
+ * NOTE: store is passed as plain state object (from getState()), not the hook.
  */
 
+function resolveTable(store) {
+  const { tables, activeTableId } = store;
+  return tables?.find(t => t.id === activeTableId) || tables?.[0] || null;
+}
+
 export async function getWorkspaceOverview(store) {
-  const { tables, analysisResults } = store;
+  const table = resolveTable(store);
   return {
-    table_count: tables?.length || 0,
-    has_analysis: !!analysisResults,
-    primary_kpi: analysisResults?.primaryLabel || null,
+    table_count: store?.tables?.length || 0,
+    has_analysis: !!store?.analysisResults,
+    primary_kpi: store?.analysisResults?.primaryLabel || null,
+    table_name: table?.name || null,
+    row_count: table?.rowCount || 0,
   };
 }
 
 export async function getKPISummary(store) {
   const r = store?.analysisResults;
+  const table = resolveTable(store);
   if (!r) return null;
   return {
     primary_kpi: r.primaryLabel || 'N/A',
@@ -21,7 +30,7 @@ export async function getKPISummary(store) {
     primary_change: r.growthRate != null ? `${r.growthRate > 0 ? '+' : ''}${r.growthRate}%` : 'N/A',
     secondary_kpi: r.secondLabel || null,
     secondary_value: r.secondValue || null,
-    quality_score: store?.getActiveTable?.()?.qualityScore || 0,
+    quality_score: table?.qualityScore || 0,
     anomaly_count: r.anomalies?.length || 0,
     top_segments: r.breakdownData?.slice(0, 3).map(b => ({ name: b.name, value: b.value })) || [],
   };
@@ -31,9 +40,12 @@ export async function getDescriptiveStory(store) {
   const r = store?.analysisResults;
   if (!r) return null;
   const findings = r.keyFindings || [];
+  const firstCorr = r.correlations?.[0];
   return {
     what_happened: r.executiveSummary || findings[0] || 'No summary available.',
-    why_it_happened: findings[1] || r.correlations?.[0] ? `Correlation: ${r.correlations[0]?.colA} ↔ ${r.correlations[0]?.colB} (r=${r.correlations[0]?.r})` : 'No correlation data.',
+    why_it_happened: firstCorr
+      ? `Correlation: ${firstCorr.colA} ↔ ${firstCorr.colB} (r=${firstCorr.r})`
+      : (findings[1] || 'No correlation data.'),
     where_risk_is: r.anomalies?.slice(0, 2).map(a => `${a.date}: z=${a.zScore}σ (${a.severity})`) || [],
     what_to_do: r.recommendations?.slice(0, 2).map(rec => rec.action) || [],
   };
@@ -41,14 +53,20 @@ export async function getDescriptiveStory(store) {
 
 export async function getAnomalyResults(store) {
   const r = store?.analysisResults;
-  if (!r) return { total_anomalies: 0 };
+  if (!r) return { total_anomalies: 0, severity_breakdown: {}, recommendation: 'No analysis available.' };
   const anomalies = r.anomalies || [];
   const high = anomalies.filter(a => a.severity === 'high').length;
   const medium = anomalies.filter(a => a.severity === 'medium').length;
   return {
     total_anomalies: anomalies.length,
     severity_breakdown: { high, medium, low: anomalies.length - high - medium },
-    top_anomalies: anomalies.slice(0, 3).map(a => ({ date: a.date, value: a.value, expected: a.expected, z_score: a.zScore, severity: a.severity })),
+    top_anomalies: anomalies.slice(0, 3).map(a => ({
+      date: a.date,
+      value: a.value,
+      expected: a.expected,
+      z_score: a.zScore,
+      severity: a.severity,
+    })),
     recommendation: anomalies.length > 0
       ? `Investigate ${high} high-severity anomalies immediately.`
       : 'No anomalies — data is clean.',
@@ -56,10 +74,10 @@ export async function getAnomalyResults(store) {
 }
 
 export async function getDataQualityAudit(store) {
-  const table = store?.getActiveTable?.();
+  const table = resolveTable(store);
   if (!table) return null;
   const missingCols = (table.columns || [])
-    .filter(c => c.missingPct > 0)
+    .filter(c => (c.missingPct || 0) > 0)
     .map(c => ({ name: c.name, missing_percent: c.missingPct }));
   return {
     overall_score: table.qualityScore || 0,
@@ -113,7 +131,7 @@ export async function generateRecommendations(store) {
 export async function getChartSpecForQuestion(store, question) {
   const r = store?.analysisResults;
   if (!r) return null;
-  const q = question.toLowerCase();
+  const q = (question || '').toLowerCase();
 
   if ((q.includes('segment') || q.includes('breakdown') || q.includes('region') || q.includes('category')) && r.breakdownData?.length) {
     return {
@@ -139,10 +157,23 @@ export async function getChartSpecForQuestion(store, question) {
     return {
       type: 'line',
       title: `${r.primaryLabel} Forecast`,
-      data: [...(r.trendData || []).map(d => ({ name: d.date, actual: d.value })),
-             ...(r.forecastData || []).map(d => ({ name: d.date, forecast: d.value }))],
+      data: [
+        ...(r.trendData || []).map(d => ({ name: d.date, actual: d.value })),
+        ...(r.forecastData || []).map(d => ({ name: d.date, forecast: d.value })),
+      ],
       x_key: 'name',
       y_key: 'actual',
+    };
+  }
+
+  // Default: show breakdown if available
+  if (r.breakdownData?.length) {
+    return {
+      type: 'bar',
+      title: `${r.primaryLabel} by Segment`,
+      data: r.breakdownData.slice(0, 8).map(b => ({ name: b.name, value: b.value })),
+      x_key: 'name',
+      y_key: 'value',
     };
   }
 
@@ -151,7 +182,7 @@ export async function getChartSpecForQuestion(store, question) {
 
 export async function safeFallbackResponse(store, question) {
   const r = store?.analysisResults;
-  const table = store?.getActiveTable?.();
+  const table = resolveTable(store);
 
   if (!r || !table) {
     return {
@@ -163,7 +194,7 @@ export async function safeFallbackResponse(store, question) {
   }
 
   return {
-    answer: `Based on your dataset "${table.name}" (${table.rowCount?.toLocaleString()} rows): ${r.executiveSummary || 'Analysis complete. Ask a more specific question to get targeted insights.'}`,
+    answer: `Based on "${table.name}" (${table.rowCount?.toLocaleString()} rows): ${r.executiveSummary || 'Analysis complete. Ask a more specific question for targeted insights.'}`,
     insights: r.keyFindings?.slice(0, 3) || [],
     confidence: 55,
     limitations: ['Generic response — try a more specific question'],
