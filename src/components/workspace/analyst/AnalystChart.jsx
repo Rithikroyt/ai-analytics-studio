@@ -151,6 +151,35 @@ export default function AnalystChart({ chart, height = 220 }) {
     );
   }
 
+  // ── Multi-series Line ──────────────────────────────────────────
+  if (type === 'multi_line' && series?.length) {
+    return (
+      <ResponsiveContainer width="100%" height={height}>
+        <LineChart data={data} margin={{ top: 4, right: 8, bottom: 4, left: 0 }}>
+          {commonGrid}
+          <XAxis dataKey={x_key} tick={axisStyle} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+          <YAxis tick={axisStyle} tickFormatter={fmtV} tickLine={false} axisLine={false} width={42} />
+          {commonTooltip}
+          <Legend wrapperStyle={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }} />
+          {series.map((s, i) => (
+            <Line
+              key={s.key}
+              type="monotone"
+              dataKey={s.key}
+              name={s.label || s.key}
+              stroke={PALETTE[i % PALETTE.length]}
+              strokeWidth={2}
+              dot={false}
+              activeDot={{ r: 4 }}
+              connectNulls
+            />
+          ))}
+          {data.length > 20 && <Brush dataKey={x_key} height={18} stroke="rgba(255,255,255,0.1)" fill="rgba(0,0,0,0.3)" travellerWidth={6} />}
+        </LineChart>
+      </ResponsiveContainer>
+    );
+  }
+
   // ── Area / Line ────────────────────────────────────────────────
   if (type === 'area' || type === 'line') {
     const uid = `ag-${Math.random().toString(36).slice(2, 6)}`;

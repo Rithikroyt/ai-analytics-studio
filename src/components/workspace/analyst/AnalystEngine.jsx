@@ -128,13 +128,79 @@ export async function executeAnalystWorkflow(question, store, analysisResultsArg
       }
     }
 
-    // STEP 5: Always attach a chart if breakdown data is available
-    if (intents.includes('chart') || analysisResults?.breakdownData?.length) {
-      steps.push('Generating chart...');
-      const chartSpec = await localTools.getChartSpecForQuestion(store, question);
-      if (chartSpec) {
-        chartsList.push(chartSpec);
+    // STEP 5: Smart chart selection based on intent
+    steps.push('Generating chart...');
+
+    // Correlation / scatter intent
+    if (intents.includes('statistics') && analysisResults?.correlations?.length) {
+      const topCorr = analysisResults.correlations[0];
+      const rows = (activeTable?.rows || []).slice(0, 300);
+      const scatterData = rows
+        .map(r => ({ x: Number(r[topCorr.colA]), y: Number(r[topCorr.colB]) }))
+        .filter(d => !isNaN(d.x) && !isNaN(d.y));
+      if (scatterData.length > 4) {
+        chartsList.push({
+          type: 'scatter',
+          title: `Correlation: ${topCorr.colA} vs ${topCorr.colB} (r=${topCorr.r})`,
+          data: scatterData,
+          x_key: 'x',
+          y_key: 'y',
+          x_label: topCorr.colA,
+          y_label: topCorr.colB,
+        });
       }
+    }
+
+    // Pie / percentage breakdown
+    if (
+      (q.includes('percent') || q.includes('share') || q.includes('breakdown') || q.includes('pie') || q.includes('proportion')) &&
+      analysisResults?.breakdownData?.length
+    ) {
+      const total = analysisResults.breakdownData.reduce((s, d) => s + (d.value || 0), 0);
+      chartsList.push({
+        type: 'pie',
+        title: `${analysisResults.primaryLabel} Share by Segment`,
+        data: analysisResults.breakdownData.slice(0, 8).map(d => ({
+          name: d.name,
+          value: total > 0 ? parseFloat(((d.value / total) * 100).toFixed(1)) : d.value,
+        })),
+        x_key: 'name',
+        y_key: 'value',
+      });
+    }
+
+    // Multi-series line chart for KPI comparison over time
+    if (
+      (q.includes('compar') || q.includes('vs') || q.includes('versus') || q.includes('multiple') || q.includes('kpi')) &&
+      analysisResults?.trendData?.length
+    ) {
+      const numCols = (activeTable?.columns || []).filter(c => c.type === 'numeric').slice(0, 3);
+      if (numCols.length >= 2) {
+        // Build combined series from allTrends if available, else use trendData
+        const allTrends = analysisResults.allTrends || {};
+        const baseData = analysisResults.trendData;
+        const multiData = baseData.map((d, i) => {
+          const point = { date: d.date };
+          numCols.forEach(col => {
+            const trend = allTrends[col.name];
+            point[col.name] = trend?.[i]?.value ?? null;
+          });
+          return point;
+        });
+        chartsList.push({
+          type: 'multi_line',
+          title: `KPI Comparison Over Time`,
+          data: multiData,
+          x_key: 'date',
+          series: numCols.map((col, i) => ({ key: col.name, label: col.name.replace(/_/g, ' ') })),
+        });
+      }
+    }
+
+    // Default chart fallback
+    if (chartsList.length === 0 && (intents.includes('chart') || analysisResults?.breakdownData?.length)) {
+      const chartSpec = await localTools.getChartSpecForQuestion(store, question);
+      if (chartSpec) chartsList.push(chartSpec);
     }
 
     // STEP 6: Fallback if empty
