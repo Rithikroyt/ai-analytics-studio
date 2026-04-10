@@ -10,6 +10,7 @@ import {
   BarChart2, Lightbulb, ArrowRight
 } from 'lucide-react';
 import { StructuredResponse, ThinkingIndicator } from './analyst/AnalystUIComponents';
+import AnalystExportButton from './analyst/AnalystExportButton';
 import AnalystChartWithTrendline from './analyst/AnalystChartWithTrendline';
 
 const STARTER_QUESTIONS = [
@@ -67,10 +68,13 @@ export default function AnalystSectionDemo() {
             {table.rowCount?.toLocaleString()} rows
           </span>
         </div>
-        <button onClick={clearChat}
-          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all">
-          <Trash2 className="w-3 h-3" /> Clear
-        </button>
+        <div className="flex items-center gap-2">
+          <AnalystExportButton messages={chatMessages} tableName={table?.name} />
+          <button onClick={clearChat}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all">
+            <Trash2 className="w-3 h-3" /> Clear
+          </button>
+        </div>
       </div>
 
       {/* Messages */}
