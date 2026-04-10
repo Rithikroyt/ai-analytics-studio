@@ -6,9 +6,8 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWorkspaceStore } from '@/lib/store';
 import { useAnalystChat } from '@/hooks/useAnalystChat';
-import { StructuredResponse, ThinkingIndicator } from '@/components/workspace/analyst/AnalystUIComponents';
-import AnalystChartWithTrendline from '@/components/workspace/analyst/AnalystChartWithTrendline';
-import { Send, Sparkles, Database, Loader2, Trash2, Bot, User, ChevronRight, Bookmark, BarChart2, Info } from 'lucide-react';
+import AnalystMessageBubble from '@/components/workspace/analyst/AnalystMessageBubble';
+import { Send, Sparkles, Database, Loader2, Trash2, ChevronRight, Info, Wand2 } from 'lucide-react';
 
 const ANALYSIS_MODES = [
   { id: 'exploratory', label: 'Exploratory', color: 'text-cyan-400', bg: 'bg-cyan-400/10', border: 'border-cyan-400/25' },
@@ -43,52 +42,6 @@ const STARTER_QUESTIONS = {
     'Create a priority plan',
   ],
 };
-
-function MessageBubble({ message, onSaveChart, datasetName, onFollowUp }) {
-  const isUser = message.role === 'user';
-
-  if (isUser) {
-    return (
-      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex gap-3 justify-end">
-        <div className="max-w-[85%] rounded-2xl px-4 py-3 bg-cyan-400/10 border border-cyan-400/20">
-          <p className="text-sm text-foreground">{message.content}</p>
-        </div>
-        <div className="w-7 h-7 rounded-lg bg-cyan-400/10 border border-cyan-400/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-          <User className="w-3.5 h-3.5 text-cyan-400" />
-        </div>
-      </motion.div>
-    );
-  }
-
-  return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex gap-3 justify-start">
-      <div className="w-7 h-7 rounded-lg bg-purple-400/10 border border-purple-400/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-        <Bot className="w-3.5 h-3.5 text-purple-400" />
-      </div>
-      <div className="max-w-[85%] space-y-3">
-        <StructuredResponse message={message} onFollowUp={onFollowUp} />
-        {message.charts?.length > 0 && (
-          <div className="space-y-2">
-            {message.charts.map((chart, i) => (
-              <div key={i} className="rounded-xl overflow-hidden border border-white/8 bg-black/25 p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-white/45 font-semibold uppercase tracking-widest">
-                    <BarChart2 className="w-3 h-3 text-cyan-400 inline mr-1" />{chart.title || 'Chart'}
-                  </span>
-                  <button onClick={() => onSaveChart(chart)}
-                    className="text-xs px-2 py-1 text-cyan-400/70 hover:text-cyan-400 transition-colors">
-                    <Bookmark className="w-3 h-3 inline" /> Save
-                  </button>
-                </div>
-                <AnalystChartWithTrendline chart={chart} height={220} />
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </motion.div>
-  );
-}
 
 export default function AnalystSection() {
   const { getActiveTable, setActiveSection, saveToDashboard } = useWorkspaceStore();
@@ -212,11 +165,10 @@ export default function AnalystSection() {
 
         <AnimatePresence>
           {chatMessages.map((msg, i) => (
-            <MessageBubble
+            <AnalystMessageBubble
               key={i}
               message={msg}
               onSaveChart={handleSaveChart}
-              datasetName={activeTable?.name}
               onFollowUp={handleSend}
             />
           ))}
@@ -224,15 +176,18 @@ export default function AnalystSection() {
 
         {loading && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3">
-            <div className="w-7 h-7 rounded-lg bg-purple-400/10 border border-purple-400/20 flex items-center justify-center flex-shrink-0">
-              <Loader2 className="w-3.5 h-3.5 text-purple-400 animate-spin" />
+            <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-purple-400/20 to-blue-400/10 border border-purple-400/25 flex items-center justify-center flex-shrink-0">
+              <Wand2 className="w-3.5 h-3.5 text-purple-400 animate-pulse" />
             </div>
-            <div className="px-4 py-3 rounded-2xl bg-white/4 border border-white/8">
+            <div className="px-4 py-3 rounded-2xl bg-white/4 border border-white/8 flex items-center gap-3">
               <div className="flex gap-1">
-                {[0, 1, 2].map(i => (
-                  <div key={i} className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                {[0,1,2].map(i => (
+                  <motion.div key={i} className="w-1.5 h-1.5 rounded-full bg-purple-400"
+                    animate={{ scale: [1, 1.4, 1], opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15 }} />
                 ))}
               </div>
+              <span className="text-xs text-white/35">Analyzing with AI…</span>
             </div>
           </motion.div>
         )}
@@ -249,13 +204,13 @@ export default function AnalystSection() {
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
             placeholder={`Ask in ${activeMode.label} mode…`}
             rows={1}
-            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-purple-400/40 resize-none"
+            className="flex-1 bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-white/25 focus:outline-none focus:border-purple-400/40 focus:bg-white/[0.06] resize-none transition-all"
             style={{ minHeight: 44, maxHeight: 120 }}
           />
           <button
             onClick={() => handleSend()}
             disabled={!input.trim() || loading}
-            className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all disabled:opacity-40 ${activeMode.bg} ${activeMode.border} ${activeMode.color} hover:opacity-80`}
+            className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed ${input.trim() && !loading ? `${activeMode.bg} ${activeMode.border} ${activeMode.color} hover:opacity-80` : 'bg-white/5 border-white/10 text-white/30'}`}
           >
             <Send className="w-4 h-4" />
           </button>
