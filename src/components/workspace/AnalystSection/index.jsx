@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useWorkspaceStore } from '@/lib/store';
 import { useAnalystChat } from '@/hooks/useAnalystChat';
 import AnalystMessageBubble from '@/components/workspace/analyst/AnalystMessageBubble';
-import { Send, Sparkles, Database, Loader2, Trash2, ChevronRight, Info, Wand2 } from 'lucide-react';
+import { Send, Sparkles, Database, Loader2, Trash2, ChevronRight, Info, Wand2, Bot, Bookmark } from 'lucide-react';
 
 const ANALYSIS_MODES = [
   { id: 'exploratory', label: 'Exploratory', color: 'text-cyan-400', bg: 'bg-cyan-400/10', border: 'border-cyan-400/25' },
