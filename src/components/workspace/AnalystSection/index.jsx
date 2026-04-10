@@ -192,7 +192,7 @@ export default function AnalystSection() {
 
             <div>
               <div className="text-xs text-white/30 uppercase tracking-widest mb-3 flex items-center gap-2">
-                <activeMode.icon className={`w-3.5 h-3.5 ${activeMode.color}`} /> {activeMode.label} suggestions
+                <Sparkles className={`w-3.5 h-3.5 ${activeMode.color}`} /> {activeMode.label} suggestions
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {suggestions.map(q => (
