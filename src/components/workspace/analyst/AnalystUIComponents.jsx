@@ -102,15 +102,12 @@ export function StructuredResponse({ message }) {
     steps = [],
   } = message;
 
-  const confidenceColor =
-    confidence >= 80 ? 'text-green-400 border-green-400/25 bg-green-400/8'
-    : confidence >= 60 ? 'text-yellow-400 border-yellow-400/25 bg-yellow-400/8'
-    : 'text-orange-400 border-orange-400/25 bg-orange-400/8';
+  const confidenceColor = 'text-green-400 border-green-400/25 bg-green-400/8';
 
   return (
     <div className="space-y-3">
       {/* Thinking progress */}
-      {steps && steps.length > 0 && <ThinkingIndicator step={steps.length} totalSteps={7} />}
+      {steps && steps.length > 0 && steps.length < 7 && <ThinkingIndicator step={steps.length} totalSteps={7} />}
 
       {/* Answer (always visible) */}
       {answer && (

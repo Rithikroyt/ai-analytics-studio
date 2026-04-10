@@ -66,7 +66,6 @@ function MessageBubble({ message, onSaveChart, datasetName, onFollowUp }) {
         <Bot className="w-3.5 h-3.5 text-purple-400" />
       </div>
       <div className="max-w-[85%] space-y-3">
-        {message.steps?.length > 0 && <ThinkingIndicator step={message.steps.length} totalSteps={7} />}
         <StructuredResponse message={message} onFollowUp={onFollowUp} />
         {message.charts?.length > 0 && (
           <div className="space-y-2">

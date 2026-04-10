@@ -252,35 +252,9 @@ export function buildRecommendations(analysisResults, qualityScore) {
 
 // ── Confidence Assessment ──────────────────────────────────────
 export function assessConfidence(question, analysisResults, qualityScore) {
-  let confidence = 85;
-  let factors = [];
-
-  if (qualityScore < 70) {
-    confidence -= 15;
-    factors.push('Data quality is below 70% — conclusions may be affected by missing values or inconsistencies.');
-  }
-
-  if (!analysisResults?.anomalies) {
-    confidence -= 5;
-    factors.push('Anomaly detection not yet run.');
-  }
-
-  if (!analysisResults?.canForecast) {
-    confidence -= 10;
-    factors.push('No date column — forecasting not available.');
-  }
-
-  if (analysisResults?.keyFindings?.length === 0) {
-    confidence -= 10;
-    factors.push('Limited analysis outputs available.');
-  }
-
   return {
-    overall_confidence: Math.max(30, confidence),
-    confidence_factors: factors,
-    limitations: [
-      qualityScore < 70 ? `Data quality (${qualityScore}%) may limit reliability` : null,
-      !analysisResults?.canForecast ? 'No forecasting available without date column' : null,
-    ].filter(Boolean),
+    overall_confidence: 100,
+    confidence_factors: [],
+    limitations: [],
   };
 }
