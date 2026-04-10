@@ -10,8 +10,8 @@ import {
   BarChart2, Lightbulb, ArrowRight
 } from 'lucide-react';
 import { StructuredResponse, ThinkingIndicator } from './analyst/AnalystUIComponents';
-import AnalystExportButton from './analyst/AnalystExportButton';
 import AnalystChartWithTrendline from './analyst/AnalystChartWithTrendline';
+import AnalystExportButton from './analyst/AnalystExportButton';
 
 const STARTER_QUESTIONS = [
   'Show me the board summary',
