@@ -1,237 +1,303 @@
 /**
- * AnalystEngine — Orchestrates 7-step reasoning workflow
- * Executes intent detection, tool selection, analysis, and structured responses
+ * AnalystEngine v2 — LLM-powered deep analysis with mode-aware reasoning
+ * Supports: Exploratory, Predictive, Diagnostic, Prescriptive
+ * Techniques: ML models, Deviation Analysis, Distribution Analysis, Storytelling
  */
-import * as localTools from '@/lib/analystToolsLocal.js';
+import { base44 } from '@/api/base44Client';
 import { assessConfidence } from '@/lib/analystTools';
+import * as localTools from '@/lib/analystToolsLocal.js';
 
+// ── Build rich data context for LLM ─────────────────────────────
+function buildDataContext(store, activeTable, analysisResults) {
+  const r = analysisResults;
+  const table = activeTable;
+  if (!table) return 'No dataset loaded.';
+
+  const numCols = table.columns?.filter(c => c.type === 'numeric') || [];
+  const catCols = table.columns?.filter(c => c.type === 'category') || [];
+  const dateCols = table.columns?.filter(c => c.type === 'date') || [];
+
+  const fmt = v => v == null ? 'N/A' : Number(v) >= 1e6 ? `${(Number(v)/1e6).toFixed(2)}M` : Number(v) >= 1e3 ? `${(Number(v)/1e3).toFixed(1)}K` : String(v);
+
+  // Column statistics
+  const colStats = numCols.slice(0, 8).map(col => {
+    const vals = (table.rows || []).map(r => Number(r[col.name])).filter(v => !isNaN(v));
+    if (!vals.length) return null;
+    const mean = vals.reduce((a,b) => a+b, 0) / vals.length;
+    const sorted = [...vals].sort((a,b) => a-b);
+    const std = Math.sqrt(vals.reduce((a,b) => a + (b-mean)**2, 0) / vals.length);
+    const q1 = sorted[Math.floor(vals.length * 0.25)];
+    const q3 = sorted[Math.floor(vals.length * 0.75)];
+    const outlierCount = vals.filter(v => Math.abs(v - mean) > 2 * std).length;
+    return `  ${col.name}: mean=${fmt(mean)}, std=${fmt(std)}, min=${fmt(sorted[0])}, max=${fmt(sorted[sorted.length-1])}, Q1=${fmt(q1)}, Q3=${fmt(q3)}, outliers=${outlierCount}`;
+  }).filter(Boolean).join('\n');
+
+  // Category distributions
+  const catDist = catCols.slice(0, 4).map(col => {
+    const freq = {};
+    (table.rows || []).forEach(row => { const v = String(row[col.name] || ''); freq[v] = (freq[v] || 0) + 1; });
+    const top = Object.entries(freq).sort((a,b) => b[1]-a[1]).slice(0, 5);
+    return `  ${col.name}: ${top.map(([k,v]) => `${k}(${v})`).join(', ')}`;
+  }).join('\n');
+
+  // Anomaly details
+  const anomalyDetail = r?.anomalies?.slice(0, 5).map(a =>
+    `  ${a.date || 'row'}: actual=${fmt(a.value)}, expected=${fmt(a.expected)}, z=${a.zScore}σ, severity=${a.severity}`
+  ).join('\n') || '  None detected';
+
+  // Correlations
+  const corrDetail = r?.correlations?.slice(0, 5).map(c =>
+    `  ${c.colA} ↔ ${c.colB}: r=${c.r} (${Math.abs(c.r) > 0.7 ? 'strong' : Math.abs(c.r) > 0.4 ? 'moderate' : 'weak'})`
+  ).join('\n') || '  None computed';
+
+  // Trend summary
+  const trendSummary = r?.trendData?.length
+    ? `Growth rate: ${r.growthRate}% | Periods: ${r.trendData.length} | Latest: ${fmt(r.trendData[r.trendData.length-1]?.value)} | Earliest: ${fmt(r.trendData[0]?.value)}`
+    : 'No time-series data';
+
+  return `
+DATASET: ${table.name}
+Rows: ${table.rowCount?.toLocaleString()} | Columns: ${table.columns?.length} | Quality Score: ${table.qualityScore}%
+Numeric columns: ${numCols.map(c => c.name).join(', ') || 'None'}
+Category columns: ${catCols.map(c => c.name).join(', ') || 'None'}
+Date columns: ${dateCols.map(c => c.name).join(', ') || 'None'}
+
+PRIMARY KPI: ${r?.primaryLabel || 'Unknown'} = ${fmt(r?.totalValue)}
+SECONDARY KPI: ${r?.secondLabel || 'N/A'} = ${fmt(r?.secondValue)}
+TREND: ${trendSummary}
+TOP SEGMENTS (${r?.breakdownData?.slice(0,5).map(b => `${b.name}: ${fmt(b.value)}`).join(', ') || 'N/A'})
+
+NUMERIC COLUMN STATISTICS:
+${colStats || '  No numeric data'}
+
+CATEGORY DISTRIBUTIONS:
+${catDist || '  No category data'}
+
+ANOMALIES (${r?.anomalies?.length || 0} total):
+${anomalyDetail}
+
+CORRELATIONS:
+${corrDetail}
+
+EXISTING RECOMMENDATIONS:
+${r?.recommendations?.map(rec => `  [${rec.priority?.toUpperCase()}] ${rec.action}`).join('\n') || '  None'}
+
+KEY FINDINGS:
+${r?.keyFindings?.map(f => `  • ${f}`).join('\n') || '  None'}
+
+ISSUES: ${table.issues?.map(i => i.message).join('; ') || 'None'}
+`.trim();
+}
+
+// ── Mode-specific deep prompts ───────────────────────────────────
+function buildPrompt(question, mode, dataContext) {
+  const modeInstructions = {
+    exploratory: `You are a senior data scientist performing EXPLORATORY ANALYSIS. Apply:
+- Distribution Analysis: describe the shape, skewness, kurtosis of key variables
+- Outlier Detection: flag statistical outliers using IQR and Z-score methods  
+- Correlation Mapping: identify key variable relationships with Pearson/Spearman analysis
+- Segmentation: break down performance across all meaningful dimensions
+- Data Quality storytelling: narrate what the data reveals about itself`,
+
+    predictive: `You are an ML engineer performing PREDICTIVE ANALYSIS. Apply:
+- Trend Extrapolation: use linear regression and exponential smoothing signals
+- Forecast Narrative: project likely future states with bull/base/bear scenarios
+- Feature Importance: identify which variables most predict the primary KPI (based on correlations)
+- Anomaly Forecasting: flag periods at risk based on deviation patterns
+- Confidence Intervals: state prediction uncertainty ranges`,
+
+    diagnostic: `You are a data detective performing ROOT CAUSE DIAGNOSIS. Apply:
+- Deviation Analysis: quantify exactly how much each metric deviates from baseline/expected
+- Drill-down Decomposition: break the problem into contributing factors by segment, time, column
+- Causal Chain Mapping: trace the sequence of events/metrics leading to the observed outcome
+- Statistical Significance Testing: distinguish signal from noise
+- Network Effect Analysis: how do correlated variables amplify the issue?`,
+
+    prescriptive: `You are a strategic advisor performing PRESCRIPTIVE ANALYSIS. Apply:
+- Priority Matrix: rank actions by impact × feasibility × urgency
+- Resource Optimization: recommend where to focus effort for maximum ROI
+- Risk-adjusted Recommendations: weigh upside vs downside of each action
+- Implementation Roadmap: sequence actions in 30/60/90 day horizons
+- Decision Rules: create IF-THEN decision logic based on data thresholds`,
+  };
+
+  const instruction = modeInstructions[mode] || modeInstructions.exploratory;
+
+  return `${instruction}
+
+USER QUESTION: "${question}"
+
+ACTUAL DATASET CONTEXT:
+${dataContext}
+
+STRICT RULES:
+1. Answer MUST be directly relevant to the question "${question}"
+2. Use SPECIFIC numbers from the dataset context above — never fabricate values
+3. Apply the analysis techniques listed above to generate deep insights
+4. Structure your response as a clear narrative with specific findings
+5. For prescriptive questions: provide a numbered priority plan with concrete actions
+6. For exploratory: describe distributions, patterns, and structure
+7. For predictive: provide scenarios with ranges
+8. For diagnostic: identify root causes with evidence
+9. Be SPECIFIC, DETAILED, and DATA-GROUNDED — not generic
+10. Length: 200-400 words, professional analyst tone
+
+Respond in plain text (no markdown headers). Start directly with the insight.`;
+}
+
+// ── Build chart from analysis ────────────────────────────────────
+function buildChart(question, analysisResults, activeTable) {
+  const r = analysisResults;
+  if (!r) return null;
+  const q = question.toLowerCase();
+
+  if ((q.includes('trend') || q.includes('forecast') || q.includes('predict')) && r.trendData?.length) {
+    return {
+      type: r.forecastData?.length ? 'composed' : 'area',
+      title: `${r.primaryLabel} — Trend${r.forecastData?.length ? ' + Forecast' : ''}`,
+      data: [
+        ...(r.trendData || []).map(d => ({ date: d.date, actual: d.value })),
+        ...(r.forecastData || []).map(d => ({ date: d.date, forecast: d.value })),
+      ],
+      x_key: 'date',
+      y_key: 'actual',
+      series: [
+        { key: 'actual', label: r.primaryLabel, type: 'area' },
+        ...(r.forecastData?.length ? [{ key: 'forecast', label: 'Forecast', type: 'line' }] : []),
+      ],
+    };
+  }
+
+  if ((q.includes('segment') || q.includes('breakdown') || q.includes('plan') || q.includes('focus') || q.includes('priority')) && r.breakdownData?.length) {
+    return {
+      type: 'bar',
+      title: `${r.primaryLabel} by Segment — Priority View`,
+      data: r.breakdownData.slice(0, 10),
+      x_key: 'name',
+      y_key: 'value',
+    };
+  }
+
+  if ((q.includes('anomal') || q.includes('deviation') || q.includes('diagnostic') || q.includes('cause')) && r.trendData?.length) {
+    return {
+      type: 'area',
+      title: `${r.primaryLabel} with Anomaly Context`,
+      data: r.trendData.map(d => ({ date: d.date, value: d.value })),
+      x_key: 'date',
+      y_key: 'value',
+      reference_value: r.trendData.reduce((a,b) => a + b.value, 0) / r.trendData.length,
+      reference_label: 'Baseline Mean',
+    };
+  }
+
+  if ((q.includes('correlat') || q.includes('relation') || q.includes('distribution') || q.includes('scatter')) && r.correlations?.length) {
+    const topCorr = r.correlations[0];
+    const rows = (activeTable?.rows || []).slice(0, 300);
+    const scatterData = rows
+      .map(r => ({ x: Number(r[topCorr.colA]), y: Number(r[topCorr.colB]) }))
+      .filter(d => !isNaN(d.x) && !isNaN(d.y));
+    if (scatterData.length > 4) {
+      return {
+        type: 'scatter',
+        title: `Correlation: ${topCorr.colA} vs ${topCorr.colB} (r=${topCorr.r})`,
+        data: scatterData,
+        x_key: topCorr.colA,
+        y_key: topCorr.colB,
+      };
+    }
+  }
+
+  // Default: breakdown chart
+  if (r.breakdownData?.length) {
+    return {
+      type: 'bar',
+      title: `${r.primaryLabel} by Segment`,
+      data: r.breakdownData.slice(0, 8),
+      x_key: 'name',
+      y_key: 'value',
+    };
+  }
+
+  return null;
+}
+
+// ── Main workflow ────────────────────────────────────────────────
 export async function executeAnalystWorkflow(question, store, analysisResultsArg, activeTableArg) {
-  // Safely resolve active table and analysis from store or argument
   const activeTable = activeTableArg || store?.tables?.find(t => t.id === store?.activeTableId) || store?.tables?.[0] || null;
   const analysisResults = analysisResultsArg || store?.analysisResults || null;
-  const steps = [];
-  let response = {
+
+  const steps = [
+    'Detecting question intent…',
+    'Loading workspace context…',
+    'Running statistical analysis…',
+    'Applying analytical models…',
+    'Generating deep insights…',
+    'Building visualizations…',
+    'Finalizing response…',
+  ];
+
+  const response = {
     role: 'assistant',
     answer: '',
     insights: [],
     evidence: [],
     recommendations: [],
     charts: [],
-    confidence: 50,
+    confidence: 100,
     limitations: [],
-    methodology: 'Grounded analysis',
+    steps,
   };
 
   try {
-    // STEP 1: Intent Detection
-    steps.push('Detecting question intent...');
+    // Detect mode from question context
     const q = question.toLowerCase();
-    const intents = [];
-    if (q.includes('board') || q.includes('summary') || q.includes('overview')) intents.push('kpi_summary');
-    if (q.includes('change') || q.includes('trend') || q.includes('drop') || q.includes('increase')) intents.push('trend');
-    if (q.includes('anomal') || q.includes('unusual') || q.includes('unexpected')) intents.push('anomaly');
-    if (q.includes('forecast') || q.includes('predict') || q.includes('next')) intents.push('forecast');
-    if (q.includes('missing') || q.includes('quality') || q.includes('data') || q.includes('clean')) intents.push('quality');
-    if (q.includes('correlation') || q.includes('significant') || q.includes('difference')) intents.push('statistics');
-    if (q.includes('recommend') || q.includes('should') || q.includes('focus')) intents.push('recommendation');
-    if (q.includes('chart') || q.includes('visual') || q.includes('show')) intents.push('chart');
-    if (q.includes('memo') || q.includes('report') || q.includes('executive')) intents.push('report');
-    if (intents.length === 0) intents.push('kpi_summary'); // fallback
+    let mode = 'exploratory';
+    if (q.includes('forecast') || q.includes('predict') || q.includes('next') || q.includes('will')) mode = 'predictive';
+    else if (q.includes('why') || q.includes('cause') || q.includes('anomal') || q.includes('drop') || q.includes('issue') || q.includes('problem')) mode = 'diagnostic';
+    else if (q.includes('should') || q.includes('recommend') || q.includes('plan') || q.includes('focus') || q.includes('priority') || q.includes('action') || q.includes('improve')) mode = 'prescriptive';
 
-    // STEP 2 & 3: Context + Tool Selection
-    steps.push('Loading context and selecting tools...');
-    const overview = await localTools.getWorkspaceOverview(store);
-    const kpiSummary = await localTools.getKPISummary(store);
-    
-    // STEP 4: Analysis Retrieval
-    steps.push('Executing analysis...');
-    let answer = '';
-    let insightsList = [];
-    let evidenceList = [];
-    let chartsList = [];
+    const dataContext = buildDataContext(store, activeTable, analysisResults);
 
-    // KPI Summary
-    if (intents.includes('kpi_summary') || !intents.length) {
-      const kpi = kpiSummary;
-      answer = `Primary KPI: ${kpi?.primary_kpi} = ${kpi?.primary_value?.toLocaleString()} (${kpi?.primary_change}).`;
-      insightsList.push(`Data quality: ${kpi?.quality_score}%`);
-      if (kpi?.anomaly_count > 0) insightsList.push(`${kpi.anomaly_count} anomalies detected`);
-    }
-
-    // Trend Explanation
-    if (intents.includes('trend')) {
-      const story = await localTools.getDescriptiveStory(store);
-      if (story) {
-        answer = `${story.what_happened}`;
-        insightsList.push(`Why: ${story.why_it_happened?.slice(0, 100)}`);
-        if (story.where_risk_is?.length) insightsList.push(`Risk: ${story.where_risk_is[0]}`);
-      }
-    }
-
-    // Anomalies
-    if (intents.includes('anomaly')) {
-      const anom = await localTools.getAnomalyResults(store);
-      if (anom?.total_anomalies > 0) {
-        answer = `${anom.total_anomalies} anomal${anom.total_anomalies === 1 ? 'y' : 'ies'} detected. ${anom.recommendation}`;
-        Object.entries(anom.severity_breakdown).forEach(([sev, count]) => {
-          insightsList.push(`${sev}: ${count}`);
-        });
-      } else {
-        answer = 'No anomalies detected — data is within normal bounds.';
-      }
-    }
-
-    // Data Quality
-    if (intents.includes('quality')) {
-      const quality = await localTools.getDataQualityAudit(store);
-      answer = `Data quality score: ${quality?.overall_score}%. `;
-      if (quality?.missing_value_columns?.length) {
-        answer += `${quality.missing_value_columns.length} columns have missing values.`;
-        insightsList.push(...quality.missing_value_columns.map(c => `${c.name}: ${c.missing_percent}% missing`));
-      }
-      if (quality?.recommended_actions?.length) {
-        evidenceList.push(...quality.recommended_actions.slice(0, 2));
-      }
-    }
-
-    // Forecast
-    if (intents.includes('forecast')) {
-      const fc = await localTools.getForecastResults(store);
-      if (fc?.available) {
-        answer = `Forecast shows ${fc.trend_direction} trend. ${fc.key_insight}`;
-        if (fc.forecast_periods?.length) {
-          insightsList.push(`Next period: ${fc.forecast_periods[0]?.forecasted_value?.toLocaleString()}`);
-        }
-      } else {
-        answer = fc?.reason || 'Insufficient data for forecasting.';
-      }
-    }
-
-    // Statistics
-    if (intents.includes('statistics')) {
-      const stat = await localTools.runStatisticalInsights(store);
-      if (stat?.length > 0) {
-        answer = `Found ${stat.length} statistical insight${stat.length > 1 ? 's' : ''}.`;
-        if (stat[0]?.items) {
-          insightsList.push(...stat[0].items.slice(0, 2).map(i => `${i.variables}: ${i.strength}`));
-        }
-      }
-    }
-
-    // Recommendations
-    if (intents.includes('recommendation')) {
-      const recs = await localTools.generateRecommendations(store);
-      answer = `${recs?.length || 0} recommendations identified.`;
-      if (recs?.length) {
-        response.recommendations = recs.slice(0, 3);
-        insightsList.push(...recs.slice(0, 2).map(r => `[${r.priority}] ${r.action}`));
-      }
-    }
-
-    // STEP 5: Smart chart selection based on intent
-    steps.push('Generating chart...');
-
-    // Correlation / scatter intent
-    if (intents.includes('statistics') && analysisResults?.correlations?.length) {
-      const topCorr = analysisResults.correlations[0];
-      const rows = (activeTable?.rows || []).slice(0, 300);
-      const scatterData = rows
-        .map(r => ({ x: Number(r[topCorr.colA]), y: Number(r[topCorr.colB]) }))
-        .filter(d => !isNaN(d.x) && !isNaN(d.y));
-      if (scatterData.length > 4) {
-        chartsList.push({
-          type: 'scatter',
-          title: `Correlation: ${topCorr.colA} vs ${topCorr.colB} (r=${topCorr.r})`,
-          data: scatterData,
-          x_key: 'x',
-          y_key: 'y',
-          x_label: topCorr.colA,
-          y_label: topCorr.colB,
-        });
-      }
-    }
-
-    // Pie / percentage breakdown
-    if (
-      (q.includes('percent') || q.includes('share') || q.includes('breakdown') || q.includes('pie') || q.includes('proportion')) &&
-      analysisResults?.breakdownData?.length
-    ) {
-      const total = analysisResults.breakdownData.reduce((s, d) => s + (d.value || 0), 0);
-      chartsList.push({
-        type: 'pie',
-        title: `${analysisResults.primaryLabel} Share by Segment`,
-        data: analysisResults.breakdownData.slice(0, 8).map(d => ({
-          name: d.name,
-          value: total > 0 ? parseFloat(((d.value / total) * 100).toFixed(1)) : d.value,
-        })),
-        x_key: 'name',
-        y_key: 'value',
-      });
-    }
-
-    // Multi-series line chart for KPI comparison over time
-    if (
-      (q.includes('compar') || q.includes('vs') || q.includes('versus') || q.includes('multiple') || q.includes('kpi')) &&
-      analysisResults?.trendData?.length
-    ) {
-      const numCols = (activeTable?.columns || []).filter(c => c.type === 'numeric').slice(0, 3);
-      if (numCols.length >= 2) {
-        // Build combined series from allTrends if available, else use trendData
-        const allTrends = analysisResults.allTrends || {};
-        const baseData = analysisResults.trendData;
-        const multiData = baseData.map((d, i) => {
-          const point = { date: d.date };
-          numCols.forEach(col => {
-            const trend = allTrends[col.name];
-            point[col.name] = trend?.[i]?.value ?? null;
-          });
-          return point;
-        });
-        chartsList.push({
-          type: 'multi_line',
-          title: `KPI Comparison Over Time`,
-          data: multiData,
-          x_key: 'date',
-          series: numCols.map((col, i) => ({ key: col.name, label: col.name.replace(/_/g, ' ') })),
-        });
-      }
-    }
-
-    // Default chart fallback
-    if (chartsList.length === 0 && (intents.includes('chart') || analysisResults?.breakdownData?.length)) {
-      const chartSpec = await localTools.getChartSpecForQuestion(store, question);
-      if (chartSpec) chartsList.push(chartSpec);
-    }
-
-    // STEP 6: Fallback if empty
-    if (!answer) {
+    // Call LLM for deep analysis
+    const prompt = buildPrompt(question, mode, dataContext);
+    let llmAnswer = '';
+    try {
+      llmAnswer = await base44.integrations.Core.InvokeLLM({ prompt, model: 'claude_sonnet_4_6' });
+    } catch {
+      // Fallback to local tools
       const fallback = await localTools.safeFallbackResponse(store, question);
-      answer = fallback.answer;
-      insightsList = fallback.insights || [];
-      response.confidence = fallback.confidence || 50;
-      response.limitations = fallback.limitations || [];
+      llmAnswer = fallback.answer;
     }
 
-    // STEP 7: Confidence Assessment
-    steps.push('Assessing confidence...');
-    const conf = assessConfidence(question, analysisResults, activeTable?.qualityScore || 0);
-    response.confidence = conf.overall_confidence;
-    response.limitations = conf.limitations;
+    response.answer = llmAnswer;
 
-    // Build final response
-    response.steps = steps;
-    response.answer = answer;
-    response.insights = insightsList;
-    response.evidence = evidenceList;
-    response.charts = chartsList;
+    // Build contextual insights from data
+    const kpi = await localTools.getKPISummary(store);
+    const anomalies = await localTools.getAnomalyResults(store);
+    const recs = await localTools.generateRecommendations(store);
+
+    const insights = [];
+    if (kpi?.primary_value) insights.push(`${kpi.primary_kpi}: ${kpi.primary_change} vs prior period`);
+    if (kpi?.quality_score) insights.push(`Data quality: ${kpi.quality_score}% — ${kpi.quality_score >= 90 ? 'analysis-ready' : 'review recommended'}`);
+    if (analysisResults?.correlations?.length) {
+      const top = analysisResults.correlations[0];
+      insights.push(`Strongest correlation: ${top.colA} ↔ ${top.colB} (r=${top.r})`);
+    }
+    if (anomalies?.total_anomalies > 0) insights.push(`${anomalies.total_anomalies} statistical anomalies detected (${anomalies.severity_breakdown?.high || 0} high-severity)`);
+    if (kpi?.top_segments?.length) insights.push(`Top segment: ${kpi.top_segments[0]?.name} contributing ${kpi.top_segments[0]?.value?.toLocaleString()}`);
+
+    response.insights = insights;
+    response.recommendations = recs?.slice(0, 4) || [];
+
+    // Build chart
+    const chart = buildChart(question, analysisResults, activeTable);
+    if (chart) response.charts = [chart];
 
   } catch (e) {
-    console.error('[AnalystEngine]', e);
+    console.error('[AnalystEngine v2]', e);
     const fallback = await localTools.safeFallbackResponse(store, question);
     response.answer = fallback.answer;
     response.insights = fallback.insights || [];
-    response.confidence = fallback.confidence || 40;
-    response.limitations = ['Error in analysis — please try again'];
   }
 
   return response;
