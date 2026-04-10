@@ -107,7 +107,7 @@ export function StructuredResponse({ message }) {
   return (
     <div className="space-y-3">
       {/* Thinking progress */}
-      {steps && steps.length > 0 && steps.length < 7 && <ThinkingIndicator step={steps.length} totalSteps={7} />}
+      {steps && steps.length > 0 && !answer && <ThinkingIndicator step={steps.length} totalSteps={7} />}
 
       {/* Answer (always visible) */}
       {answer && (
