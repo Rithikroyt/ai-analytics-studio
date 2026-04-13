@@ -28,7 +28,7 @@ Data quality: 98% (excellent). No missing values. 4 quarters of history.`,
       { priority: 'medium', action: 'Expand Enterprise segment with 1 new sales rep (pipeline shows 20% upside)' },
     ],
     confidence: 92,
-    limitations: ['Forecast data only includes 4 quarters', 'Doesn't account for seasonal holidays'],
+    limitations: ['Forecast data only includes 4 quarters', "Doesn't account for seasonal holidays"],
     charts: [
       {
         type: 'area',

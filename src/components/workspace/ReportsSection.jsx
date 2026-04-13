@@ -215,7 +215,7 @@ RULES: Include a Quality Metrics Summary Table (Markdown) with column name, type
       if (notifySlack && globalThis.notificationCenter) {
         globalThis.notificationCenter.addNotification(
           'report_generated',
-          `${r.label || reportTypes.find(rt => rt.id === type)?.label || 'Report'} generated and ready to share`,
+          `${reportTypes.find(rt => rt.id === type)?.label || 'Report'} generated and ready to share`,
           5000
         );
         // In production, call webhook here via backend function

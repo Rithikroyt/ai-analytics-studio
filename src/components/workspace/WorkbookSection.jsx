@@ -10,6 +10,8 @@ import {
   TrendingDown, AlertTriangle, CheckCircle2, Activity, Target,
   ArrowUpRight, ArrowDownRight, Minus, Grid, Layers, Search
 } from 'lucide-react';
+import KPIStrip from '@/components/workspace/KPIStrip';
+import StorytellingHeader from '@/components/workspace/StorytellingHeader';
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line, ComposedChart,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -364,10 +366,6 @@ function HighlightTab({ table, results }) {
   const [rowDim, setRowDim] = useState(() => table.columns?.find(c=>c.type==='category')?.name || '');
   const [colMetric, setColMetric] = useState(() => table.columns?.find(c=>c.type==='numeric')?.name || '');
 
-  if (!catCols.length || !numCols.length) return (
-    <div className="text-center py-16 text-sm text-white/35">Highlight table requires at least one category and one numeric column.</div>
-  );
-
   const rows2 = useMemo(() => {
     if (!rowDim || !colMetric) return [];
     const agg = {};
@@ -381,6 +379,10 @@ function HighlightTab({ table, results }) {
     });
     return Object.entries(agg).map(([name,d]) => ({ name, value: d.sum, avg: d.sum/d.count, count: d.count })).sort((a,b) => b.value-a.value);
   }, [table.rows, rowDim, colMetric]);
+
+  if (!catCols.length || !numCols.length) return (
+    <div className="text-center py-16 text-sm text-white/35">Highlight table requires at least one category and one numeric column.</div>
+  );
 
   const maxVal = Math.max(...rows2.map(r=>r.value), 1);
   const minVal = Math.min(...rows2.map(r=>r.value), 0);
@@ -608,8 +610,14 @@ export default function WorkbookSection() {
 
   return (
     <div className="flex flex-col h-full">
+      {/* KPI + Story strip at top */}
+      <div className="px-5 pt-5 pb-3 space-y-3 flex-shrink-0 border-b border-white/5">
+        <KPIStrip table={table} results={analysisResults} />
+        <StorytellingHeader table={table} results={analysisResults} />
+      </div>
+
       {/* Tab bar */}
-      <div className="flex items-center gap-0.5 px-5 py-3 border-b border-white/5 overflow-x-auto flex-shrink-0 bg-white/1">
+      <div className="flex items-center gap-0.5 px-5 py-2.5 border-b border-white/5 overflow-x-auto flex-shrink-0 bg-white/[0.01]">
         {TABS.map(tab => (
           <button key={tab.id} onClick={()=>setActiveTab(tab.id)}
             className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium transition-all whitespace-nowrap ${

@@ -9,6 +9,8 @@ import {
   Sparkles, ArrowRight, Shield
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import KPIStrip from '@/components/workspace/KPIStrip';
+import StorytellingHeader from '@/components/workspace/StorytellingHeader';
 
 const bundles = [
   { key: 'sales',      label: 'Sales & Revenue',          desc: '2,400 rows · 12 cols · 2023–2024', icon: '📊', color: 'border-cyan-400/30 bg-cyan-400/5',   tag: 'Revenue · Forecast · Regional · Channel', kpis: ['Revenue', 'Gross Profit', 'Units Sold', 'Gross Margin %'] },
@@ -69,31 +71,22 @@ export default function OverviewSection() {
         </p>
       </motion.div>
 
-      {/* Stats strip when data loaded */}
-      {hasData && (
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[
-            { label: 'Datasets', value: tables.length, icon: Database, color: 'text-cyan-400', bg: 'bg-cyan-400/10' },
-            { label: 'Saved Charts', value: savedCharts.length, icon: BarChart3, color: 'text-teal-400', bg: 'bg-teal-400/10' },
-            { label: 'Stories', value: stories.length, icon: FileText, color: 'text-purple-400', bg: 'bg-purple-400/10' },
-            { label: 'Active Alerts', value: alerts.filter(a => a.active).length, icon: Activity, color: 'text-amber-400', bg: 'bg-amber-400/10' },
-          ].map((stat) => (
-            <div key={stat.label} className="glass-card rounded-xl p-4 border border-white/5 flex items-center gap-3">
-              <div className={`w-9 h-9 rounded-xl ${stat.bg} flex items-center justify-center flex-shrink-0`}>
-                <stat.icon className={`w-4 h-4 ${stat.color}`} />
-              </div>
-              <div>
-                <div className={`text-xl font-black ${stat.color}`}>{stat.value}</div>
-                <div className="text-xs text-muted-foreground">{stat.label}</div>
-              </div>
-            </div>
-          ))}
+      {/* KPI Strip — top row when data available */}
+      {hasData && r && (
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+          <KPIStrip table={activeTable} results={r} />
         </motion.div>
       )}
 
-      {/* Active dataset status with KPIs */}
-      {activeTable && (
+      {/* Story frames */}
+      {hasData && r && (
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+          <StorytellingHeader table={activeTable} results={r} />
+        </motion.div>
+      )}
+
+      {/* Dataset status card when data loaded but no analysis */}
+      {activeTable && !r && (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
           className="glass-card rounded-2xl p-5 border border-cyan-400/15 bg-cyan-400/3">
           <div className="flex items-start justify-between flex-wrap gap-4">
@@ -107,49 +100,15 @@ export default function OverviewSection() {
                   {activeTable.qualityScore}% quality
                 </div>
               </div>
-              <div className="text-sm text-muted-foreground mb-3">
-                {activeTable.rowCount?.toLocaleString()} rows · {activeTable.columns?.length} columns ·{' '}
-                {activeTable.columns?.filter(c => c.type === 'numeric').length} numeric KPIs ·{' '}
-                {activeTable.columns?.filter(c => c.type === 'category').length} dimensions
+              <div className="text-sm text-muted-foreground">
+                {activeTable.rowCount?.toLocaleString()} rows · {activeTable.columns?.length} columns
               </div>
-              {activeTable.issues?.length > 0 && (
-                <div className="flex items-center gap-1.5 text-xs text-amber-400 mb-3">
-                  <AlertTriangle className="w-3 h-3" />
-                  {activeTable.issues.length} data quality issue{activeTable.issues.length !== 1 ? 's' : ''} — see Prepare for details
-                </div>
-              )}
-              {r && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2">
-                  {[
-                    { label: r.primaryLabel || 'Primary KPI', value: fmtV(r.totalValue), color: 'text-cyan-400' },
-                    { label: 'Trend', value: r.growthRate != null ? `${r.growthRate > 0 ? '+' : ''}${r.growthRate}%` : '—', color: Number(r.growthRate) >= 0 ? 'text-green-400' : 'text-red-400' },
-                    { label: 'Anomalies', value: String(r.anomalies?.length || 0), color: (r.anomalies?.length || 0) > 0 ? 'text-amber-400' : 'text-green-400' },
-                    { label: 'Correlations', value: String(r.correlations?.length || 0), color: 'text-purple-400' },
-                  ].map((m) => (
-                    <div key={m.label} className="bg-white/3 rounded-xl p-3 border border-white/5">
-                      <div className="text-xs text-muted-foreground mb-1">{m.label}</div>
-                      <div className={`text-lg font-black font-mono ${m.color}`}>{m.value}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {r?.executiveSummary && (
-                <div className="mt-3 pt-3 border-t border-white/5 text-xs text-muted-foreground leading-relaxed italic">
-                  "{r.executiveSummary}"
-                </div>
-              )}
             </div>
             <div className="flex flex-col gap-2 flex-shrink-0">
-              <button onClick={() => setActiveSection('story')}
-                className="text-xs px-4 py-2 bg-cyan-400/10 border border-cyan-400/20 text-cyan-400 rounded-xl hover:bg-cyan-400/20 transition-colors flex items-center gap-1.5 whitespace-nowrap">
-                <BarChart3 className="w-3.5 h-3.5" /> View Dashboard
+              <button onClick={() => setActiveSection('prepare')}
+                className="text-xs px-4 py-2 bg-green-400/10 border border-green-400/20 text-green-400 rounded-xl hover:bg-green-400/20 transition-colors flex items-center gap-1.5 whitespace-nowrap">
+                <Sparkles className="w-3.5 h-3.5" /> Run Analysis
               </button>
-              {!r && (
-                <button onClick={() => setActiveSection('prepare')}
-                  className="text-xs px-4 py-2 bg-green-400/10 border border-green-400/20 text-green-400 rounded-xl hover:bg-green-400/20 transition-colors flex items-center gap-1.5 whitespace-nowrap">
-                  <Sparkles className="w-3.5 h-3.5" /> Run Analysis
-                </button>
-              )}
               <button onClick={() => setActiveSection('analyst')}
                 className="text-xs px-4 py-2 bg-purple-400/10 border border-purple-400/20 text-purple-400 rounded-xl hover:bg-purple-400/20 transition-colors flex items-center gap-1.5 whitespace-nowrap">
                 <Bot className="w-3.5 h-3.5" /> Ask AI Analyst
