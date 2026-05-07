@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import ExportPanel from '@/components/workspace/ExportPanel';
 import AdaptiveChart from '@/components/charts/AdaptiveChart';
+import ChartSummaryDropdown from '@/components/charts/ChartSummaryDropdown';
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell, ReferenceLine, ComposedChart, Line
@@ -493,6 +494,13 @@ export default function StorySection() {
                 {r.canForecast ? 'Dashed purple = AI forecast (Exp. Smoothing + Linear Regression)' : 'No date column detected — descriptive analytics only'}
               </div>
               <TrendChart trendData={r.trendData} forecastData={r.forecastData} primaryLabel={r.primaryLabel} color={primaryColor} />
+              <ChartSummaryDropdown
+                title={`${r.primaryLabel} Over Time`}
+                chartType="area"
+                data={(r.trendData||[]).map(d=>({name:d.date, value:d.value}))}
+                xKey="name"
+                yKey="value"
+              />
               <button onClick={() => handleSaveChart({ type:'area', title:`${r.primaryLabel} Trend`, data:(r.trendData||[]).map(d=>({name:d.date,value:d.value})), x_key:'name', y_key:'value' }, `${r.primaryLabel} Trend`)}
                 className="mt-2 flex items-center gap-1 text-xs text-white/25 hover:text-cyan-400 transition-colors">
                 <Bookmark className="w-3 h-3" /> Save to Dashboard
@@ -503,6 +511,13 @@ export default function StorySection() {
               <div className="text-xs text-white/30 uppercase tracking-widest mb-0.5">Segment Contribution</div>
               <div className="font-semibold text-sm mb-4">{r.primaryLabel} by {r.primaryDimension?.replace(/_/g,' ') || 'Segment'}</div>
               <SegmentChart data={r.breakdownData} primaryLabel={r.primaryLabel} />
+              <ChartSummaryDropdown
+                title={`${r.primaryLabel} by ${r.primaryDimension?.replace(/_/g,' ') || 'Segment'}`}
+                chartType="horizontal_bar"
+                data={(r.breakdownData||[]).slice(0,8)}
+                xKey="name"
+                yKey="value"
+              />
               {r.breakdownData?.length > 0 && (
                 <div className="mt-3 space-y-1">
                   {r.breakdownData.slice(0,3).map((d,i) => {
