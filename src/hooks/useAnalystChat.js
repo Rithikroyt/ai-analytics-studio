@@ -1,9 +1,9 @@
 /**
- * useAnalystChat — Hook for managing AI Analyst chat with 7-step workflow
+ * useAnalystChat — Hook for managing AI Analyst chat with V5 10-step workflow
  */
 import { useState, useCallback } from 'react';
 import { useWorkspaceStore } from '@/lib/store';
-import { executeAnalystWorkflowV4 } from '@/lib/analystEngineV4';
+import { orchestrateV5Workflow } from '@/lib/v5AgentOrchestrator';
 
 export function useAnalystChat() {
   const [chatMessages, setChatMessages] = useState([]);
@@ -38,33 +38,58 @@ export function useAnalystChat() {
     setThinkingLabel('Starting analysis...');
 
     try {
-      // Execute the 7-step analyst workflow
-      const response = await executeAnalystWorkflowV4(
+      // Execute V5 10-step agentic workflow
+      const v5Result = await orchestrateV5Workflow(question, {
         question,
-        useWorkspaceStore.getState(),
-        freshAnalysis,
-        activeTable
-      );
+        metrics: activeTable?.columns?.filter(c => c.isKpiCandidate) || [],
+        table: activeTable,
+      });
 
+      if (!v5Result.success) {
+        addMessage({
+          role: 'assistant',
+          answer: v5Result.error || 'Analysis failed',
+          confidence: 0,
+          limitations: [v5Result.error],
+          workflowSteps: v5Result.completedSteps,
+        });
+        return;
+      }
+
+      // Shape full 10-part V5 structured output
       addMessage({
         role: 'assistant',
-        v4: true,
-        answer: response.answer,
-        sections: response.sections,
-        confidenceNum: response.confidenceNum,
-        intent: response.intent,
-        insights: response.insights,
-        recommendations: response.recommendations,
-        charts: response.charts,
-        nextQuestion: response.nextQuestion,
+        v5: true,
+        // Direct Answer (Part 1)
+        answer: v5Result.answer,
+        // Business Meaning (Part 2)
+        businessMeaning: v5Result.businessMeaning,
+        // Evidence (Part 3)
+        evidence: v5Result.evidence,
+        charts: v5Result.evidence?.toolResults?.map(r => r.result?.chart).filter(Boolean) || [],
+        // Root Cause & Driver
+        rootCause: v5Result.explanation?.businessMeaning,
+        // Recommendations (Part 5)
+        recommendations: v5Result.recommendations,
+        expectedImpact: v5Result.recommendations?.expectedImpact,
+        // Confidence & Limitations (Parts 6-7)
+        confidence: v5Result.confidence,
+        insightScore: v5Result.insightScore,
+        limitations: v5Result.insightScore?.limitations || [],
+        // Suggested Next Question (Part 10)
+        nextQuestion: v5Result.nextQuestion,
+        // Workflow trail
+        workflowSteps: v5Result.allSteps,
+        // Transparency
+        sqlUsed: v5Result.evidence?.toolResults?.find(r => r.tool === 'generate_sql')?.result?.sql,
+        pythonUsed: v5Result.evidence?.toolResults?.find(r => r.tool?.includes('python'))?.result?.code,
       });
     } catch (e) {
       console.error('[useAnalystChat]', e);
       addMessage({
         role: 'assistant',
-        answer: 'Error during analysis. Please try again.',
+        answer: 'Error during V5 analysis: ' + e.message,
         confidence: 0,
-        steps: [],
         limitations: [e.message],
       });
     } finally {
