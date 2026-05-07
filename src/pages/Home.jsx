@@ -200,10 +200,6 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-cyan-400/25 bg-cyan-400/8 mb-6">
-                  <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                  <span className="text-xs font-semibold text-cyan-400 tracking-widest uppercase">Universal AI Analytics Platform</span>
-                </div>
                 <h1 className="text-5xl lg:text-6xl font-black leading-[1.05] mb-5">
                   AI insights you can
                   <span className="block text-gradient">trust across any</span>
