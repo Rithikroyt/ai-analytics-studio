@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import KPIStrip from '@/components/workspace/KPIStrip';
 import StorytellingHeader from '@/components/workspace/StorytellingHeader';
+import ChartSummaryDropdown from '@/components/charts/ChartSummaryDropdown';
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line, ComposedChart,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -149,6 +150,13 @@ function TrendsTab({ results }) {
             <Line type="monotone" dataKey="forecast" stroke="#9c27b0" strokeWidth={1.5} strokeDasharray="5 3" dot={false} />
           </ComposedChart>
         </ResponsiveContainer>
+        <ChartSummaryDropdown
+          title={`${results.primaryLabel} — Historical Trend`}
+          chartType="area"
+          data={combined}
+          xKey="date"
+          yKey="actual"
+        />
       </div>
 
       {/* Anomaly overlay */}
@@ -199,6 +207,13 @@ function BreakdownTab({ results }) {
             </Bar>
           </BarChart>
         </ResponsiveContainer>
+        <ChartSummaryDropdown
+          title={`${primaryLabel} by Segment`}
+          chartType="horizontal_bar"
+          data={breakdownData.slice(0,10)}
+          xKey="name"
+          yKey="value"
+        />
       </div>
       {/* Share bars */}
       <div className="rounded-2xl p-5 border border-white/6">
