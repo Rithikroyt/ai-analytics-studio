@@ -61,6 +61,8 @@ export default function PrepareSection() {
   const [showFullSchema, setShowFullSchema] = useState(false);
   const [error, setError] = useState('');
   const [overrides, setOverrides] = useState({ primaryMetric: '', dateCol: '', segments: [] });
+  const [kpiFormulas, setKpiFormulas] = useState([]);
+  const [newFormula, setNewFormula] = useState({ name: '', formula: '', type: 'sum' });
 
   if (!activeTable) {
     return (
@@ -398,6 +400,66 @@ export default function PrepareSection() {
           )}
         </div>
       )}
+
+      {/* Custom KPI Formula Editor */}
+      <div className="glass-card rounded-2xl p-5 border border-blue-400/20 bg-blue-400/3 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-xs font-semibold text-blue-400 uppercase tracking-widest mb-0.5">Custom KPI Formulas</div>
+            <div className="text-xs text-white/35">Define business metrics before running analysis</div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <input value={newFormula.name} onChange={e => setNewFormula(f => ({ ...f, name: e.target.value }))}
+            placeholder="e.g. Revenue Per Customer"
+            className="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs focus:outline-none focus:border-blue-400/30 text-foreground" />
+          <input value={newFormula.formula} onChange={e => setNewFormula(f => ({ ...f, formula: e.target.value }))}
+            placeholder="e.g. SUM(revenue) / COUNT(customer_id)"
+            className="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs font-mono focus:outline-none focus:border-blue-400/30 text-foreground" />
+          <div className="flex gap-2">
+            <select value={newFormula.type} onChange={e => setNewFormula(f => ({ ...f, type: e.target.value }))}
+              className="flex-1 px-2 py-2 bg-white/5 border border-white/10 rounded-xl text-xs focus:outline-none text-foreground">
+              <option value="sum">SUM</option>
+              <option value="avg">AVG</option>
+              <option value="ratio">RATIO</option>
+              <option value="count">COUNT</option>
+            </select>
+            <button onClick={() => {
+              if (!newFormula.name || !newFormula.formula) return;
+              setKpiFormulas(f => [...f, { ...newFormula, id: Date.now() }]);
+              setNewFormula({ name: '', formula: '', type: 'sum' });
+            }} disabled={!newFormula.name || !newFormula.formula}
+              className="px-3 py-2 bg-blue-400/15 border border-blue-400/25 text-blue-400 rounded-xl text-xs font-semibold disabled:opacity-40 hover:bg-blue-400/20 transition-all whitespace-nowrap">
+              + Add
+            </button>
+          </div>
+        </div>
+        {kpiFormulas.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {kpiFormulas.map(f => (
+              <div key={f.id} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-400/10 border border-blue-400/20 text-xs">
+                <span className="text-blue-400 font-semibold">{f.name}</span>
+                <span className="text-white/30">=</span>
+                <span className="font-mono text-white/55">{f.formula}</span>
+                <button onClick={() => setKpiFormulas(fs => fs.filter(x => x.id !== f.id))} className="text-white/20 hover:text-red-400 ml-1">×</button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="flex flex-wrap gap-2">
+          {[
+            { name: 'Revenue', formula: 'SUM(order_amount)', type: 'sum' },
+            { name: 'AOV', formula: 'SUM(revenue) / COUNT(order_id)', type: 'ratio' },
+            { name: 'Retention Rate', formula: 'active_users / total_users', type: 'ratio' },
+            { name: 'Drop-off Rate', formula: '1 - conversion_rate', type: 'ratio' },
+          ].map(ex => (
+            <button key={ex.name} onClick={() => setNewFormula(ex)}
+              className="text-xs px-2.5 py-1 rounded-lg bg-white/4 border border-white/8 text-white/35 hover:text-blue-400 hover:border-blue-400/25 transition-all">
+              {ex.name} = {ex.formula}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* Quality Studio shortcut */}
       {issues?.length > 0 && (

@@ -9,13 +9,16 @@ import {
 import { base44 } from '@/api/base44Client';
 
 const reportTypes = [
-  { id: 'executive', label: 'Executive Summary',        icon: '📄', emoji: FileText,     color: 'text-cyan-400',   border: 'border-cyan-400/20',   bg: 'bg-cyan-400/5',   desc: 'C-suite narrative: KPIs, trend, risk, and strategic recommendations.' },
-  { id: 'board',     label: 'Board Memo',               icon: '🏛️', emoji: BarChart3,    color: 'text-purple-400', border: 'border-purple-400/20', bg: 'bg-purple-400/5', desc: 'Formal board-ready memo with data evidence and prioritised actions.' },
-  { id: 'kpi_trend', label: 'KPI & Trend Report',       icon: '📈', emoji: TrendingUp,   color: 'text-teal-400',   border: 'border-teal-400/20',   bg: 'bg-teal-400/5',   desc: 'Period-over-period KPI decomposition, trend signals, and forecasts.' },
-  { id: 'anomaly',   label: 'Anomaly & Risk Report',    icon: '⚠️', emoji: AlertTriangle, color: 'text-amber-400',  border: 'border-amber-400/20',  bg: 'bg-amber-400/5',  desc: 'Severity-ranked anomaly inventory with root-cause hypotheses and mitigations.' },
-  { id: 'forecast',  label: 'Forecast Report',          icon: '🔮', emoji: TrendingUp,   color: 'text-blue-400',   border: 'border-blue-400/20',   bg: 'bg-blue-400/5',   desc: 'Bull / Base / Bear projections with assumptions and confidence bounds.' },
-  { id: 'quality',   label: 'Data Quality Audit',       icon: '🔍', emoji: Shield,       color: 'text-white/60',   border: 'border-white/15',      bg: 'bg-white/3',      desc: 'Column-level profiling, issue log, quality score, and remediation roadmap.' },
-  { id: 'feedback',  label: 'Feedback & Survey Insights',icon: '💬', emoji: MessageSquare,color: 'text-pink-400',   border: 'border-pink-400/20',   bg: 'bg-pink-400/5',   desc: 'NPS, satisfaction scores, sentiment patterns, and response theme analysis.' },
+  { id: 'executive', label: 'Executive Summary',         icon: '📄', emoji: FileText,     color: 'text-cyan-400',   border: 'border-cyan-400/20',   bg: 'bg-cyan-400/5',   desc: 'C-suite narrative: KPIs, trend, risk, and strategic recommendations.' },
+  { id: 'board',     label: 'Board Memo',                icon: '🏛️', emoji: BarChart3,    color: 'text-purple-400', border: 'border-purple-400/20', bg: 'bg-purple-400/5', desc: 'Formal board-ready memo with data evidence and prioritised actions.' },
+  { id: 'kpi_trend', label: 'KPI & Trend Report',        icon: '📈', emoji: TrendingUp,   color: 'text-teal-400',   border: 'border-teal-400/20',   bg: 'bg-teal-400/5',   desc: 'Period-over-period KPI decomposition, trend signals, and forecasts.' },
+  { id: 'anomaly',   label: 'Anomaly & Risk Report',     icon: '⚠️', emoji: AlertTriangle, color: 'text-amber-400',  border: 'border-amber-400/20',  bg: 'bg-amber-400/5',  desc: 'Severity-ranked anomaly inventory with root-cause hypotheses and mitigations.' },
+  { id: 'forecast',  label: 'Forecast Report',           icon: '🔮', emoji: TrendingUp,   color: 'text-blue-400',   border: 'border-blue-400/20',   bg: 'bg-blue-400/5',   desc: 'Bull / Base / Bear projections with assumptions and confidence bounds.' },
+  { id: 'quality',   label: 'Data Quality Audit',        icon: '🔍', emoji: Shield,       color: 'text-white/60',   border: 'border-white/15',      bg: 'bg-white/3',      desc: 'Column-level profiling, issue log, quality score, and remediation roadmap.' },
+  { id: 'sql',       label: 'SQL Analysis Report',       icon: '🗄️', emoji: BarChart3,    color: 'text-cyan-400',   border: 'border-cyan-400/20',   bg: 'bg-cyan-400/5',   desc: 'SQL-backed query findings, result tables, and business interpretation.' },
+  { id: 'rfm',       label: 'RFM Customer Report',       icon: '👥', emoji: MessageSquare, color: 'text-orange-400', border: 'border-orange-400/20', bg: 'bg-orange-400/5', desc: 'Customer segmentation: Champions, Loyal, At Risk, Dormant — with action plans.' },
+  { id: 'funnel',    label: 'Funnel Analysis Report',    icon: '🔽', emoji: AlertTriangle, color: 'text-pink-400',   border: 'border-pink-400/20',   bg: 'bg-pink-400/5',   desc: 'Stage-by-stage conversion rates, drop-off points, and recovery actions.' },
+  { id: 'feedback',  label: 'Feedback & Survey Insights', icon: '💬', emoji: MessageSquare,color: 'text-pink-400',   border: 'border-pink-400/20',   bg: 'bg-pink-400/5',   desc: 'NPS, satisfaction scores, sentiment patterns, and response theme analysis.' },
 ];
 
 const fmt = (v) => {
@@ -179,6 +182,57 @@ Format:
 
 RULES: Include a Scenario Comparison Table (Markdown). State model type (Exp. Smoothing + Linear Regression blend). Include specific forecast values from context. Professional financial language. 450-550 words.`,
 
+      sql: `Write a SQL ANALYSIS REPORT. Date: ${today}.
+Context:
+${ctx}
+
+Format:
+## SQL Analysis Executive Summary
+## Dataset Overview & Schema
+## Key Business Queries & Findings
+## Query 1: Revenue by Segment
+## Query 2: Top Performers
+## Query 3: Trend Analysis
+## Anomaly Findings via SQL
+## Recommendations & Next Queries
+## Appendix: SQL Templates Used
+
+RULES: Include at least 2 SQL code examples (fenced with \`\`\`sql). Reference actual column names from the dataset. Include a findings summary table (Markdown). Professional analyst tone. 450-500 words.`,
+
+      rfm: `Write an RFM CUSTOMER SEGMENTATION REPORT. Date: ${today}.
+Context:
+${ctx}
+
+Format:
+## RFM Analysis Executive Summary
+## Segmentation Methodology
+## Segment Inventory (with counts & value)
+## Champions — Profile & Strategy
+## Loyal Customers — Retention Plan
+## At-Risk High-Value — Recovery Actions
+## Dormant / Inactive — Re-engagement Plan
+## Revenue Opportunity Summary
+## Priority Action Roadmap
+
+RULES: Include an RFM Segment Summary Table (Markdown) with: Segment, Count, Avg Revenue, Avg Frequency, Avg Recency, Strategy. Reference the primary KPI (${analysisResults?.primaryLabel || 'revenue'}). Actionable, CMO-ready language. 450-500 words.`,
+
+      funnel: `Write a FUNNEL ANALYSIS REPORT. Date: ${today}.
+Context:
+${ctx}
+
+Format:
+## Funnel Analysis Executive Summary
+## Funnel Overview & Methodology
+## Stage-by-Stage Conversion Rates
+## Critical Drop-off Point Analysis
+## Segment-Level Funnel Performance
+## Root Cause Hypotheses
+## Recovery Playbook
+## A/B Testing Recommendations
+## Implementation Roadmap
+
+RULES: Include a Funnel Metrics Table (Markdown) with: Stage, Users/Count, Conversion Rate, Drop-off Rate, Revenue Impact. Use the actual segment data from the dataset. Calculate drop-off rate = 1 - ConversionRate. 450-500 words.`,
+
       quality: `Write a DATA QUALITY AUDIT REPORT. Date: ${today}.
 Context:
 ${ctx}
@@ -206,6 +260,9 @@ RULES: Include a Quality Metrics Summary Table (Markdown) with column name, type
       forecast: 'forecast',
       quality: 'data_quality',
       feedback: 'insight_digest',
+      sql: 'sql_analysis',
+      rfm: 'rfm_customer',
+      funnel: 'funnel_analysis',
     };
 
     try {

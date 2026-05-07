@@ -171,10 +171,14 @@ const FEATURES = [
 ];
 
 const WORKFLOW_STEPS = [
-  { num: '01', label: 'Upload Raw Data', desc: 'CSV, Excel, JSON, or documents', color: 'text-cyan-400' },
-  { num: '02', label: 'Auto-Prepare', desc: 'Schema detection, quality scoring, cleaning', color: 'text-teal-400' },
-  { num: '03', label: 'AI Analysis', desc: 'Stats, trends, anomalies, forecasts', color: 'text-purple-400' },
-  { num: '04', label: 'Dashboard & Report', desc: 'Executive storytelling, reports, exports', color: 'text-green-400' },
+  { num: '01', label: 'Upload Raw Data',     desc: 'CSV · Excel · JSON — auto schema', color: 'text-cyan-400',   output: 'Workspace created' },
+  { num: '02', label: 'Clean It',            desc: 'Missing, duplicates, quality score', color: 'text-teal-400',  output: 'Cleaned dataset + score' },
+  { num: '03', label: 'Define KPIs',         desc: 'Primary, secondary, custom formulas', color: 'text-blue-400', output: 'Semantic KPI layer' },
+  { num: '04', label: 'Query with SQL',      desc: 'NL→SQL, execution, chart, explain', color: 'text-purple-400',output: 'SQL result + chart' },
+  { num: '05', label: 'Build Dashboards',    desc: 'KPIs, trends, anomalies, stories', color: 'text-pink-400',   output: 'Story dashboard' },
+  { num: '06', label: 'Explain Charts',      desc: 'Plain English + business meaning', color: 'text-amber-400',  output: 'Chart explanation' },
+  { num: '07', label: 'Ask AI',              desc: 'Tool-grounded 9-part analysis', color: 'text-green-400',    output: 'Evidence-backed answer' },
+  { num: '08', label: 'Generate Reports',    desc: 'Executive, board, forecast, RFM', color: 'text-orange-400', output: 'Decision-ready report' },
 ];
 
 const TRUST = [
@@ -204,9 +208,15 @@ export default function Home() {
                   <span className="block text-gradient">trust across any</span>
                   <span className="block">raw data</span>
                 </h1>
-                <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-lg">
+                <p className="text-lg text-muted-foreground leading-relaxed mb-4 max-w-lg">
                   Upload raw data, infer structure, generate dashboards, ask an AI analyst, and export executive-ready reports — all in one platform.
                 </p>
+                <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 mb-6">
+                  <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 flex-shrink-0" />
+                  <span className="text-xs text-white/60 leading-relaxed">
+                    <strong className="text-white/80">OmniData AI Analytics Studio</strong> helps you transform messy raw data into cleaned datasets, SQL-backed insights, explainable dashboards, AI recommendations, and executive decision reports.
+                  </span>
+                </div>
                 <div className="flex flex-wrap gap-3">
                   <Link to="/workspace"
                     className="inline-flex items-center gap-2 px-6 py-3.5 bg-cyan-400 rounded-xl font-bold text-sm hover:bg-cyan-300 transition-all hover:scale-105 shadow-lg shadow-cyan-400/20"
@@ -276,22 +286,19 @@ export default function Home() {
       {/* ── Workflow ─────────────────────────────────────────────── */}
       <section className="py-24 px-6">
         <div className="max-w-7xl mx-auto">
-          <FadeIn className="text-center mb-16">
+          <FadeIn className="text-center mb-10">
             <div className="text-xs text-teal-400 uppercase tracking-widest font-semibold mb-3">How It Works</div>
-            <h2 className="text-4xl font-black mb-4">From raw file to executive report<br />in four steps</h2>
+            <h2 className="text-4xl font-black mb-4">From raw data to decision report<br />in 8 clear steps</h2>
+            <p className="text-muted-foreground max-w-xl mx-auto text-sm">Each step produces a clear output. Nothing is disconnected — every stage feeds the next.</p>
           </FadeIn>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {WORKFLOW_STEPS.map((step, i) => (
-              <FadeIn key={step.num} delay={i * 0.1}>
-                <div className="text-center relative">
-                  {i < WORKFLOW_STEPS.length - 1 && (
-                    <div className="hidden md:block absolute top-8 left-[60%] w-[80%] h-px bg-gradient-to-r from-white/15 to-transparent" />
-                  )}
-                  <div className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl glass border border-white/10 text-2xl font-black font-mono ${step.color} mb-4`}>
-                    {step.num}
-                  </div>
+              <FadeIn key={step.num} delay={i * 0.07}>
+                <div className="glass-card rounded-2xl p-4 border border-white/5 hover:border-white/15 transition-all">
+                  <div className={`text-xs font-black font-mono ${step.color} mb-2`}>{step.num}</div>
                   <h3 className="font-bold text-sm mb-1">{step.label}</h3>
-                  <p className="text-xs text-muted-foreground">{step.desc}</p>
+                  <p className="text-xs text-muted-foreground mb-3 leading-relaxed">{step.desc}</p>
+                  <div className={`text-xs px-2 py-1 rounded-full bg-white/5 border border-white/8 ${step.color} font-mono inline-block`}>→ {step.output}</div>
                 </div>
               </FadeIn>
             ))}
@@ -343,8 +350,11 @@ export default function Home() {
               <div className="w-16 h-16 rounded-2xl bg-cyan-400/10 border border-cyan-400/20 flex items-center justify-center mx-auto mb-6">
                 <Sparkles className="w-8 h-8 text-cyan-400" />
               </div>
-              <h2 className="text-4xl font-black mb-4">Ready to unlock your data?</h2>
-              <p className="text-muted-foreground mb-8 max-w-md mx-auto leading-relaxed">
+              <h2 className="text-4xl font-black mb-3">Ready to unlock your data?</h2>
+              <p className="text-sm text-cyan-400/70 font-mono mb-4 leading-relaxed max-w-lg mx-auto">
+                "OmniData AI Analytics Studio helps users transform messy raw data into cleaned datasets, SQL-backed insights, explainable dashboards, AI recommendations, and executive decision reports."
+              </p>
+              <p className="text-muted-foreground mb-8 max-w-md mx-auto leading-relaxed text-sm">
                 Upload your first dataset in seconds. No setup, no configuration, no data engineering required.
               </p>
               <div className="flex flex-wrap gap-3 justify-center">
@@ -375,7 +385,7 @@ export default function Home() {
             <Link to="/integrations" className="hover:text-foreground transition-colors">Integrations</Link>
             <Link to="/reports" className="hover:text-foreground transition-colors">Reports</Link>
           </div>
-          <div className="text-xs text-muted-foreground">© 2026 AI Agent Analytics. Enterprise AI for your data.</div>
+          <div className="text-xs text-muted-foreground">© 2026 OmniData AI Analytics Studio · Excel + SQL + Tableau + AI — in one platform.</div>
         </div>
       </footer>
     </div>
