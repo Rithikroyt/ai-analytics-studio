@@ -4,8 +4,9 @@ import { motion, useInView, AnimatePresence } from 'framer-motion';
 import {
   FileSpreadsheet, FileJson, FileText, Upload, CheckCircle2,
   AlertTriangle, Zap, ArrowRight, Database, Tag, Hash, Calendar,
-  Key, TrendingUp, Shield, Layers, GitBranch, ChevronRight, Info
+  Key, TrendingUp, Shield, Layers, GitBranch, ChevronRight, Info, Eye
 } from 'lucide-react';
+import DataPreviewOverlay from '@/components/data/DataPreviewOverlay';
 
 function FadeIn({ children, delay = 0, className = '' }) {
   const ref = useRef(null);
@@ -131,8 +132,24 @@ function QualityMockup() {
   );
 }
 
+// Mock table for the demo preview on this marketing page
+const DEMO_TABLE = {
+  name: 'sales_data_2024.csv',
+  rowCount: 4820,
+  qualityScore: 86,
+  columns: [
+    { name: 'revenue', type: 'numeric', uniqueCount: 4820 },
+    { name: 'region', type: 'category', uniqueCount: 5 },
+    { name: 'date', type: 'date', uniqueCount: 365 },
+    { name: 'product', type: 'category', uniqueCount: 42 },
+    { name: 'rep_id', type: 'id', uniqueCount: 88 },
+    { name: 'notes', type: 'text', uniqueCount: 3100 },
+  ],
+};
+
 export default function UniversalData() {
   const [activeFormat, setActiveFormat] = useState(0);
+  const [showPreview, setShowPreview] = useState(false);
 
   return (
     <div className="min-h-screen bg-background pt-20">
@@ -242,7 +259,15 @@ export default function UniversalData() {
             <FadeIn delay={0.15}>
               <div className="text-xs text-cyan-400 uppercase tracking-widest font-semibold mb-4">Quality Profiling Output</div>
               <QualityMockup />
-              <div className="mt-4 flex items-start gap-2 text-xs text-muted-foreground">
+              <div className="mt-3 flex items-center gap-2">
+                <button
+                  onClick={() => setShowPreview(true)}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-cyan-400/10 border border-cyan-400/20 text-cyan-400 rounded-xl text-xs font-semibold hover:bg-cyan-400/15 transition-all"
+                >
+                  <Eye className="w-3.5 h-3.5" /> Preview Raw Records & Quality
+                </button>
+              </div>
+              <div className="mt-3 flex items-start gap-2 text-xs text-muted-foreground">
                 <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-cyan-400" />
                 Quality score is computed from completeness (null rates), consistency (type conformance), and uniqueness (duplicate detection).
               </div>
@@ -275,6 +300,11 @@ export default function UniversalData() {
           </div>
         </div>
       </section>
+
+      {/* Data Preview Overlay */}
+      {showPreview && (
+        <DataPreviewOverlay table={DEMO_TABLE} onClose={() => setShowPreview(false)} />
+      )}
 
       {/* Multi-table */}
       <section className="section-gradient py-24 px-6">

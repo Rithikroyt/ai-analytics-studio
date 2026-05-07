@@ -11,6 +11,7 @@ import {
   ChevronDown, Brain, Loader2, TrendingUp, TrendingDown,
   AlertTriangle, Lightbulb, RefreshCw, Terminal, BarChart2, Target
 } from 'lucide-react';
+import BusinessMeaningTooltip from '@/components/charts/BusinessMeaningTooltip';
 
 const fmtV = v => {
   if (v == null || isNaN(Number(v))) return String(v ?? '—');

@@ -17,9 +17,10 @@ import SlideComments from '@/components/story/SlideComments';
 import {
   BookOpen, Plus, Trash2, GripVertical, Sparkles, Loader2,
   Play, BarChart2, Type, Eye, ChevronLeft, Save, Pencil, Check, X,
-  Library, PlusCircle, ArrowRight
+  Library, PlusCircle, ArrowRight, HelpCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import StoryBuilderTour, { resetTour } from '@/components/story/StoryBuilderTour';
 
 // ── Slide type badge ──────────────────────────────────────────────
 function SlideTypeBadge({ type }) {
@@ -303,6 +304,7 @@ Return JSON with a "narrations" array (one string per slide, in order).`,
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <StoryBuilderTour />
       {/* Header */}
       <div className="border-b border-white/5 px-6 py-3 flex items-center justify-between gap-3 flex-shrink-0">
         <div className="flex items-center gap-3">
@@ -331,6 +333,13 @@ Return JSON with a "narrations" array (one string per slide, in order).`,
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => { resetTour(); window.location.reload(); }}
+            title="Restart guided tour"
+            className="p-1.5 rounded-lg text-white/25 hover:text-purple-400 hover:bg-purple-400/10 transition-all"
+          >
+            <HelpCircle className="w-4 h-4" />
+          </button>
           {activeStory && slides.length > 0 && (
             <>
               <button

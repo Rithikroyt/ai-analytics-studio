@@ -17,6 +17,7 @@ import {
   Terminal, FlaskConical, Users, Filter, Scissors, Target,
   ChevronLeft, Database, Zap, Code2
 } from 'lucide-react';
+import UnifiedExportButton from '@/components/export/UnifiedExportButton';
 
 const TABS = [
   { id: 'sql',          label: 'SQL Lab',            icon: Terminal,      color: 'text-cyan-400',   desc: 'NL→SQL, templates, execution' },
@@ -62,9 +63,12 @@ export default function Workbench() {
               <p className="text-xs text-muted-foreground">SQL · Statistics · RFM · Funnel · Data Prep · Contribution · Python Lab</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-xs text-white/30">
-            <Database className="w-3.5 h-3.5" />
-            {hasData ? `${tables.length} dataset${tables.length > 1 ? 's' : ''} loaded` : 'No data — upload in Workspace'}
+          <div className="flex items-center gap-2">
+            <UnifiedExportButton />
+            <span className="text-xs text-white/30 flex items-center gap-1.5">
+              <Database className="w-3.5 h-3.5" />
+              {hasData ? `${tables.length} dataset${tables.length > 1 ? 's' : ''} loaded` : 'No data — upload in Workspace'}
+            </span>
           </div>
         </div>
       </div>

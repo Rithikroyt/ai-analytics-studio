@@ -8,8 +8,11 @@ import { exportCSV, exportInsightsCSV } from '@/lib/exportUtils.js';
 import {
   LayoutDashboard, Trash2, Pencil, Check, X, Plus, Download,
   FileSpreadsheet, FileText, Sparkles, BarChart2, Database,
-  BookOpen, Bell, ArrowRight, Filter, Grid3X3, List, ExternalLink
+  BookOpen, Bell, ArrowRight, Filter, Grid3X3, List, ExternalLink,
+  LayoutTemplate, Bell as BellIcon
 } from 'lucide-react';
+import TemplateGallery from '@/components/dashboards/TemplateGallery';
+import AlertMonitorDashboard from '@/components/alerts/AlertMonitorDashboard';
 
 function DashboardCard({ item, onDelete, onRename, view }) {
   const [editing, setEditing] = useState(false);
@@ -105,6 +108,8 @@ export default function Dashboards() {
   const [exportLoading, setExportLoading] = useState('');
   const [view, setView] = useState('grid');
   const [filterDataset, setFilterDataset] = useState('all');
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [showAlertMonitor, setShowAlertMonitor] = useState(false);
 
   const datasets = [...new Set(savedCharts.map(c => c.datasetName || 'Unknown'))];
 
@@ -243,6 +248,14 @@ export default function Dashboards() {
             <Link to="/alerts" className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-amber-400/10 border border-amber-400/20 text-amber-400 hover:bg-amber-400/15 transition-all">
               <Bell className="w-3.5 h-3.5" /> Alerts
             </Link>
+            <button onClick={() => setShowAlertMonitor(v => !v)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${showAlertMonitor ? 'bg-red-400/15 border-red-400/25 text-red-400' : 'bg-white/5 border-white/8 text-white/50 hover:text-white/80'}`}>
+              <BellIcon className="w-3.5 h-3.5" /> Alert Monitor
+            </button>
+            <button onClick={() => setShowTemplates(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-purple-400/10 border border-purple-400/20 text-purple-400 hover:bg-purple-400/15 transition-all">
+              <LayoutTemplate className="w-3.5 h-3.5" /> Templates
+            </button>
             <Link to="/workspace" className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-cyan-400 font-bold hover:bg-cyan-300 transition-all"
               style={{ color: 'hsl(222,47%,6%)' }}>
               <Plus className="w-3.5 h-3.5" /> Add Charts
@@ -251,7 +264,30 @@ export default function Dashboards() {
         </div>
       </div>
 
+      {showTemplates && (
+        <TemplateGallery
+          onApply={(template) => console.log('Template applied:', template.id)}
+          onClose={() => setShowTemplates(false)}
+        />
+      )}
+
       <div className="max-w-7xl mx-auto px-6 py-6">
+        {/* Alert monitor panel */}
+        {showAlertMonitor && (
+          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+            className="mb-5 glass-card rounded-2xl border border-red-400/15 p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <BellIcon className="w-4 h-4 text-red-400" />
+                <span className="font-semibold text-sm">Live Alert Monitor</span>
+              </div>
+              <button onClick={() => setShowAlertMonitor(false)} className="text-white/30 hover:text-white/70 transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <AlertMonitorDashboard />
+          </motion.div>
+        )}
         {/* AI report export banner */}
         {chatMessages.length > 0 && (
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}

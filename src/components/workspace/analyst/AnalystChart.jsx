@@ -9,6 +9,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   ReferenceLine, Brush,
 } from 'recharts';
+import BusinessMeaningTooltip from '@/components/charts/BusinessMeaningTooltip';
 
 const PALETTE = [
   '#00e5ff', '#ff2d7a', '#7b2fff', '#ff6b35',
@@ -53,11 +54,11 @@ export default function AnalystChart({ chart, height = 220 }) {
 
   const isHorizontal = type === 'horizontal_bar' || (type === 'bar' && data.length > 7);
 
+  const allValues = data?.map(d => d[y_key]).filter(v => v != null);
+
   const commonTooltip = (
     <Tooltip
-      contentStyle={TOOLTIP_STYLE}
-      formatter={(v, name) => [fmtV(v), name]}
-      labelStyle={{ color: '#94a3b8', fontSize: 10 }}
+      content={<BusinessMeaningTooltip allValues={allValues} />}
       cursor={{ fill: 'rgba(255,255,255,0.03)' }}
     />
   );

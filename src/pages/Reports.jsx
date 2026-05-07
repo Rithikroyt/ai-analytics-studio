@@ -8,6 +8,7 @@ import {
   Sparkles, Download, Calendar, Clock, X, Eye, BarChart2,
   Send, RefreshCw, Settings, BookOpen, Printer, Globe
 } from 'lucide-react';
+import UnifiedExportButton from '@/components/export/UnifiedExportButton';
 import { Link } from 'react-router-dom';
 import { useWorkspaceStore } from '@/lib/store';
 import { base44 } from '@/api/base44Client';
@@ -249,6 +250,7 @@ export default function Reports() {
               <p className="text-xs text-muted-foreground">{reports.length} report{reports.length !== 1 ? 's' : ''} · Group charts into scheduled PDFs & emails</p>
             </div>
           </div>
+          <UnifiedExportButton />
           <button onClick={() => setShowForm(v => !v)}
             className="flex items-center gap-1.5 px-3 py-2 bg-blue-400/10 border border-blue-400/20 text-blue-400 rounded-xl text-xs font-semibold hover:bg-blue-400/15 transition-all">
             <Plus className="w-3.5 h-3.5" /> New Report
