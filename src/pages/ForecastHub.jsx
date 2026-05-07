@@ -15,6 +15,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend
 } from 'recharts';
+import ForecastEvaluator from '@/components/workspace/ForecastEvaluator';
 
 const fmtV = v => {
   if (v == null || isNaN(Number(v))) return '—';
@@ -120,6 +121,11 @@ export default function ForecastHub() {
       </div>
 
       <div className="max-w-6xl mx-auto px-8 py-6 space-y-6">
+        {/* Forecast evaluator — only shown when there's live analysis */}
+        {r?.trendData?.length > 0 && r?.forecastData?.length > 0 && (
+          <ForecastEvaluator trendData={r.trendData} forecastData={r.forecastData} primaryLabel={r.primaryLabel} />
+        )}
+
         {/* Save snapshot form */}
         <AnimatePresence>
           {showNotes && r && (

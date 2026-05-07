@@ -6,7 +6,7 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWorkspaceStore } from '@/lib/store';
 import { useAnalystChat } from '@/hooks/useAnalystChat';
-import AnalystMessageBubble from '@/components/workspace/analyst/AnalystMessageBubble';
+import AnalystMessageBubble from '@/components/workspace/analyst/AnalystMessageBubbleV4';
 import { Send, Sparkles, Database, Loader2, Trash2, ChevronRight, Info, Wand2, Bot, Bookmark } from 'lucide-react';
 
 const ANALYSIS_MODES = [
@@ -169,7 +169,7 @@ export default function AnalystSection() {
               key={i}
               message={msg}
               onSaveChart={handleSaveChart}
-              onFollowUp={handleSend}
+              onFollowUp={(q) => handleSend(q)}
             />
           ))}
         </AnimatePresence>

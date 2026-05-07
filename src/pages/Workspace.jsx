@@ -24,6 +24,9 @@ import FunnelSection from '@/components/workspace/FunnelSection';
 import ObservabilityPanel from '@/components/workspace/ObservabilityPanel';
 import DataQualityStudio from '@/components/workspace/DataQualityStudio';
 import VisualBuilder from '@/components/workspace/VisualBuilder';
+import ContributionAnalysis from '@/components/workspace/ContributionAnalysis';
+import CLVSection from '@/components/workspace/CLVSection';
+import CohortSection from '@/components/workspace/CohortSection';
 import { useWorkspaceStore } from '@/lib/store';
 
 const sectionComponents = {
@@ -45,6 +48,9 @@ const sectionComponents = {
   rfm: RFMSection,
   funnel: FunnelSection,
   observability: ObservabilityPanel,
+  contribution: ContributionAnalysis,
+  clv: CLVSection,
+  cohort: CohortSection,
 };
 
 export default function Workspace() {

@@ -3,7 +3,7 @@
  */
 import { useState, useCallback } from 'react';
 import { useWorkspaceStore } from '@/lib/store';
-import { executeAnalystWorkflow } from '@/components/workspace/analyst/AnalystEngine';
+import { executeAnalystWorkflowV4 } from '@/lib/analystEngineV4';
 
 export function useAnalystChat() {
   const [chatMessages, setChatMessages] = useState([]);
@@ -39,30 +39,23 @@ export function useAnalystChat() {
 
     try {
       // Execute the 7-step analyst workflow
-      const response = await executeAnalystWorkflow(
+      const response = await executeAnalystWorkflowV4(
         question,
         useWorkspaceStore.getState(),
         freshAnalysis,
         activeTable
       );
 
-      // Add assistant response with structured format
       addMessage({
         role: 'assistant',
+        v4: true,
         answer: response.answer,
+        sections: response.sections,
+        confidenceNum: response.confidenceNum,
+        intent: response.intent,
         insights: response.insights,
-        evidence: response.evidence,
         recommendations: response.recommendations,
         charts: response.charts,
-        confidence: response.confidence,
-        limitations: response.limitations,
-        methodology: response.methodology,
-        steps: response.steps,
-        // V3 structured fields
-        intent: response.intent,
-        mode: response.mode,
-        businessMeaning: response.businessMeaning,
-        rootCauses: response.rootCauses,
         nextQuestion: response.nextQuestion,
       });
     } catch (e) {

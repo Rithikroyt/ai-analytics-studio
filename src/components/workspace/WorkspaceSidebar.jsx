@@ -4,7 +4,8 @@ import {
   LayoutDashboard, Upload, Settings2, BarChart3, BookOpen,
   Layers, Terminal, FileText, MessageSquare, Download,
   ChevronLeft, Database, GitCompare, PieChart, Bell, Link2, FlaskConical,
-  Users, Filter, Activity, Scissors, TrendingUp, History, Shield, Paintbrush
+  Users, Filter, Activity, Scissors, TrendingUp, History, Shield, Paintbrush,
+  Target, RefreshCw, DollarSign
 } from 'lucide-react';
 import { useWorkspaceStore } from '@/lib/store';
 
@@ -20,6 +21,9 @@ const sections = [
   { id: 'statistics',    label: 'Statistics',         icon: FlaskConical },
   { id: 'rfm',           label: 'RFM Segments',       icon: Users },
   { id: 'funnel',        label: 'Funnel',             icon: Filter },
+  { id: 'contribution',  label: 'Contribution',       icon: Target },
+  { id: 'clv',           label: 'CLV Analysis',       icon: DollarSign },
+  { id: 'cohort',        label: 'Cohort Retention',   icon: RefreshCw },
   { id: 'reports',       label: 'Reports',            icon: Download },
   { id: 'story',         label: 'Story',              icon: BookOpen },
   { id: 'compare',       label: 'Compare',            icon: GitCompare },

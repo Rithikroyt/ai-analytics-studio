@@ -10,6 +10,7 @@ import PredictiveFilters from '@/components/predictive/PredictiveFilters.jsx';
 import ExportMenu from '@/components/export/ExportMenu.jsx';
 import AlertsCenter from '@/components/alerts/AlertsCenter.jsx';
 import ChartSummaryDropdown from '@/components/charts/ChartSummaryDropdown.jsx';
+import ForecastEvaluator from '@/components/workspace/ForecastEvaluator';
 import { useWorkspaceStore } from '@/lib/store';
 import {
   TrendingUp, Brain, Zap, AlertTriangle, RefreshCw,
@@ -210,6 +211,11 @@ Trend Periods: ${r.trendData?.length ?? 0} | Forecast Periods: ${r.forecastData?
                 tableName={table.name} growthRate={r.growthRate} canForecast={r.canForecast} />
             </div>
           </div>
+
+          {/* Forecast accuracy evaluation */}
+          {r.trendData?.length > 0 && r.forecastData?.length > 0 && (
+            <ForecastEvaluator trendData={r.trendData} forecastData={r.forecastData} primaryLabel={r.primaryLabel} />
+          )}
 
           {/* Scenario panel */}
           <ScenarioPanel scenarios={scenarios} activeScenario={activeScenario} onSelect={setActiveScenario}
