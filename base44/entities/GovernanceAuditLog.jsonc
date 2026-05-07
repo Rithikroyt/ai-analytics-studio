@@ -1,0 +1,70 @@
+{
+  "name": "GovernanceAuditLog",
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "title": "Action",
+      "enum": [
+        "view",
+        "edit",
+        "share",
+        "delete",
+        "export",
+        "access_change",
+        "version_restore",
+        "login",
+        "upload"
+      ]
+    },
+    "resourceType": {
+      "type": "string",
+      "title": "Resource Type",
+      "enum": [
+        "dashboard",
+        "dataset",
+        "report",
+        "story",
+        "user"
+      ]
+    },
+    "resourceName": {
+      "type": "string",
+      "title": "Resource Name"
+    },
+    "resourceId": {
+      "type": "string",
+      "title": "Resource ID"
+    },
+    "actorEmail": {
+      "type": "string",
+      "title": "Actor Email"
+    },
+    "actorName": {
+      "type": "string",
+      "title": "Actor Name"
+    },
+    "details": {
+      "type": "string",
+      "title": "Details"
+    },
+    "ipAddress": {
+      "type": "string",
+      "title": "IP Address"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "info",
+        "warning",
+        "critical"
+      ],
+      "default": "info"
+    }
+  },
+  "required": [
+    "action",
+    "resourceType",
+    "actorEmail"
+  ]
+}

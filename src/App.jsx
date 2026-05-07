@@ -22,6 +22,7 @@ import Collaboration from '@/pages/Collaboration';
 import PredictiveInsights from '@/pages/PredictiveInsights';
 import ForecastHub from '@/pages/ForecastHub';
 import Workbench from '@/pages/Workbench';
+import DataGovernance from '@/pages/DataGovernance';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -65,6 +66,7 @@ const AuthenticatedApp = () => {
         <Route path="/predictive" element={<PredictiveInsights />} />
         <Route path="/forecast-hub" element={<ForecastHub />} />
         <Route path="/workbench" element={<Workbench />} />
+        <Route path="/governance" element={<DataGovernance />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </>
