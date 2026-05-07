@@ -244,6 +244,41 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── Product Demo Video ──────────────────────────────────── */}
+      <section className="py-16 px-6 bg-white/[0.01] border-y border-white/5">
+        <div className="max-w-5xl mx-auto">
+          <FadeIn className="text-center mb-8">
+            <div className="text-xs text-cyan-400 uppercase tracking-widest font-semibold mb-3">Platform Walkthrough</div>
+            <h2 className="text-3xl font-black mb-3">See the full workflow in action</h2>
+            <p className="text-muted-foreground text-sm max-w-xl mx-auto">Watch how OmniData AI transforms raw CSV data into executive-ready insights — upload, clean, analyze, forecast, and report in minutes.</p>
+          </FadeIn>
+          <FadeIn delay={0.1}>
+            <div className="relative rounded-3xl overflow-hidden border border-cyan-400/20 shadow-2xl shadow-cyan-400/10"
+              style={{ background: 'hsl(222,47%,6%)' }}>
+              {/* Glow ring */}
+              <div className="absolute inset-0 rounded-3xl pointer-events-none" style={{ boxShadow: '0 0 60px rgba(0,245,255,0.08) inset' }} />
+              <video
+                controls
+                autoPlay
+                muted
+                loop
+                playsInline
+                className="w-full rounded-3xl"
+                style={{ display: 'block' }}
+              >
+                <source src="https://media.base44.com/videos/public/69cc41293bfbd67e8141e515/233ce9d32_generated_video.mp4" type="video/mp4" />
+              </video>
+            </div>
+            {/* Feature chips below video */}
+            <div className="flex flex-wrap justify-center gap-2 mt-5">
+              {['Upload & Profile','AI Analysis','SQL Studio','Executive Dashboard','Predictive Forecasting','Report Generation','Anomaly Detection','Story Builder'].map(label => (
+                <span key={label} className="text-xs px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/50">{label}</span>
+              ))}
+            </div>
+          </FadeIn>
+        </div>
+      </section>
+
       {/* ── Trust strip ─────────────────────────────────────────── */}
       <section className="border-y border-white/5 bg-white/2 py-5 px-6">
         <div className="max-w-7xl mx-auto">
