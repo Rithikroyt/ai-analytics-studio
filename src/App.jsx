@@ -24,6 +24,7 @@ import ForecastHub from '@/pages/ForecastHub';
 import Workbench from '@/pages/Workbench';
 import Governance from '@/pages/Governance';
 import DataGovernance from '@/pages/DataGovernance';
+import DataContract from '@/pages/DataContract';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -69,6 +70,7 @@ const AuthenticatedApp = () => {
         <Route path="/workbench" element={<Workbench />} />
         <Route path="/governance" element={<Governance />} />
         <Route path="/governance" element={<DataGovernance />} />
+        <Route path="/data-contract" element={<DataContract />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </>

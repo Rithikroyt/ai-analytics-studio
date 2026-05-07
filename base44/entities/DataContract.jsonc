@@ -1,0 +1,118 @@
+{
+  "name": "DataContract",
+  "type": "object",
+  "properties": {
+    "tableId": {
+      "type": "string",
+      "title": "Table ID"
+    },
+    "tableName": {
+      "type": "string",
+      "title": "Table Name"
+    },
+    "requiredColumns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Required Columns"
+    },
+    "numericColumns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Numeric Columns"
+    },
+    "dateColumns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Date Columns"
+    },
+    "categoryColumns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Category Columns"
+    },
+    "allowedMissingRate": {
+      "type": "number",
+      "title": "Allowed Missing Rate (%)",
+      "default": 5
+    },
+    "duplicateThreshold": {
+      "type": "number",
+      "title": "Duplicate Threshold (%)",
+      "default": 1
+    },
+    "businessRules": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Business Rules"
+    },
+    "validDateRangeStart": {
+      "type": "string",
+      "format": "date",
+      "title": "Valid Date Range Start"
+    },
+    "validDateRangeEnd": {
+      "type": "string",
+      "format": "date",
+      "title": "Valid Date Range End"
+    },
+    "contractPassRate": {
+      "type": "number",
+      "title": "Contract Pass Rate (%)"
+    },
+    "dataReadinessScore": {
+      "type": "number",
+      "title": "Data Readiness Score (0-100)"
+    },
+    "qualityScore": {
+      "type": "number",
+      "title": "Quality Score (%)"
+    },
+    "kpiReadiness": {
+      "type": "number",
+      "title": "KPI Readiness (%)"
+    },
+    "relationshipReadiness": {
+      "type": "number",
+      "title": "Relationship Readiness (%)"
+    },
+    "lastValidatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Last Validated At"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "active",
+        "failed",
+        "passed"
+      ],
+      "default": "draft",
+      "title": "Status"
+    },
+    "validationResults": {
+      "type": "object",
+      "title": "Validation Results",
+      "additionalProperties": true
+    },
+    "notes": {
+      "type": "string",
+      "title": "Notes"
+    }
+  },
+  "required": [
+    "tableId",
+    "tableName"
+  ]
+}
