@@ -40,6 +40,9 @@ export default function ForecastHub() {
   const [notes, setNotes] = useState('');
   const [showNotes, setShowNotes] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
+  const [showCI, setShowCI] = useState(true);
+  const [ciWidth, setCiWidth] = useState(20); // ±% confidence band
+  const [growthAdj, setGrowthAdj] = useState(0); // manual growth adjustment %
 
   useEffect(() => {
     fetchHistory();
@@ -121,6 +124,76 @@ export default function ForecastHub() {
       </div>
 
       <div className="max-w-6xl mx-auto px-8 py-6 space-y-6">
+        {/* Confidence interval + growth projection controls */}
+        {r?.forecastData?.length > 0 && (
+          <div className="glass-card rounded-2xl p-5 border border-purple-400/15 bg-purple-400/3">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-7 h-7 rounded-lg bg-purple-400/15 flex items-center justify-center">
+                <TrendingUp className="w-3.5 h-3.5 text-purple-400" />
+              </div>
+              <span className="font-semibold text-sm">Forecast Controls</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              {/* CI toggle */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs text-white/50">Confidence Bands</label>
+                  <button onClick={() => setShowCI(v => !v)}
+                    className={`relative w-9 h-5 rounded-full transition-all ${showCI ? 'bg-purple-400' : 'bg-white/15'}`}>
+                    <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${showCI ? 'left-4' : 'left-0.5'}`} />
+                  </button>
+                </div>
+                {showCI && (
+                  <div className="space-y-1">
+                    <input type="range" min={5} max={40} value={ciWidth} onChange={e => setCiWidth(Number(e.target.value))}
+                      className="w-full accent-purple-400" />
+                    <div className="flex justify-between text-xs text-white/30">
+                      <span>Tight</span>
+                      <span className="text-purple-400 font-mono">±{ciWidth}%</span>
+                      <span>Wide</span>
+                    </div>
+                  </div>
+                )}
+                <p className="text-xs text-white/25 mt-1">
+                  {showCI ? `Showing ±${ciWidth}% confidence band around forecast` : 'Bands hidden'}
+                </p>
+              </div>
+              {/* Growth adjustment */}
+              <div>
+                <label className="text-xs text-white/50 mb-2 block">Growth Adjustment</label>
+                <input type="range" min={-30} max={50} value={growthAdj} onChange={e => setGrowthAdj(Number(e.target.value))}
+                  className="w-full accent-teal-400" />
+                <div className="flex justify-between text-xs text-white/30 mt-1">
+                  <span>-30%</span>
+                  <span className={`font-mono font-bold ${growthAdj > 0 ? 'text-green-400' : growthAdj < 0 ? 'text-red-400' : 'text-white/50'}`}>
+                    {growthAdj > 0 ? '+' : ''}{growthAdj}%
+                  </span>
+                  <span>+50%</span>
+                </div>
+                <p className="text-xs text-white/25 mt-1">Manual growth rate override applied to projection</p>
+              </div>
+              {/* Projection summary */}
+              <div className="space-y-2">
+                <label className="text-xs text-white/50 block">Adjusted End-Value</label>
+                {r.forecastData?.slice(-1).map(d => {
+                  const base = d.value;
+                  const adj = Math.round(base * (1 + growthAdj / 100));
+                  const ciLow = Math.round(adj * (1 - ciWidth / 100));
+                  const ciHigh = Math.round(adj * (1 + ciWidth / 100));
+                  const fmt = v => { if (v >= 1e6) return `${(v/1e6).toFixed(1)}M`; if (v >= 1e3) return `${(v/1e3).toFixed(0)}K`; return v.toLocaleString(); };
+                  return (
+                    <div key={d.date} className="space-y-1">
+                      <div className="text-xl font-black font-mono text-teal-400">{fmt(adj)}</div>
+                      {showCI && <div className="text-xs text-white/35">Range: <span className="font-mono">{fmt(ciLow)} – {fmt(ciHigh)}</span></div>}
+                      <div className="text-xs text-white/25">Final period: {d.date}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Forecast evaluator — only shown when there's live analysis */}
         {r?.trendData?.length > 0 && r?.forecastData?.length > 0 && (
           <ForecastEvaluator trendData={r.trendData} forecastData={r.forecastData} primaryLabel={r.primaryLabel} />

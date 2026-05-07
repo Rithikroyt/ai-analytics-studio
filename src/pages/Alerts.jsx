@@ -221,6 +221,7 @@ Format with clear sections. Use professional but friendly tone.`,
     setDigestLoading(false);
   };
 
+  const [showDrawer, setShowDrawer] = useState(false);
   const unreadCount = history.filter(h => !h.acknowledged).length;
   const filteredHistory = severityFilter === 'all' ? history : history.filter(h => h.severity === severityFilter);
 
@@ -242,6 +243,86 @@ Format with clear sections. Use professional but friendly tone.`,
         )}
       </AnimatePresence>
 
+      {/* Notification Drawer */}
+      <AnimatePresence>
+        {showDrawer && (
+          <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', damping: 28, stiffness: 220 }}
+            className="fixed right-0 top-0 h-full w-80 z-50 bg-background border-l border-white/8 shadow-2xl flex flex-col">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
+              <div className="flex items-center gap-2">
+                <Bell className="w-4 h-4 text-amber-400" />
+                <span className="font-semibold text-sm">Active Anomalies</span>
+                {unreadCount > 0 && <span className="px-1.5 py-0.5 rounded-full bg-red-400/20 text-red-400 text-xs font-bold">{unreadCount}</span>}
+              </div>
+              <button onClick={() => setShowDrawer(false)} className="text-white/40 hover:text-white/80 transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {history.filter(h => !h.acknowledged).length === 0 ? (
+                <div className="text-center py-12 text-white/25 text-sm">
+                  <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-green-400/40" />
+                  All clear — no active anomalies
+                </div>
+              ) : history.filter(h => !h.acknowledged).map(entry => {
+                const sev = SEVERITY[entry.severity] || SEVERITY.info;
+                return (
+                  <motion.div key={entry.id} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }}
+                    className={`p-3 rounded-xl border ${sev.border} ${sev.bg} space-y-2`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className={`text-xs font-bold ${sev.color}`}>{entry.alertLabel}</div>
+                        <div className="text-xs text-white/40 mt-0.5">{entry.metric} · {timeAgo(entry.triggeredAt)}</div>
+                      </div>
+                      <span className={`text-xs px-1.5 py-0.5 rounded-full border flex-shrink-0 ${sev.bg} ${sev.border} ${sev.color}`}>{sev.label}</span>
+                    </div>
+                    {entry.condition !== 'anomaly' && (
+                      <div className="text-xs text-white/50">
+                        Expected <span className="font-mono text-white/70">{entry.threshold?.toLocaleString()}</span>, got <span className="font-mono text-white/80">{entry.value?.toLocaleString()}</span>
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <Link to="/workspace" onClick={() => setShowDrawer(false)}
+                        className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-white/8 hover:bg-white/15 text-white/60 hover:text-white transition-all">
+                        <Database className="w-3 h-3" /> Investigate
+                      </Link>
+                      <button onClick={() => handleAcknowledge(entry.id)}
+                        className="text-xs px-2.5 py-1 rounded-lg text-white/40 hover:text-white/70 border border-white/10 hover:bg-white/5 transition-all">
+                        Dismiss
+                      </button>
+                    </div>
+                  </motion.div>
+                );
+              })}
+              {history.filter(h => h.acknowledged).length > 0 && (
+                <div>
+                  <div className="text-xs text-white/20 uppercase tracking-widest mb-2 pt-2 border-t border-white/5">Resolved</div>
+                  {history.filter(h => h.acknowledged).slice(0, 5).map(entry => {
+                    const sev = SEVERITY[entry.severity] || SEVERITY.info;
+                    return (
+                      <div key={entry.id} className="flex items-center gap-2 py-2 border-b border-white/5 text-xs text-white/30">
+                        <CheckCircle2 className="w-3 h-3 text-green-400/50 flex-shrink-0" />
+                        <span className="flex-1 truncate">{entry.alertLabel}</span>
+                        <span className="text-white/20">{timeAgo(entry.triggeredAt)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            {unreadCount > 0 && (
+              <div className="p-4 border-t border-white/5">
+                <button onClick={() => setHistory(h => h.map(e => ({ ...e, acknowledged: true })))}
+                  className="w-full py-2 rounded-xl text-xs font-semibold text-white/50 border border-white/10 hover:bg-white/5 transition-all">
+                  Acknowledge All ({unreadCount})
+                </button>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {showDrawer && <div className="fixed inset-0 z-40 bg-black/30" onClick={() => setShowDrawer(false)} />}
+
       {/* Header */}
       <div className="border-b border-white/5 px-6 py-4 sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
@@ -259,6 +340,10 @@ Format with clear sections. Use professional but friendly tone.`,
               </p>
             </div>
           </div>
+          <button onClick={() => setShowDrawer(true)} className="relative flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/10 text-white/40 hover:text-white/80 text-xs transition-all hover:bg-white/5">
+            <Bell className="w-3.5 h-3.5" />
+            {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-400 text-white text-xs flex items-center justify-center font-bold">{unreadCount}</span>}
+          </button>
           {activeTab === 'alerts' && (
             <button onClick={() => setShowForm(v => !v)}
               className="flex items-center gap-1.5 px-3 py-2 bg-amber-400/10 border border-amber-400/20 text-amber-400 rounded-xl text-xs font-semibold hover:bg-amber-400/15 transition-all">

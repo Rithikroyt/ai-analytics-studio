@@ -168,6 +168,33 @@ function SlideCard({ slide, index, onRemove, onUpdateNarration, onUpdateText, on
       );
       }
 
+// ── Narrative Editor panel ────────────────────────────────────────
+function NarrativeEditor({ story, onUpdate }) {
+  const [text, setText] = useState(story?.executiveSummary || '');
+  const [saved, setSaved] = useState(false);
+  const save = () => { onUpdate(text); setSaved(true); setTimeout(() => setSaved(false), 1500); };
+  return (
+    <div className="px-4 py-3 border-b border-white/5">
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-xs font-semibold text-white/40 uppercase tracking-widest">Findings Narrative</span>
+        <button onClick={save} className={`text-xs px-2 py-0.5 rounded-lg transition-all ${saved ? 'text-green-400 bg-green-400/10' : 'text-white/30 hover:text-cyan-400 hover:bg-cyan-400/10'}`}>
+          {saved ? '✓ Saved' : 'Save'}
+        </button>
+      </div>
+      <textarea
+        value={text}
+        onChange={e => setText(e.target.value)}
+        placeholder="Write your executive summary, key findings, or presenter notes here…"
+        rows={5}
+        className="w-full px-3 py-2 bg-white/4 border border-white/8 rounded-xl text-xs text-foreground placeholder:text-white/20 focus:outline-none focus:border-purple-400/30 resize-none leading-relaxed"
+      />
+      {text && (
+        <div className="text-xs text-white/20 mt-1">{text.split(/\s+/).filter(Boolean).length} words</div>
+      )}
+    </div>
+  );
+}
+
 // ── Story title editor ────────────────────────────────────────────
 function StoryTitleEditor({ title, onSave }) {
   const [editing, setEditing] = useState(false);
@@ -347,7 +374,7 @@ Return JSON with a "narrations" array (one string per slide, in order).`,
           </div>
 
           {/* Center: slide sequence */}
-          <div className="flex-1 overflow-y-auto p-5">
+          <div className="flex-1 overflow-y-auto p-5 min-w-0">
             <div className="max-w-2xl mx-auto space-y-3">
               {/* Add insight button */}
               <div className="flex items-center gap-2 mb-4">
@@ -410,9 +437,12 @@ Return JSON with a "narrations" array (one string per slide, in order).`,
             </div>
           </div>
 
-          {/* Right: preview panel */}
-          <div className="w-56 flex-shrink-0 border-l border-white/5 p-4 overflow-y-auto">
-            <div className="text-xs text-white/35 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+          {/* Right: narrative editor + slide map */}
+          <div className="w-64 flex-shrink-0 border-l border-white/5 overflow-y-auto flex flex-col">
+            {/* Narrative / findings editor */}
+            <NarrativeEditor story={activeStory} onUpdate={(text) => updateStory(activeStoryId, { executiveSummary: text })} />
+
+            <div className="px-4 pt-3 text-xs text-white/35 uppercase tracking-widest mb-2 flex items-center gap-1.5">
               <Eye className="w-3 h-3" /> Slide Map
             </div>
             <div className="space-y-2">
@@ -436,7 +466,7 @@ Return JSON with a "narrations" array (one string per slide, in order).`,
             </div>
             {slides.length > 0 && (
               <button onClick={() => setPresentationMode(true)}
-                className="mt-4 w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-cyan-400 text-xs font-bold hover:bg-cyan-300 transition-all"
+                className="mt-4 mx-4 mb-4 w-[calc(100%-2rem)] flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-cyan-400 text-xs font-bold hover:bg-cyan-300 transition-all"
                 style={{ color: 'hsl(222,47%,6%)' }}>
                 <Play className="w-3 h-3" /> Present
               </button>

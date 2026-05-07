@@ -114,7 +114,69 @@ export default function Dashboards() {
 
   const handleExportPDF = () => {
     setExportLoading('pdf');
-    setTimeout(() => { exportInsightsCSV(analysisResults, activeTable?.name); setExportLoading(''); }, 100);
+    setTimeout(() => {
+      // Build branded HTML PDF with KPI header
+      const r = analysisResults;
+      const fmtV = v => { if (!v) return '—'; const n = Number(v); if (n >= 1e6) return `${(n/1e6).toFixed(1)}M`; if (n >= 1e3) return `${(n/1e3).toFixed(0)}K`; return n.toLocaleString(); };
+      const kpiHeader = r ? `
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:20px 0;">
+          <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:14px;text-align:center;">
+            <div style="font-size:11px;color:#0369a1;text-transform:uppercase;letter-spacing:.06em">${r.primaryLabel || 'Primary KPI'}</div>
+            <div style="font-size:24px;font-weight:900;color:#0d2137;font-family:monospace">${fmtV(r.totalValue)}</div>
+            ${r.growthRate != null ? `<div style="font-size:12px;color:${r.growthRate>=0?'#16a34a':'#dc2626'}">${r.growthRate>=0?'▲':'▼'} ${Math.abs(r.growthRate)}%</div>` : ''}
+          </div>
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px;text-align:center;">
+            <div style="font-size:11px;color:#15803d;text-transform:uppercase;letter-spacing:.06em">Records</div>
+            <div style="font-size:24px;font-weight:900;color:#0d2137;font-family:monospace">${(activeTable?.rowCount||0).toLocaleString()}</div>
+            <div style="font-size:11px;color:#15803d">${activeTable?.columns?.length||0} columns</div>
+          </div>
+          <div style="background:#fefce8;border:1px solid #fef08a;border-radius:8px;padding:14px;text-align:center;">
+            <div style="font-size:11px;color:#a16207;text-transform:uppercase;letter-spacing:.06em">Anomalies</div>
+            <div style="font-size:24px;font-weight:900;color:#0d2137;font-family:monospace">${r.anomalies?.length||0}</div>
+            <div style="font-size:11px;color:#a16207">Quality: ${activeTable?.qualityScore||'—'}%</div>
+          </div>
+        </div>
+        <div style="margin:16px 0;padding:12px 16px;background:#f8fafc;border-left:4px solid #0ea5e9;border-radius:4px;font-size:13px;color:#334155;line-height:1.6">
+          ${r.executiveSummary || r.keyFindings?.[0] || 'AI analysis complete.'}
+        </div>` : '';
+      const chartsHTML = savedCharts.slice(0, 12).map(c => `
+        <div style="break-inside:avoid;margin-bottom:20px;padding:16px;border:1px solid #e2e8f0;border-radius:8px;">
+          <div style="font-weight:700;font-size:14px;color:#0d2137;margin-bottom:4px">${c.label || c.chart?.title || 'Chart'}</div>
+          <div style="font-size:11px;color:#64748b">${c.datasetName || ''} · ${c.chart?.type || ''}</div>
+          ${c.insight ? `<div style="margin-top:8px;font-size:12px;color:#475569;font-style:italic">${c.insight}</div>` : ''}
+        </div>`).join('');
+      const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+        <title>Dashboard Export — ${activeTable?.name || 'Analytics'}</title>
+        <style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:'Segoe UI',sans-serif;color:#1e293b;background:#fff;}
+        .page{max-width:900px;margin:0 auto;padding:40px 50px;}
+        .header{border-bottom:3px solid #0ea5e9;padding-bottom:16px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:flex-end;}
+        .brand{font-size:22px;font-weight:900;color:#0d2137;}
+        .brand span{color:#0ea5e9;}
+        .meta{font-size:11px;color:#94a3b8;text-align:right;}
+        h2{font-size:15px;color:#0d2137;margin:24px 0 10px;border-bottom:1px solid #e2e8f0;padding-bottom:6px;}
+        @media print{body{background:#fff;}.page{padding:30px;}}</style>
+      </head><body><div class="page">
+        <div class="header">
+          <div><div class="brand">OmniData <span>AI Analytics</span></div><div style="font-size:12px;color:#64748b;margin-top:3px">Executive Dashboard Export</div></div>
+          <div class="meta">
+            <div>${activeTable?.name || 'Dataset'}</div>
+            <div>${new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}</div>
+          </div>
+        </div>
+        ${kpiHeader}
+        <h2>Saved Charts (${savedCharts.length})</h2>
+        ${chartsHTML}
+        <div style="margin-top:40px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:10px;color:#94a3b8;display:flex;justify-content:space-between;">
+          <span>OmniData AI Analytics Studio · Confidential</span>
+          <span>Generated ${new Date().toLocaleDateString()}</span>
+        </div>
+      </div></body></html>`;
+      const win = window.open('', '_blank');
+      win.document.write(html);
+      win.document.close();
+      setTimeout(() => win.print(), 500);
+      setExportLoading('');
+    }, 100);
   };
 
   const handleExportExcel = () => {
@@ -173,7 +235,7 @@ export default function Dashboards() {
             </button>
             <button onClick={handleExportPDF} disabled={exportLoading === 'pdf'}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-blue-400/10 border border-blue-400/20 text-blue-400 hover:bg-blue-400/15 transition-all disabled:opacity-50">
-              <FileText className="w-3.5 h-3.5" />{exportLoading === 'pdf' ? 'Generating…' : 'PDF'}
+              <FileText className="w-3.5 h-3.5" />{exportLoading === 'pdf' ? 'Generating…' : 'Branded PDF'}
             </button>
             <Link to="/story-builder" className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-purple-400/10 border border-purple-400/20 text-purple-400 hover:bg-purple-400/15 transition-all">
               <BookOpen className="w-3.5 h-3.5" /> Story Builder

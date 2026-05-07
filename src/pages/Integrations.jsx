@@ -81,6 +81,23 @@ const CONNECTORS = [
     schedules: ['Hourly', 'Daily', 'Manual'],
   },
   {
+    id: 'snowflake',
+    name: 'Snowflake',
+    desc: 'Query your Snowflake data warehouse. Run SQL and sync result sets on a schedule.',
+    icon: '❄️',
+    color: 'text-cyan-400', border: 'border-cyan-400/25', bg: 'bg-cyan-400/8',
+    badge: 'Direct',
+    badgeColor: 'text-cyan-400 bg-cyan-400/10 border-cyan-400/20',
+    fields: [
+      { key: 'account', label: 'Account Identifier', placeholder: 'xy12345.us-east-1' },
+      { key: 'warehouse', label: 'Warehouse', placeholder: 'COMPUTE_WH' },
+      { key: 'database', label: 'Database', placeholder: 'ANALYTICS_DB' },
+      { key: 'query', label: 'SQL Query', placeholder: 'SELECT * FROM ANALYTICS_DB.PUBLIC.REVENUE LIMIT 10000', textarea: true },
+    ],
+    authType: 'credentials',
+    schedules: ['Every 15 min', 'Hourly', 'Every 6 hours', 'Daily', 'Manual'],
+  },
+  {
     id: 'rest_api',
     name: 'Custom REST API',
     desc: 'Connect any JSON REST endpoint. Define headers, auth, and response path.',
