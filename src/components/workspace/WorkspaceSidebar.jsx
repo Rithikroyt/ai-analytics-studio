@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Upload, Settings2, BarChart3, BookOpen,
   Layers, Terminal, FileText, MessageSquare, Download,
   ChevronLeft, Database, GitCompare, PieChart, Bell, Link2, Wand2, FlaskConical,
-  Users, Filter, Activity
+  Users, Filter, Activity, Scissors
 } from 'lucide-react';
 import { useWorkspaceStore } from '@/lib/store';
 
@@ -13,6 +13,7 @@ const sections = [
   { id: 'overview',    label: 'Overview',       icon: LayoutDashboard },
   { id: 'intake',      label: 'Upload',          icon: Upload },
   { id: 'prepare',     label: 'Prepare',         icon: Settings2 },
+  { id: 'dataprep',    label: 'Data Prep Studio', icon: Scissors },
   { id: 'workbook',    label: 'Dashboard',       icon: BarChart3 },
   { id: 'analyst',     label: 'AI Analyst',      icon: MessageSquare },
   { id: 'reports',     label: 'Reports',         icon: Download },

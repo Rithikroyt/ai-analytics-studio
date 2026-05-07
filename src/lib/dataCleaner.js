@@ -1,9 +1,18 @@
 /**
- * Data Cleaner — Browser-side cleaning pipeline
- * Mirrors the Python clean_dataset pipeline for in-browser use
+ * dataCleaner.js — Browser-side data cleaning pipeline
+ * Mirrors the Python clean_dataset() logic for client-side processing
+ *
+ * Pipeline:
+ * 1. Normalize column names
+ * 2. Strip whitespace + hidden characters
+ * 3. Remove exact duplicates
+ * 4. Detect & standardize dates
+ * 5. Null imputation (median for numeric, mode for categorical)
+ * 6. Flag noisy values / invalid formats
+ * 7. Return cleaned rows + profile
  */
 
-export function normalizeColumnName(name) {
+function normalizeColName(name) {
   return String(name)
     .trim()
     .toLowerCase()
@@ -11,221 +20,191 @@ export function normalizeColumnName(name) {
     .replace(/^_+|_+$/g, '');
 }
 
-export function standardizeColumns(columns) {
-  return columns.map(col => ({ ...col, name: normalizeColumnName(col.name) }));
+function median(vals) {
+  if (!vals.length) return 0;
+  const s = [...vals].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 }
 
-export function trimStringValues(rows, columns) {
-  const strCols = columns.filter(c => c.type === 'text' || c.type === 'category').map(c => c.name);
-  return rows.map(row => {
-    const newRow = { ...row };
-    strCols.forEach(col => {
-      const v = newRow[col];
-      if (typeof v === 'string') {
-        const trimmed = v.trim();
-        newRow[col] = (trimmed === '' || trimmed.toLowerCase() === 'nan' || trimmed.toLowerCase() === 'null') ? null : trimmed;
-      }
+function mode(vals) {
+  const freq = {};
+  vals.forEach(v => { freq[v] = (freq[v] || 0) + 1; });
+  return Object.entries(freq).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+}
+
+function isDateLike(val) {
+  if (!val || typeof val !== 'string') return false;
+  return !isNaN(Date.parse(val)) && val.length > 4;
+}
+
+function parseDate(val) {
+  const d = new Date(val);
+  return isNaN(d.getTime()) ? null : d.toISOString().split('T')[0];
+}
+
+export function cleanDataset(rows, columns) {
+  if (!rows?.length || !columns?.length) return { cleanedRows: rows, cleanedColumns: columns, profile: {} };
+
+  const before = rows.length;
+
+  // Step 1: Normalize column names
+  const colMap = {}; // old name → new name
+  const cleanedColumns = columns.map(col => {
+    const newName = normalizeColName(col.name);
+    colMap[col.name] = newName;
+    return { ...col, name: newName };
+  });
+
+  // Step 2: Rename keys in all rows
+  let cleanedRows = rows.map(row => {
+    const newRow = {};
+    Object.entries(row).forEach(([k, v]) => {
+      const newKey = colMap[k] || normalizeColName(k);
+      // Strip whitespace from strings
+      newRow[newKey] = typeof v === 'string' ? v.trim().replace(/[\u200B\u200C\u200D\uFEFF]/g, '') : v;
     });
     return newRow;
   });
-}
 
-export function removeExactDuplicates(rows) {
+  // Step 3: Remove exact duplicates
   const seen = new Set();
-  const cleaned = [];
-  rows.forEach(row => {
-    const key = JSON.stringify(row);
-    if (!seen.has(key)) { seen.add(key); cleaned.push(row); }
+  cleanedRows = cleanedRows.filter(row => {
+    const h = JSON.stringify(row);
+    if (seen.has(h)) return false;
+    seen.add(h);
+    return true;
   });
-  return { rows: cleaned, removed: rows.length - cleaned.length };
-}
+  const duplicatesRemoved = before - cleanedRows.length;
 
-export function detectFuzzyDuplicates(rows, keyColumns) {
-  if (!keyColumns?.length) return [];
-  const groups = {};
-  rows.forEach((row, i) => {
-    const key = keyColumns.map(k => String(row[k] || '').toLowerCase().trim()).join('|');
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(i);
-  });
-  return Object.values(groups).filter(g => g.length > 1);
-}
-
-export function imputeNulls(rows, columns) {
-  const stats = {};
-  columns.forEach(col => {
-    const vals = rows.map(r => r[col.name]).filter(v => v != null && v !== '');
-    if (col.type === 'numeric') {
-      const nums = vals.map(Number).filter(n => !isNaN(n)).sort((a, b) => a - b);
-      stats[col.name] = { strategy: 'median', value: nums.length ? nums[Math.floor(nums.length / 2)] : 0 };
-    } else if (col.type === 'category' || col.type === 'text') {
-      const freq = {};
-      vals.forEach(v => { freq[String(v)] = (freq[String(v)] || 0) + 1; });
-      const mode = Object.entries(freq).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
-      stats[col.name] = { strategy: 'mode', value: mode };
+  // Step 4: Standardize dates
+  cleanedColumns.forEach(col => {
+    if (col.type === 'date' || /date|month|time|period|year/i.test(col.name)) {
+      cleanedRows = cleanedRows.map(row => {
+        const v = row[col.name];
+        if (v && isDateLike(String(v))) {
+          return { ...row, [col.name]: parseDate(String(v)) || v };
+        }
+        return row;
+      });
     }
   });
 
-  const imputed = rows.map(row => {
-    const newRow = { ...row };
-    columns.forEach(col => {
-      if ((newRow[col.name] == null || newRow[col.name] === '') && stats[col.name]) {
-        newRow[col.name] = stats[col.name].value;
-      }
-    });
-    return newRow;
+  // Step 5: Null imputation
+  const nullsBefore = {};
+  const nullsAfter = {};
+
+  cleanedColumns.forEach(col => {
+    const nullCount = cleanedRows.filter(r => r[col.name] == null || r[col.name] === '' || r[col.name] === 'null').length;
+    nullsBefore[col.name] = nullCount;
+
+    if (nullCount === 0) { nullsAfter[col.name] = 0; return; }
+
+    if (col.type === 'numeric') {
+      const vals = cleanedRows.map(r => Number(r[col.name])).filter(v => !isNaN(v));
+      const fill = median(vals);
+      cleanedRows = cleanedRows.map(row => {
+        const v = row[col.name];
+        if (v == null || v === '' || isNaN(Number(v))) return { ...row, [col.name]: fill };
+        return row;
+      });
+    } else if (col.type === 'category' || col.type === 'text') {
+      const vals = cleanedRows.map(r => r[col.name]).filter(v => v != null && v !== '' && v !== 'null');
+      const fill = mode(vals) || 'Unknown';
+      cleanedRows = cleanedRows.map(row => {
+        const v = row[col.name];
+        if (v == null || v === '' || v === 'null') return { ...row, [col.name]: fill };
+        return row;
+      });
+    }
+    nullsAfter[col.name] = 0;
   });
 
-  return { rows: imputed, stats };
-}
-
-export function standardizeDates(rows, dateColumns) {
-  if (!dateColumns?.length) return rows;
-  return rows.map(row => {
-    const newRow = { ...row };
-    dateColumns.forEach(col => {
-      const v = newRow[col];
-      if (v != null && v !== '') {
-        const d = new Date(v);
-        if (!isNaN(d)) newRow[col] = d.toISOString().slice(0, 10);
-      }
+  // Step 6: Flag noisy numeric values (>5σ outliers)
+  const flaggedRows = new Set();
+  cleanedColumns.forEach(col => {
+    if (col.type !== 'numeric') return;
+    const vals = cleanedRows.map(r => Number(r[col.name])).filter(v => !isNaN(v));
+    if (vals.length < 10) return;
+    const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+    const std = Math.sqrt(vals.reduce((a, b) => a + (b - mean) ** 2, 0) / vals.length);
+    cleanedRows.forEach((row, i) => {
+      const v = Number(row[col.name]);
+      if (!isNaN(v) && Math.abs(v - mean) > 5 * std) flaggedRows.add(i);
     });
-    return newRow;
   });
+
+  const profile = {
+    rowsBefore: before,
+    rowsAfter: cleanedRows.length,
+    duplicatesRemoved,
+    nullsImputedBefore: nullsBefore,
+    nullsAfter,
+    noisyRowsFlagged: flaggedRows.size,
+    columnNamesNormalized: Object.entries(colMap).filter(([a, b]) => a !== b).length,
+  };
+
+  return { cleanedRows, cleanedColumns, profile };
 }
 
-export function normalizeNumericColumn(rows, colName, method = 'minmax') {
-  const vals = rows.map(r => Number(r[colName])).filter(n => !isNaN(n));
+export function applyNormalization(rows, colName, method = 'minmax') {
+  const vals = rows.map(r => Number(r[colName])).filter(v => !isNaN(v));
   if (!vals.length) return rows;
 
   if (method === 'minmax') {
     const min = Math.min(...vals);
     const max = Math.max(...vals);
     const range = max - min || 1;
-    return rows.map(r => {
-      const v = Number(r[colName]);
-      return { ...r, [`${colName}_normalized`]: isNaN(v) ? null : +((v - min) / range).toFixed(4) };
-    });
+    return rows.map(r => ({ ...r, [`${colName}_norm`]: +((Number(r[colName]) - min) / range).toFixed(4) }));
   }
 
   if (method === 'zscore') {
     const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
     const std = Math.sqrt(vals.reduce((a, b) => a + (b - mean) ** 2, 0) / vals.length) || 1;
-    return rows.map(r => {
-      const v = Number(r[colName]);
-      return { ...r, [`${colName}_zscore`]: isNaN(v) ? null : +((v - mean) / std).toFixed(4) };
-    });
+    return rows.map(r => ({ ...r, [`${colName}_z`]: +((Number(r[colName]) - mean) / std).toFixed(4) }));
   }
 
   return rows;
 }
 
-export function joinTables(leftRows, rightRows, leftKey, rightKey, columns, joinType = 'left') {
-  const rightIndex = {};
-  rightRows.forEach(row => {
-    const key = String(row[rightKey]);
-    if (!rightIndex[key]) rightIndex[key] = [];
-    rightIndex[key].push(row);
+export function vlookup(mainRows, lookupRows, keyCol, lookupKeyCol, returnCols) {
+  const lookupMap = {};
+  lookupRows.forEach(row => { lookupMap[String(row[lookupKeyCol])] = row; });
+  return mainRows.map(row => {
+    const match = lookupMap[String(row[keyCol])];
+    const extra = {};
+    if (match) returnCols.forEach(c => { extra[`lookup_${c}`] = match[c]; });
+    else returnCols.forEach(c => { extra[`lookup_${c}`] = null; });
+    return { ...row, ...extra };
   });
-
-  const result = [];
-  leftRows.forEach(leftRow => {
-    const key = String(leftRow[leftKey]);
-    const matches = rightIndex[key] || [];
-    if (matches.length > 0) {
-      matches.forEach(rightRow => {
-        const merged = { ...leftRow };
-        columns.forEach(col => { merged[`lookup_${col}`] = rightRow[col]; });
-        result.push(merged);
-      });
-    } else if (joinType === 'left') {
-      const merged = { ...leftRow };
-      columns.forEach(col => { merged[`lookup_${col}`] = null; });
-      result.push(merged);
-    }
-  });
-  return result;
 }
 
-export function pivotTable(rows, rowDimension, valueDimension, aggregation = 'sum') {
-  const groups = {};
+export function pivotTable(rows, rowDim, colDim, valueCol, aggFn = 'sum') {
+  const result = {};
+  const allColVals = new Set();
+
   rows.forEach(row => {
-    const key = String(row[rowDimension] || '');
-    const val = Number(row[valueDimension]);
-    if (!groups[key]) groups[key] = { _key: key, _vals: [], _count: 0 };
-    if (!isNaN(val)) { groups[key]._vals.push(val); groups[key]._count++; }
+    const rk = String(row[rowDim] || '');
+    const ck = String(row[colDim] || '');
+    const v = Number(row[valueCol]);
+    allColVals.add(ck);
+    if (!result[rk]) result[rk] = {};
+    if (!result[rk][ck]) result[rk][ck] = { sum: 0, count: 0, vals: [] };
+    if (!isNaN(v)) { result[rk][ck].sum += v; result[rk][ck].count++; result[rk][ck].vals.push(v); }
   });
 
-  return Object.values(groups).map(g => {
-    const sum = g._vals.reduce((a, b) => a + b, 0);
-    let value;
-    if (aggregation === 'sum') value = sum;
-    else if (aggregation === 'avg') value = g._vals.length ? sum / g._vals.length : 0;
-    else if (aggregation === 'count') value = g._count;
-    else if (aggregation === 'min') value = Math.min(...g._vals);
-    else if (aggregation === 'max') value = Math.max(...g._vals);
-    return { [rowDimension]: g._key, [valueDimension]: +value.toFixed(2), count: g._count };
-  }).sort((a, b) => b[valueDimension] - a[valueDimension]);
-}
-
-export function validateColumn(rows, colName, rule) {
-  const violations = [];
-  rows.forEach((row, i) => {
-    const v = row[colName];
-    if (rule.required && (v == null || v === '')) violations.push({ row: i, value: v, reason: 'required' });
-    if (rule.min != null && Number(v) < rule.min) violations.push({ row: i, value: v, reason: `below min ${rule.min}` });
-    if (rule.max != null && Number(v) > rule.max) violations.push({ row: i, value: v, reason: `above max ${rule.max}` });
-    if (rule.allowedValues?.length && !rule.allowedValues.includes(String(v))) violations.push({ row: i, value: v, reason: `not in allowed values` });
-    if (rule.pattern && !new RegExp(rule.pattern).test(String(v || ''))) violations.push({ row: i, value: v, reason: `pattern mismatch` });
+  const colHeaders = [...allColVals].sort();
+  const pivotRows = Object.entries(result).map(([rowKey, cols]) => {
+    const out = { [rowDim]: rowKey };
+    colHeaders.forEach(ck => {
+      const d = cols[ck] || { sum: 0, count: 0, vals: [] };
+      if (aggFn === 'sum') out[ck] = d.sum;
+      else if (aggFn === 'avg') out[ck] = d.count ? +(d.sum / d.count).toFixed(2) : 0;
+      else if (aggFn === 'count') out[ck] = d.count;
+      else out[ck] = d.sum;
+    });
+    return out;
   });
-  return violations;
-}
 
-/**
- * Full cleaning pipeline — mirrors Python clean_dataset
- */
-export function cleanDataset(rows, columns, options = {}) {
-  const originalCount = rows.length;
-  const log = [];
-
-  // Step 1: Normalize column names
-  const normalizedCols = standardizeColumns(columns);
-  const colNameMap = {};
-  columns.forEach((c, i) => { colNameMap[c.name] = normalizedCols[i].name; });
-  let cleanedRows = rows.map(row => {
-    const newRow = {};
-    Object.entries(row).forEach(([k, v]) => { newRow[normalizeColumnName(k)] = v; });
-    return newRow;
-  });
-  log.push('Column names normalized');
-
-  // Step 2: Trim strings
-  cleanedRows = trimStringValues(cleanedRows, normalizedCols);
-  log.push('String whitespace trimmed');
-
-  // Step 3: Remove exact duplicates
-  const { rows: dedupedRows, removed } = removeExactDuplicates(cleanedRows);
-  cleanedRows = dedupedRows;
-  if (removed > 0) log.push(`${removed} exact duplicates removed`);
-
-  // Step 4: Standardize dates
-  const dateCols = normalizedCols.filter(c => c.type === 'date').map(c => c.name);
-  cleanedRows = standardizeDates(cleanedRows, dateCols);
-  if (dateCols.length) log.push(`Dates standardized to ISO 8601 (${dateCols.join(', ')})`);
-
-  // Step 5: Impute nulls
-  const { rows: imputedRows, stats: imputeStats } = imputeNulls(cleanedRows, normalizedCols);
-  cleanedRows = imputedRows;
-  log.push('Null values imputed (median for numeric, mode for categorical)');
-
-  const profile = {
-    originalRows: originalCount,
-    cleanedRows: cleanedRows.length,
-    duplicatesRemoved: removed,
-    columnsNormalized: Object.keys(colNameMap).filter(k => k !== colNameMap[k]).length,
-    imputationStats: imputeStats,
-    steps: log,
-  };
-
-  return { rows: cleanedRows, columns: normalizedCols, profile };
+  return { pivotRows, colHeaders, rowDim };
 }

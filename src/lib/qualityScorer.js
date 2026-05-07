@@ -1,138 +1,100 @@
 /**
- * Quality Scorer — Weighted data quality formula
+ * qualityScorer.js — Weighted Data Quality Score
  * QS = 0.35×Completeness + 0.25×Validity + 0.20×Uniqueness + 0.10×Consistency + 0.10×Timeliness
  */
 
 export function computeQualityScore(rows = [], columns = []) {
-  if (!rows.length || !columns.length) return 0;
+  if (!rows.length || !columns.length) return { score: 0, breakdown: {} };
 
   const totalCells = rows.length * columns.length;
 
   // Completeness = 1 - missing_rate
   let missingCells = 0;
-  columns.forEach(col => {
-    rows.forEach(row => {
+  rows.forEach(row => {
+    columns.forEach(col => {
       const v = row[col.name];
-      if (v == null || v === '' || String(v).toLowerCase() === 'nan' || String(v).toLowerCase() === 'null') missingCells++;
+      if (v == null || v === '' || v === 'null' || v === 'undefined' || v === 'NaN') missingCells++;
     });
   });
   const completeness = 1 - (missingCells / totalCells);
 
-  // Validity = valid_format_cells / total_cells
+  // Validity = valid format cells / total cells
   let validCells = 0;
-  columns.forEach(col => {
-    rows.forEach(row => {
+  rows.forEach(row => {
+    columns.forEach(col => {
       const v = row[col.name];
+      if (v == null || v === '') return;
       if (col.type === 'numeric') {
-        if (!isNaN(Number(v)) && v != null && v !== '') validCells++;
+        if (!isNaN(Number(v))) validCells++;
       } else if (col.type === 'date') {
-        if (v && !isNaN(Date.parse(String(v)))) validCells++;
+        if (!isNaN(Date.parse(String(v)))) validCells++;
       } else {
-        if (v != null && v !== '') validCells++;
+        validCells++; // text/category always valid if present
       }
     });
   });
   const validity = validCells / totalCells;
 
   // Uniqueness = 1 - duplicate_rate
-  const rowStrings = rows.map(r => JSON.stringify(r));
-  const uniqueRows = new Set(rowStrings).size;
+  const rowHashes = rows.map(row => JSON.stringify(row));
+  const uniqueRows = new Set(rowHashes).size;
   const uniqueness = uniqueRows / rows.length;
 
-  // Consistency = standardized cells / total (proxy: no mixed types within a column)
-  let consistentCells = 0;
+  // Consistency = columns with standardized values / total columns
+  let consistentCols = 0;
   columns.forEach(col => {
-    rows.forEach(row => {
-      const v = row[col.name];
-      if (col.type === 'numeric' && !isNaN(Number(v)) && v != null) consistentCells++;
-      else if (col.type === 'category' && typeof v === 'string' && v.trim().length > 0) consistentCells++;
-      else if (col.type === 'date' && v != null) consistentCells++;
-      else if (col.type === 'text' || col.type === 'id') consistentCells++;
-    });
+    if (col.type === 'numeric') {
+      const vals = rows.map(r => r[col.name]).filter(v => v != null && v !== '');
+      const allNumeric = vals.every(v => !isNaN(Number(v)));
+      if (allNumeric) consistentCols++;
+    } else if (col.type === 'category') {
+      // Check casing consistency
+      const vals = rows.map(r => String(r[col.name] || '')).filter(Boolean);
+      const hasLower = vals.some(v => v === v.toLowerCase());
+      const hasUpper = vals.some(v => v === v.toUpperCase() && v.length > 1);
+      if (!hasLower || !hasUpper) consistentCols++; // consistent casing
+      else consistentCols += 0.5;
+    } else {
+      consistentCols++;
+    }
   });
-  const consistency = consistentCells / totalCells;
+  const consistency = consistentCols / columns.length;
 
-  // Timeliness = recent_records / total (if date column exists, else 1.0)
+  // Timeliness = recent_records / total (based on date column if present)
+  let timeliness = 0.8; // default if no date
   const dateCol = columns.find(c => c.type === 'date');
-  let timeliness = 1.0;
   if (dateCol) {
     const now = Date.now();
     const twoYearsAgo = now - 2 * 365 * 24 * 60 * 60 * 1000;
     const recentRows = rows.filter(r => {
-      const d = Date.parse(String(r[dateCol.name]));
+      const d = Date.parse(String(r[dateCol.name] || ''));
       return !isNaN(d) && d >= twoYearsAgo;
-    }).length;
-    timeliness = recentRows / rows.length;
+    });
+    timeliness = recentRows.length / rows.length;
   }
 
-  const score = (
-    0.35 * completeness +
-    0.25 * validity +
-    0.20 * uniqueness +
-    0.10 * consistency +
-    0.10 * timeliness
+  const score = Math.round(
+    (completeness * 0.35 + validity * 0.25 + uniqueness * 0.20 + consistency * 0.10 + timeliness * 0.10) * 100
   );
 
-  return Math.round(score * 100);
-}
-
-export function computeColumnProfile(rows = [], col) {
-  const values = rows.map(r => r[col.name]).filter(v => v != null && v !== '');
-  const missing = rows.length - values.length;
-  const missingPct = rows.length ? Math.round((missing / rows.length) * 100) : 0;
-  const unique = new Set(values.map(String)).size;
-
-  let mean = null, std = null, min = null, max = null, median = null;
-  if (col.type === 'numeric') {
-    const nums = values.map(Number).filter(n => !isNaN(n));
-    if (nums.length) {
-      mean = nums.reduce((a, b) => a + b, 0) / nums.length;
-      std = Math.sqrt(nums.reduce((a, b) => a + (b - mean) ** 2, 0) / nums.length);
-      min = Math.min(...nums);
-      max = Math.max(...nums);
-      const sorted = [...nums].sort((a, b) => a - b);
-      median = sorted[Math.floor(sorted.length / 2)];
-      mean = +mean.toFixed(2);
-      std = +std.toFixed(2);
-    }
-  } else {
-    const strs = values.map(String);
-    if (strs.length) { min = strs[0]; max = strs[strs.length - 1]; }
-  }
-
-  return { missingPct, uniqueCount: unique, nullCount: missing, mean, std, min, max, median, sampleValues: values.slice(0, 5).map(String) };
-}
-
-export function detectDuplicates(rows = []) {
-  const seen = {};
-  const dupes = [];
-  rows.forEach((row, i) => {
-    const key = JSON.stringify(row);
-    if (seen[key] !== undefined) dupes.push({ index: i, firstSeenAt: seen[key] });
-    else seen[key] = i;
-  });
-  return dupes;
-}
-
-export function generateCleaningReport(rows, columns, originalCount) {
-  const dupes = detectDuplicates(rows);
-  const missingByCol = {};
-  columns.forEach(col => {
-    const missing = rows.filter(r => r[col.name] == null || r[col.name] === '').length;
-    if (missing > 0) missingByCol[col.name] = missing;
-  });
-
   return {
-    originalRows: originalCount,
-    cleanedRows: rows.length,
-    duplicatesRemoved: originalCount - rows.length,
-    duplicatesFound: dupes.length,
-    missingValuesByColumn: missingByCol,
-    totalMissingCells: Object.values(missingByCol).reduce((a, b) => a + b, 0),
-    qualityScore: computeQualityScore(rows, columns),
-    recommendations: [
-      ...Object.entries(missingByCol).filter(([, v]) => v > rows.length * 0.1).map(([col]) => `Fill missing values in "${col}" (>${Math.round(missingByCol[col] / rows.length * 100)}% missing)`),
-      ...(dupes.length > 0 ? [`Remove ${dupes.length} duplicate rows`] : []),
-    ],
+    score: Math.min(100, Math.max(0, score)),
+    breakdown: {
+      completeness: Math.round(completeness * 100),
+      validity: Math.round(validity * 100),
+      uniqueness: Math.round(uniqueness * 100),
+      consistency: Math.round(consistency * 100),
+      timeliness: Math.round(timeliness * 100),
+    },
+    missingCells,
+      duplicateRows: rows.length - uniqueRows,
+    totalCells,
   };
+}
+
+export function getQualityLabel(score) {
+  if (score >= 90) return { label: 'Excellent', color: 'text-green-400', bg: 'bg-green-400/10', border: 'border-green-400/25' };
+  if (score >= 75) return { label: 'Good', color: 'text-teal-400', bg: 'bg-teal-400/10', border: 'border-teal-400/25' };
+  if (score >= 60) return { label: 'Fair', color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/25' };
+  return { label: 'Poor — Review Required', color: 'text-red-400', bg: 'bg-red-400/10', border: 'border-red-400/25' };
 }
