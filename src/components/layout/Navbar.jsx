@@ -42,8 +42,9 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-           <Link to="/" className="flex items-center">
+           <Link to="/" className="flex items-center gap-2.5">
              <OmniLogo size="sm" showText={false} />
+             <span className="text-sm font-semibold text-white">AI Analytics Tool</span>
            </Link>
 
           {/* Desktop nav */}
