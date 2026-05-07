@@ -1,0 +1,71 @@
+{
+  "name": "ForecastHistory",
+  "type": "object",
+  "properties": {
+    "tableName": {
+      "type": "string",
+      "title": "Dataset Name"
+    },
+    "primaryLabel": {
+      "type": "string",
+      "title": "Primary KPI"
+    },
+    "totalValue": {
+      "type": "number",
+      "title": "KPI Value at Snapshot"
+    },
+    "growthRate": {
+      "type": "number",
+      "title": "Growth Rate %"
+    },
+    "forecastSummary": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "title": "Forecast Data"
+    },
+    "actualSummary": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "title": "Actual Data"
+    },
+    "anomalyCount": {
+      "type": "number",
+      "title": "Anomaly Count"
+    },
+    "narrative": {
+      "type": "string",
+      "title": "AI Narrative Snapshot"
+    },
+    "scenarioBase": {
+      "type": "number",
+      "title": "Base Scenario End Value"
+    },
+    "scenarioBull": {
+      "type": "number",
+      "title": "Bull Scenario End Value"
+    },
+    "scenarioBear": {
+      "type": "number",
+      "title": "Bear Scenario End Value"
+    },
+    "qualityScore": {
+      "type": "number",
+      "title": "Quality Score"
+    },
+    "notes": {
+      "type": "string",
+      "title": "Analyst Notes"
+    },
+    "accuracy": {
+      "type": "number",
+      "title": "Forecast Accuracy %"
+    }
+  },
+  "required": [
+    "tableName"
+  ]
+}

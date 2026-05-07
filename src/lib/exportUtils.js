@@ -1,198 +1,307 @@
 /**
- * exportUtils.js — PDF and Excel export for AI analysis reports
+ * exportUtils — Professional PDF & CSV export utilities
+ * Uses jsPDF for PDF generation, built-in for CSV
  */
-import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
 
-// ─── Excel export ──────────────────────────────────────────────────
-export function exportToExcel({ messages, tableName, analysisResults }) {
-  const wb = XLSX.utils.book_new();
+const fmtV = v => {
+  if (v == null || isNaN(Number(v))) return String(v ?? '');
+  const n = Number(v);
+  if (Math.abs(n) >= 1e9) return `${(n / 1e9).toFixed(2)}B`;
+  if (Math.abs(n) >= 1e6) return `${(n / 1e6).toFixed(2)}M`;
+  if (Math.abs(n) >= 1e3) return `${(n / 1e3).toFixed(1)}K`;
+  return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+};
 
-  // Sheet 1: Analysis Q&A
-  const qaRows = [['Role', 'Content', 'Confidence', 'Methodology', 'Charts']];
-  messages.forEach(msg => {
-    qaRows.push([
-      msg.role === 'user' ? 'User' : 'AI Analyst',
-      msg.content?.replace(/[#*`]/g, '').slice(0, 32000) || '',
-      msg.confidence ? `${msg.confidence}%` : '',
-      msg.methodology || '',
-      msg.charts?.map(c => c.title).join('; ') || '',
-    ]);
+// ── CSV Export ───────────────────────────────────────────────────
+export function exportCSV(rows, columns, filename = 'export') {
+  const headers = columns.map(c => `"${c}"`).join(',');
+  const body = rows.map(row =>
+    columns.map(c => {
+      const val = String(row[c] ?? '');
+      return val.includes(',') || val.includes('"') ? `"${val.replace(/"/g, '""')}"` : val;
+    }).join(',')
+  ).join('\n');
+  const blob = new Blob([headers + '\n' + body], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${filename}_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Insights CSV Export ─────────────────────────────────────────
+export function exportInsightsCSV(analysisResults, tableName) {
+  const r = analysisResults;
+  const rows = [
+    ['section', 'field', 'value'],
+    ['Overview', 'Dataset', tableName || ''],
+    ['Overview', 'Primary KPI', r?.primaryLabel || ''],
+    ['Overview', 'KPI Value', fmtV(r?.totalValue)],
+    ['Overview', 'Growth Rate', r?.growthRate != null ? `${r.growthRate}%` : 'N/A'],
+    ['Overview', 'Anomaly Count', r?.anomalies?.length ?? 0],
+    ...(r?.breakdownData?.map(b => ['Segments', b.name, fmtV(b.value)]) || []),
+    ...(r?.recommendations?.map(rec => ['Recommendations', rec.priority, rec.action]) || []),
+    ...(r?.anomalies?.map(a => ['Anomalies', a.date || 'period', `value=${fmtV(a.value)} expected=${fmtV(a.expected)} severity=${a.severity}`]) || []),
+    ...(r?.correlations?.map(c => ['Correlations', `${c.colA} ↔ ${c.colB}`, `r=${c.r}`]) || []),
+  ];
+  exportCSV(rows.slice(1), rows[0], `${tableName || 'insights'}_insights`);
+}
+
+// ── Professional PDF Report ─────────────────────────────────────
+export function exportReportPDF(report, analysisResults, table) {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const r = analysisResults || {};
+  const pageW = 210, margin = 20, contentW = pageW - margin * 2;
+  let y = 20;
+
+  const addText = (text, opts = {}) => {
+    const { fontSize = 10, color = [40, 40, 60], bold = false, indent = 0 } = opts;
+    doc.setFontSize(fontSize);
+    doc.setTextColor(...color);
+    if (bold) doc.setFont('helvetica', 'bold');
+    else doc.setFont('helvetica', 'normal');
+    const lines = doc.splitTextToSize(String(text), contentW - indent);
+    if (y + lines.length * (fontSize * 0.4) > 270) { doc.addPage(); y = 20; }
+    doc.text(lines, margin + indent, y);
+    y += lines.length * (fontSize * 0.42) + 2;
+    return y;
+  };
+
+  const addDivider = (color = [220, 220, 235]) => {
+    doc.setDrawColor(...color);
+    doc.setLineWidth(0.3);
+    doc.line(margin, y, pageW - margin, y);
+    y += 4;
+  };
+
+  const addBox = (content, bgColor = [245, 247, 255], borderColor = [180, 180, 220]) => {
+    const lines = doc.splitTextToSize(content, contentW - 8);
+    const h = lines.length * 4.5 + 6;
+    if (y + h > 270) { doc.addPage(); y = 20; }
+    doc.setFillColor(...bgColor);
+    doc.setDrawColor(...borderColor);
+    doc.roundedRect(margin, y, contentW, h, 2, 2, 'FD');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(40, 40, 80);
+    doc.text(lines, margin + 4, y + 5);
+    y += h + 4;
+  };
+
+  // ── Header ──
+  doc.setFillColor(15, 23, 50);
+  doc.rect(0, 0, 210, 40, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(20);
+  doc.setTextColor(0, 220, 255);
+  doc.text(report?.label || report?.title || 'Analytics Report', margin, 18);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(160, 180, 210);
+  doc.text(`Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, margin, 26);
+  if (table?.name) doc.text(`Dataset: ${table.name}  |  Rows: ${table.rowCount?.toLocaleString()}  |  Quality: ${table.qualityScore}%`, margin, 32);
+  y = 50;
+
+  // ── KPI Strip ──
+  addText('KEY PERFORMANCE INDICATORS', { fontSize: 8, color: [100, 100, 140], bold: true });
+  y += 1;
+  const kpis = [
+    [r.primaryLabel || 'Primary KPI', fmtV(r.totalValue)],
+    ['Growth Rate', r.growthRate != null ? `${r.growthRate}%` : 'N/A'],
+    ['Anomalies', r.anomalies?.length ?? 0],
+    ['Quality Score', `${table?.qualityScore ?? '—'}%`],
+  ];
+  const colW = contentW / 4;
+  kpis.forEach(([label, value], i) => {
+    const x = margin + i * colW;
+    doc.setFillColor(240, 242, 255);
+    doc.roundedRect(x, y, colW - 2, 16, 1.5, 1.5, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(30, 30, 80);
+    doc.text(String(value), x + (colW - 2) / 2, y + 8, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(120, 120, 160);
+    doc.text(label, x + (colW - 2) / 2, y + 13, { align: 'center' });
   });
-  const wsQA = XLSX.utils.aoa_to_sheet(qaRows);
-  wsQA['!cols'] = [{ wch: 12 }, { wch: 80 }, { wch: 14 }, { wch: 30 }, { wch: 40 }];
-  XLSX.utils.book_append_sheet(wb, wsQA, 'AI Analysis');
+  y += 22;
+  addDivider();
 
-  // Sheet 2: Chart data (all charts from all messages)
-  const allCharts = messages.flatMap(m => m.charts || []);
-  if (allCharts.length > 0) {
-    allCharts.forEach((chart, idx) => {
-      if (!chart.data?.length) return;
-      const rows = [Object.keys(chart.data[0])];
-      chart.data.forEach(row => rows.push(Object.values(row)));
-      const ws = XLSX.utils.aoa_to_sheet(rows);
-      const sheetName = (chart.title || `Chart ${idx + 1}`).slice(0, 28);
-      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  // ── Report content ──
+  if (report?.content) {
+    addText('REPORT CONTENT', { fontSize: 8, color: [100, 100, 140], bold: true });
+    y += 1;
+    const paragraphs = report.content.split(/\n{2,}/).filter(Boolean);
+    paragraphs.forEach(para => {
+      const cleaned = para.replace(/#{1,4} /g, '').replace(/\*\*/g, '');
+      if (cleaned.match(/^[A-Z][A-Z\s]+$/)) {
+        addText(cleaned, { fontSize: 10, color: [30, 30, 80], bold: true });
+      } else {
+        addText(cleaned, { fontSize: 9, color: [60, 60, 90], indent: 2 });
+        y += 1;
+      }
     });
   }
 
-  // Sheet 3: Summary stats from analysisResults
-  if (analysisResults) {
-    const statsRows = [
-      ['Metric', 'Value'],
-      ['Dataset', tableName || ''],
-      ['Primary KPI', analysisResults.primaryLabel || ''],
-      ['Total Value', analysisResults.totalValue ?? ''],
-      ['Growth Rate', analysisResults.growthRate != null ? `${analysisResults.growthRate}%` : ''],
-      ['Anomalies Detected', analysisResults.anomalies?.length ?? 0],
-      [],
-      ['Executive Summary'],
-      [analysisResults.executiveSummary || ''],
-      [],
-      ['Key Findings'],
-      ...(analysisResults.keyFindings || []).map(f => [f]),
-      [],
-      ['Recommendations'],
-      ...(analysisResults.recommendations || []).map(r => [`[${r.priority?.toUpperCase()}] ${r.action}`]),
-    ];
-    const wsStats = XLSX.utils.aoa_to_sheet(statsRows);
-    wsStats['!cols'] = [{ wch: 24 }, { wch: 60 }];
-    XLSX.utils.book_append_sheet(wb, wsStats, 'Summary');
+  // ── Segments ──
+  if (r.breakdownData?.length) {
+    addDivider();
+    addText('TOP SEGMENTS', { fontSize: 8, color: [100, 100, 140], bold: true });
+    y += 1;
+    r.breakdownData.slice(0, 8).forEach((seg, i) => {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(50, 50, 80);
+      doc.text(`${i + 1}. ${seg.name}`, margin + 4, y);
+      doc.setFont('helvetica', 'bold');
+      doc.text(fmtV(seg.value), margin + contentW - 20, y, { align: 'right' });
+      y += 5;
+    });
   }
 
-  XLSX.writeFile(wb, `AI_Analysis_${tableName || 'Report'}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  // ── Recommendations ──
+  if (r.recommendations?.length) {
+    addDivider();
+    addText('STRATEGIC RECOMMENDATIONS', { fontSize: 8, color: [100, 100, 140], bold: true });
+    y += 1;
+    r.recommendations.forEach(rec => {
+      addBox(`[${(rec.priority || 'MED').toUpperCase()}] ${rec.action}`);
+    });
+  }
+
+  // ── Footer ──
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(160, 160, 180);
+    doc.text(`OmniData AI Analytics · ${report?.label || 'Report'} · Page ${i} of ${pageCount}`, pageW / 2, 290, { align: 'center' });
+  }
+
+  doc.save(`${(report?.label || report?.title || 'report').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`);
 }
 
-// ─── PDF export via print ──────────────────────────────────────────
-export function exportToPDF({ messages, tableName, analysisResults, savedCharts = [] }) {
-  const fmtV = (v) => {
-    if (v == null) return '—';
-    const n = Number(v);
-    if (!isNaN(n)) {
-      if (Math.abs(n) >= 1e6) return `${(n / 1e6).toFixed(1)}M`;
-      if (Math.abs(n) >= 1e3) return `${(n / 1e3).toFixed(0)}K`;
-      return n.toLocaleString();
-    }
-    return String(v);
-  };
+// ── Predictive Dashboard PDF ────────────────────────────────────
+export function exportPredictivePDF(analysisResults, table, narrative, scenarios) {
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const r = analysisResults || {};
+  const pageW = 297, pageH = 210, margin = 18, contentW = pageW - margin * 2;
+  let y = 20;
 
-  const kpis = analysisResults ? `
-    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:24px">
-      ${analysisResults.primaryLabel ? `<div style="background:#0a0f1e;border:1px solid #1e3a5f;border-radius:10px;padding:12px 18px;min-width:120px">
-        <div style="font-size:10px;color:#7dd3fc;text-transform:uppercase;letter-spacing:1px">${analysisResults.primaryLabel}</div>
-        <div style="font-size:22px;font-weight:900;color:#00e5ff;font-family:monospace">${fmtV(analysisResults.totalValue)}</div>
-      </div>` : ''}
-      ${analysisResults.growthRate != null ? `<div style="background:#0a0f1e;border:1px solid #1e3a5f;border-radius:10px;padding:12px 18px;min-width:120px">
-        <div style="font-size:10px;color:#7dd3fc;text-transform:uppercase;letter-spacing:1px">Growth Rate</div>
-        <div style="font-size:22px;font-weight:900;color:${Number(analysisResults.growthRate)>=0?'#4caf50':'#f44336'};font-family:monospace">${Number(analysisResults.growthRate)>=0?'+':''}${analysisResults.growthRate}%</div>
-      </div>` : ''}
-      ${analysisResults.anomalies?.length > 0 ? `<div style="background:#0a0f1e;border:1px solid #1e3a5f;border-radius:10px;padding:12px 18px;min-width:120px">
-        <div style="font-size:10px;color:#7dd3fc;text-transform:uppercase;letter-spacing:1px">Anomalies</div>
-        <div style="font-size:22px;font-weight:900;color:#ff6b35;font-family:monospace">${analysisResults.anomalies.length}</div>
-      </div>` : ''}
-    </div>
-  ` : '';
+  // Header
+  doc.setFillColor(15, 23, 50);
+  doc.rect(0, 0, pageW, 38, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(22);
+  doc.setTextColor(168, 85, 247);
+  doc.text('Predictive Insights Dashboard', margin, 18);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(160, 180, 210);
+  doc.text(`${table?.name || 'Dataset'}  ·  Generated ${new Date().toLocaleDateString()}`, margin, 28);
+  doc.text(`${table?.rowCount?.toLocaleString() || 0} rows  ·  Quality: ${table?.qualityScore || 0}%  ·  Growth: ${r.growthRate != null ? `${r.growthRate}%` : 'N/A'}`, margin, 34);
+  y = 46;
 
-  const conversationHtml = messages.map(msg => {
-    if (msg.role === 'user') {
-      return `<div style="margin:12px 0;padding:10px 14px;background:#0d1a2a;border-left:3px solid #00e5ff;border-radius:6px;font-size:13px;color:#94a3b8"><strong style="color:#e2e8f0">Q:</strong> ${msg.content}</div>`;
-    }
-    const chartTables = (msg.charts || []).map(chart => {
-      if (!chart.data?.length) return '';
-      const headers = Object.keys(chart.data[0]);
-      return `
-        <div style="margin:10px 0">
-          <div style="font-size:10px;color:#00e5ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">${chart.title || 'Chart Data'}</div>
-          <table style="width:100%;border-collapse:collapse;font-size:11px">
-            <thead><tr>${headers.map(h => `<th style="padding:5px 8px;background:#0d1a2a;border:1px solid #1e3a5f;color:#7dd3fc;text-align:left">${h}</th>`).join('')}</tr></thead>
-            <tbody>${chart.data.slice(0, 20).map(row =>
-              `<tr>${headers.map(h => `<td style="padding:5px 8px;border:1px solid #0f1f35;color:#cbd5e1">${row[h] ?? ''}</td>`).join('')}</tr>`
-            ).join('')}</tbody>
-          </table>
-        </div>`;
-    }).join('');
+  // KPI row
+  const kpis = [
+    { label: r.primaryLabel || 'KPI', val: fmtV(r.totalValue), color: [168, 85, 247] },
+    { label: 'Growth Rate', val: r.growthRate != null ? `${r.growthRate}%` : '—', color: r.growthRate >= 0 ? [74, 222, 128] : [248, 113, 113] },
+    { label: 'Forecast Periods', val: r.forecastData?.length || 0, color: [0, 229, 255] },
+    { label: 'Anomalies', val: r.anomalies?.length || 0, color: r.anomalies?.length ? [251, 146, 60] : [74, 222, 128] },
+    { label: 'Trend Periods', val: r.trendData?.length || 0, color: [147, 197, 253] },
+  ];
+  const kpiW = contentW / kpis.length;
+  kpis.forEach(({ label, val, color }, i) => {
+    const x = margin + i * kpiW;
+    doc.setFillColor(245, 242, 255);
+    doc.roundedRect(x, y, kpiW - 3, 18, 2, 2, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(...color);
+    doc.text(String(val), x + (kpiW - 3) / 2, y + 8, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(100, 100, 140);
+    doc.text(label, x + (kpiW - 3) / 2, y + 14, { align: 'center' });
+  });
+  y += 25;
 
-    const cleanContent = (msg.content || '')
-      .replace(/^##\s+(.+)$/gm, '<h3 style="color:#00e5ff;font-size:13px;margin:10px 0 4px">$1</h3>')
-      .replace(/^###\s+(.+)$/gm, '<h4 style="color:#7dd3fc;font-size:12px;margin:8px 0 3px">$1</h4>')
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/`([^`]+)`/g, '<code style="background:#0d1a2a;padding:1px 4px;border-radius:3px;font-family:monospace;color:#a5f3fc">$1</code>')
-      .replace(/^[-*]\s+(.+)$/gm, '<li style="margin:2px 0;color:#cbd5e1">$1</li>')
-      .replace(/\n\n/g, '</p><p style="color:#cbd5e1;margin:6px 0">');
+  // Narrative
+  if (narrative) {
+    doc.setFillColor(248, 245, 255);
+    doc.setDrawColor(168, 85, 247);
+    doc.setLineWidth(0.5);
+    const narLines = doc.splitTextToSize(narrative, contentW - 8);
+    const narH = Math.min(narLines.length * 4.2 + 8, 50);
+    doc.roundedRect(margin, y, contentW, narH, 2, 2, 'FD');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(100, 50, 160);
+    doc.text('AI FORECAST NARRATIVE', margin + 4, y + 5);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(60, 40, 90);
+    const bodyLines = doc.splitTextToSize(narrative, contentW - 10);
+    doc.text(bodyLines.slice(0, Math.floor((narH - 10) / 4.2)), margin + 4, y + 10);
+    y += narH + 6;
+  }
 
-    return `
-      <div style="margin:12px 0;padding:14px;background:#080e1c;border:1px solid #1a2a40;border-radius:8px">
-        <div style="font-size:12px;color:#cbd5e1;line-height:1.6">${cleanContent}</div>
-        ${msg.confidence ? `<div style="margin-top:8px;font-size:10px;color:#4ade80">Confidence: ${msg.confidence}% · ${msg.methodology || ''}</div>` : ''}
-        ${chartTables}
-      </div>`;
-  }).join('');
+  // Scenarios
+  if (scenarios) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 140);
+    doc.text('SCENARIO ANALYSIS', margin, y);
+    y += 5;
+    const scenW = contentW / 3;
+    [
+      { label: 'Base Case', color: [168, 85, 247], end: scenarios.base?.[scenarios.base.length - 1]?.value, note: 'Current trend' },
+      { label: 'Bull Case (+20%)', color: [74, 222, 128], end: scenarios.bull?.[scenarios.bull.length - 1]?.value, note: 'Optimistic' },
+      { label: 'Bear Case (−20%)', color: [248, 113, 113], end: scenarios.bear?.[scenarios.bear.length - 1]?.value, note: 'Conservative' },
+    ].forEach(({ label, color, end, note }, i) => {
+      const x = margin + i * scenW;
+      doc.setFillColor(248, 248, 255);
+      doc.roundedRect(x, y, scenW - 3, 18, 2, 2, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(...color);
+      doc.text(fmtV(end), x + (scenW - 3) / 2, y + 8, { align: 'center' });
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(100, 100, 130);
+      doc.text(`${label} · ${note}`, x + (scenW - 3) / 2, y + 14, { align: 'center' });
+    });
+    y += 24;
+  }
 
-  const html = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>AI Analysis Report — ${tableName || 'Dataset'}</title>
-  <style>
-    @page { margin: 20mm 15mm; size: A4; }
-    body { font-family: 'Segoe UI', Arial, sans-serif; background: #060c18; color: #e2e8f0; margin: 0; padding: 20px; font-size: 13px; }
-    h1 { color: #00e5ff; font-size: 22px; border-bottom: 2px solid #00e5ff33; padding-bottom: 8px; }
-    h2 { color: #7dd3fc; font-size: 15px; margin-top: 24px; border-bottom: 1px solid #1e3a5f; padding-bottom: 4px; }
-    .meta { font-size: 11px; color: #64748b; margin-bottom: 20px; }
-    table { page-break-inside: avoid; }
-    li { margin: 3px 0; }
-  </style>
-</head>
-<body>
-  <h1>🤖 AI Analysis Report</h1>
-  <div class="meta">Dataset: <strong style="color:#00e5ff">${tableName || 'Unknown'}</strong> · Generated: ${new Date().toLocaleString()} · AI Analyst Platform</div>
+  // Anomalies
+  if (r.anomalies?.length) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 140);
+    doc.text(`ANOMALY REGISTER (${r.anomalies.length} detected)`, margin, y);
+    y += 5;
+    r.anomalies.slice(0, 5).forEach(a => {
+      const isHigh = a.severity === 'high';
+      doc.setFillColor(isHigh ? 255 : 255, isHigh ? 245 : 250, isHigh ? 245 : 230);
+      doc.roundedRect(margin, y, contentW, 7, 1, 1, 'F');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(60, 30, 30);
+      doc.text(`${a.date || '—'}  Actual: ${fmtV(a.value)}  Expected: ${fmtV(a.expected)}  z=${a.zScore}σ  [${(a.severity || '').toUpperCase()}]`, margin + 3, y + 4.5);
+      y += 9;
+    });
+  }
 
-  ${kpis}
+  // Footer
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(160, 160, 190);
+  doc.text('OmniData AI · Predictive Insights Dashboard · Confidential', pageW / 2, pageH - 6, { align: 'center' });
 
-  ${analysisResults?.executiveSummary ? `<h2>Executive Summary</h2><p style="color:#94a3b8;line-height:1.7">${analysisResults.executiveSummary}</p>` : ''}
-
-  <h2>AI Analysis Conversation</h2>
-  ${conversationHtml || '<p style="color:#64748b">No analysis performed yet.</p>'}
-
-  ${analysisResults?.recommendations?.length ? `
-  <h2>Recommendations</h2>
-  <table style="width:100%;border-collapse:collapse;font-size:12px">
-    <thead><tr>
-      <th style="padding:6px 10px;background:#0d1a2a;border:1px solid #1e3a5f;color:#7dd3fc;text-align:left">Priority</th>
-      <th style="padding:6px 10px;background:#0d1a2a;border:1px solid #1e3a5f;color:#7dd3fc;text-align:left">Action</th>
-    </tr></thead>
-    <tbody>${analysisResults.recommendations.map(r => `
-      <tr>
-        <td style="padding:5px 10px;border:1px solid #0f1f35;color:${r.priority==='high'||r.priority==='critical'?'#f87171':'#fbbf24'};font-weight:600;text-transform:uppercase;font-size:10px">${r.priority}</td>
-        <td style="padding:5px 10px;border:1px solid #0f1f35;color:#cbd5e1">${r.action}</td>
-      </tr>`).join('')}
-    </tbody>
-  </table>` : ''}
-
-  ${savedCharts.length ? `
-  <h2>Saved Dashboard Charts — Data Tables</h2>
-  ${savedCharts.map(sc => {
-    if (!sc.chart?.data?.length) return '';
-    const headers = Object.keys(sc.chart.data[0]);
-    return `
-      <div style="margin:12px 0;page-break-inside:avoid">
-        <div style="font-size:11px;color:#00e5ff;font-weight:700;margin-bottom:4px">${sc.label || sc.chart.title || 'Chart'}</div>
-        <table style="width:100%;border-collapse:collapse;font-size:11px">
-          <thead><tr>${headers.map(h => `<th style="padding:5px 8px;background:#0d1a2a;border:1px solid #1e3a5f;color:#7dd3fc;text-align:left">${h}</th>`).join('')}</tr></thead>
-          <tbody>${sc.chart.data.slice(0, 25).map(row =>
-            `<tr>${headers.map(h => `<td style="padding:4px 8px;border:1px solid #0f1f35;color:#cbd5e1">${row[h] ?? ''}</td>`).join('')}</tr>`
-          ).join('')}</tbody>
-        </table>
-      </div>`;
-  }).join('')}` : ''}
-
-  <div style="margin-top:32px;padding-top:12px;border-top:1px solid #1e3a5f;font-size:10px;color:#475569">
-    AI Agent Data Analytics Tool · Report generated ${new Date().toLocaleString()}
-  </div>
-</body>
-</html>`;
-
-  const win = window.open('', '_blank');
-  win.document.write(html);
-  win.document.close();
-  setTimeout(() => win.print(), 400);
+  doc.save(`predictive_insights_${table?.name || 'dashboard'}_${new Date().toISOString().slice(0, 10)}.pdf`);
 }

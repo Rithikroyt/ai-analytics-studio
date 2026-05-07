@@ -1,0 +1,75 @@
+{
+  "name": "MetricAlert",
+  "type": "object",
+  "properties": {
+    "metricName": {
+      "type": "string",
+      "title": "Metric Name"
+    },
+    "tableName": {
+      "type": "string",
+      "title": "Dataset"
+    },
+    "condition": {
+      "type": "string",
+      "enum": [
+        "above",
+        "below",
+        "change_pct"
+      ],
+      "title": "Condition"
+    },
+    "threshold": {
+      "type": "number",
+      "title": "Threshold Value"
+    },
+    "currentValue": {
+      "type": "number",
+      "title": "Current Value"
+    },
+    "baselineValue": {
+      "type": "number",
+      "title": "Baseline Value"
+    },
+    "deviation": {
+      "type": "number",
+      "title": "Deviation %"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "info",
+        "warning",
+        "critical"
+      ],
+      "default": "warning"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "triggered",
+        "resolved",
+        "snoozed"
+      ],
+      "default": "active"
+    },
+    "userEmail": {
+      "type": "string",
+      "title": "Subscriber Email"
+    },
+    "message": {
+      "type": "string",
+      "title": "Alert Message"
+    },
+    "triggeredAt": {
+      "type": "string",
+      "title": "Triggered At"
+    }
+  },
+  "required": [
+    "metricName",
+    "condition",
+    "threshold"
+  ]
+}

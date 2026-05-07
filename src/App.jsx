@@ -19,6 +19,8 @@ import Integrations from '@/pages/Integrations';
 import DataMapping from '@/pages/DataMapping';
 import Reports from '@/pages/Reports';
 import Collaboration from '@/pages/Collaboration';
+import PredictiveInsights from '@/pages/PredictiveInsights';
+import ForecastHub from '@/pages/ForecastHub';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -59,6 +61,8 @@ const AuthenticatedApp = () => {
         <Route path="/data-mapping" element={<DataMapping />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/collaboration" element={<Collaboration />} />
+        <Route path="/predictive" element={<PredictiveInsights />} />
+        <Route path="/forecast-hub" element={<ForecastHub />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </>
