@@ -12,9 +12,10 @@ import RFMSection from '@/components/workspace/RFMSection';
 import FunnelSection from '@/components/workspace/FunnelSection';
 import DataPrepStudio from '@/components/workspace/DataPrepStudio';
 import ContributionAnalysis from '@/components/workspace/ContributionAnalysis';
+import PythonScriptLab from '@/components/workbench/PythonScriptLab';
 import {
   Terminal, FlaskConical, Users, Filter, Scissors, Target,
-  ChevronLeft, Database, Zap
+  ChevronLeft, Database, Zap, Code2
 } from 'lucide-react';
 
 const TABS = [
@@ -24,6 +25,7 @@ const TABS = [
   { id: 'funnel',       label: 'Funnel Analysis',    icon: Filter,        color: 'text-teal-400',   desc: 'Conversion & drop-off' },
   { id: 'dataprep',     label: 'Data Prep',          icon: Scissors,      color: 'text-amber-400',  desc: 'Clean, normalize, pivot, join' },
   { id: 'contribution', label: 'Contribution',       icon: Target,        color: 'text-purple-400', desc: 'KPI driver & segment attribution' },
+  { id: 'python',       label: 'Python Lab',         icon: Code2,         color: 'text-blue-400',   desc: 'pandas-style script executor' },
 ];
 
 const SECTION_MAP = {
@@ -33,6 +35,7 @@ const SECTION_MAP = {
   funnel: FunnelSection,
   dataprep: DataPrepStudio,
   contribution: ContributionAnalysis,
+  python: PythonScriptLab,
 };
 
 export default function Workbench() {
@@ -56,7 +59,7 @@ export default function Workbench() {
             </div>
             <div>
               <h1 className="text-lg font-bold">Analytics Workbench</h1>
-              <p className="text-xs text-muted-foreground">SQL · Statistics · RFM · Funnel · Data Prep · Contribution</p>
+              <p className="text-xs text-muted-foreground">SQL · Statistics · RFM · Funnel · Data Prep · Contribution · Python Lab</p>
             </div>
           </div>
           <div className="flex items-center gap-2 text-xs text-white/30">
