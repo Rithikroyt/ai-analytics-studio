@@ -1,0 +1,39 @@
+{
+  "name": "ReportComment",
+  "type": "object",
+  "properties": {
+    "reportId": {
+      "type": "string",
+      "title": "Report ID"
+    },
+    "text": {
+      "type": "string",
+      "title": "Comment Text"
+    },
+    "authorName": {
+      "type": "string",
+      "title": "Author Name"
+    },
+    "authorEmail": {
+      "type": "string",
+      "title": "Author Email"
+    },
+    "parentId": {
+      "type": "string",
+      "title": "Parent Comment ID"
+    },
+    "resolved": {
+      "type": "boolean",
+      "default": false,
+      "title": "Resolved"
+    },
+    "reaction": {
+      "type": "string",
+      "title": "Reaction"
+    }
+  },
+  "required": [
+    "reportId",
+    "text"
+  ]
+}

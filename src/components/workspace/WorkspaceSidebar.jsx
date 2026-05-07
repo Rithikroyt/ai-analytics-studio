@@ -97,6 +97,8 @@ export default function WorkspaceSidebar({ collapsed, onToggle }) {
             to: '/alerts', icon: Bell, label: 'Alerts', color: 'text-amber-400'
           }, {
             to: '/integrations', icon: Link2, label: 'Integrations', color: 'text-cyan-400'
+          }, {
+            to: '/collaboration', icon: Users, label: 'Collaborate', color: 'text-teal-400'
           }].map(link => (
             collapsed ? (
               <Link key={link.to} to={link.to} title={link.label}

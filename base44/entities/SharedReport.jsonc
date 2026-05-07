@@ -1,0 +1,85 @@
+{
+  "name": "SharedReport",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "title": "Report Title"
+    },
+    "description": {
+      "type": "string",
+      "title": "Description"
+    },
+    "reportType": {
+      "type": "string",
+      "title": "Report Type",
+      "enum": [
+        "executive",
+        "board",
+        "kpi_trend",
+        "anomaly",
+        "forecast",
+        "quality",
+        "feedback",
+        "custom"
+      ]
+    },
+    "content": {
+      "type": "string",
+      "title": "Report Content"
+    },
+    "dataSnapshot": {
+      "type": "object",
+      "title": "Data Snapshot"
+    },
+    "accessLevel": {
+      "type": "string",
+      "title": "Access Level",
+      "enum": [
+        "view",
+        "comment",
+        "edit"
+      ],
+      "default": "view"
+    },
+    "invitedEmails": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Invited Emails"
+    },
+    "shareToken": {
+      "type": "string",
+      "title": "Share Token"
+    },
+    "isPublic": {
+      "type": "boolean",
+      "title": "Public Link",
+      "default": false
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "archived"
+      ],
+      "default": "active"
+    },
+    "tableName": {
+      "type": "string",
+      "title": "Source Dataset"
+    },
+    "qualityScore": {
+      "type": "number",
+      "title": "Quality Score"
+    },
+    "kpiValue": {
+      "type": "string",
+      "title": "Primary KPI"
+    }
+  },
+  "required": [
+    "title"
+  ]
+}

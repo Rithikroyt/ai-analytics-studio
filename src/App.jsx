@@ -18,6 +18,7 @@ import Alerts from '@/pages/Alerts';
 import Integrations from '@/pages/Integrations';
 import DataMapping from '@/pages/DataMapping';
 import Reports from '@/pages/Reports';
+import Collaboration from '@/pages/Collaboration';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -57,6 +58,7 @@ const AuthenticatedApp = () => {
         <Route path="/integrations" element={<Integrations />} />
         <Route path="/data-mapping" element={<DataMapping />} />
         <Route path="/reports" element={<Reports />} />
+        <Route path="/collaboration" element={<Collaboration />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </>
