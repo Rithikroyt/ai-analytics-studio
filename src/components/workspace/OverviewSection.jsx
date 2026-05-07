@@ -6,7 +6,7 @@ import {
   CheckCircle2, AlertTriangle, Loader2,
   Activity, Upload, Layers, GitBranch,
   Bot, PieChart, Link2, Wand2, TrendingUp,
-  Sparkles, ArrowRight, Shield, Terminal
+  Sparkles, ArrowRight, Shield, Terminal, FlaskConical
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import KPIStrip from '@/components/workspace/KPIStrip';
@@ -176,7 +176,8 @@ export default function OverviewSection() {
           { to: '/dashboards', icon: PieChart, label: 'Dashboards', color: 'text-cyan-400' },
           { to: '/story-builder', icon: FileText, label: 'Story Builder', color: 'text-purple-400' },
           { to: '/alerts', icon: Activity, label: 'Alerts', color: 'text-amber-400' },
-          { to: '/integrations', icon: Link2, label: 'Integrations', color: 'text-cyan-400' },
+          { to: '/workbench', icon: Zap, label: 'Workbench', color: 'text-cyan-400' },
+      { to: '/integrations', icon: Link2, label: 'Integrations', color: 'text-cyan-400' },
           { to: '/data-mapping', icon: Wand2, label: 'Data Mapping', color: 'text-purple-400' },
           { to: '/reports', icon: FileText, label: 'Reports', color: 'text-blue-400' },
         ].map(link => (

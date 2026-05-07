@@ -12,9 +12,10 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import {
-  BarChart, Bar, AreaChart, Area,
+  BarChart, Bar, AreaChart, Area, ComposedChart,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart as RPieChart, Pie, Cell, ScatterChart, Scatter as RScatter
+  PieChart as RPieChart, Pie, Cell, ScatterChart, Scatter as RScatter,
+  ReferenceLine, ErrorBar
 } from 'recharts';
 
 const PALETTE = ['#00e5ff', '#a855f7', '#ff6b35', '#4caf50', '#ff2d7a', '#ffcc02', '#00bfa5', '#e91e63'];
@@ -22,12 +23,14 @@ const TOOLTIP_STYLE = { backgroundColor: 'rgba(5,10,24,0.97)', border: '1px soli
 const axisStyle = { fontSize: 9, fill: 'rgba(255,255,255,0.3)' };
 
 const CHART_TYPES = [
-  { id: 'bar', label: 'Bar', icon: BarChart2, desc: 'Compare categories' },
-  { id: 'line_area', label: 'Line/Area', icon: TrendingUp, desc: 'Trends over time' },
-  { id: 'donut', label: 'Donut', icon: PieChart, desc: 'Composition share' },
-  { id: 'scatter', label: 'Scatter', icon: Activity, desc: 'Correlation' },
-  { id: 'histogram', label: 'Histogram', icon: Layers, desc: 'Distribution' },
-  { id: 'metric_card', label: 'KPI Card', icon: Target, desc: 'Single metric' },
+  { id: 'bar',         label: 'Bar',        icon: BarChart2, desc: 'Compare categories' },
+  { id: 'line_area',   label: 'Line/Area',  icon: TrendingUp, desc: 'Trends over time' },
+  { id: 'donut',       label: 'Donut',      icon: PieChart, desc: 'Composition share' },
+  { id: 'scatter',     label: 'Scatter',    icon: Activity, desc: 'Correlation' },
+  { id: 'histogram',   label: 'Histogram',  icon: Layers, desc: 'Distribution' },
+  { id: 'metric_card', label: 'KPI Card',   icon: Target, desc: 'Single metric' },
+  { id: 'box_plot',    label: 'Box Plot',   icon: Layers, desc: 'Quartile spread' },
+  { id: 'waterfall',   label: 'Waterfall',  icon: BarChart2, desc: 'Cumulative change' },
 ];
 
 const AGGREGATIONS = ['sum', 'avg', 'count', 'min', 'max'];
@@ -42,6 +45,44 @@ const fmtV = v => {
 
 function buildChartData(rows, xCol, yCol, aggFn, chartType) {
   if (!rows?.length) return [];
+
+  if (chartType === 'box_plot' && yCol) {
+    // Compute per-group box stats
+    const groups = xCol ? {} : { 'All': [] };
+    rows.forEach(r => {
+      const key = xCol ? String(r[xCol] ?? 'Unknown') : 'All';
+      const val = Number(r[yCol]);
+      if (!isNaN(val)) {
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(val);
+      }
+    });
+    return Object.entries(groups).slice(0, 12).map(([name, vals]) => {
+      if (!vals.length) return null;
+      const sorted = [...vals].sort((a, b) => a - b);
+      const q1 = sorted[Math.floor(sorted.length * 0.25)];
+      const median = sorted[Math.floor(sorted.length * 0.5)];
+      const q3 = sorted[Math.floor(sorted.length * 0.75)];
+      const iqr = q3 - q1;
+      return { name, min: sorted[0], q1, median, q3, max: sorted[sorted.length - 1], iqr: Math.round(iqr * 100) / 100 };
+    }).filter(Boolean);
+  }
+
+  if (chartType === 'waterfall' && yCol) {
+    // Cumulative waterfall by group
+    const groups = {};
+    rows.forEach(r => {
+      const key = xCol ? String(r[xCol] ?? 'Unknown') : String(r[yCol] ?? '');
+      const val = Number(r[yCol]) || 0;
+      groups[key] = (groups[key] || 0) + val;
+    });
+    let cumulative = 0;
+    return Object.entries(groups).slice(0, 15).map(([name, value]) => {
+      const start = cumulative;
+      cumulative += value;
+      return { name, value: Math.round(value), start: Math.round(start), end: Math.round(cumulative), positive: value >= 0 };
+    });
+  }
 
   if (chartType === 'histogram' && yCol) {
     const vals = rows.map(r => Number(r[yCol])).filter(v => !isNaN(v));
@@ -173,6 +214,75 @@ function ChartPreview({ type, data, xCol, yCol, color }) {
       </BarChart>
     </ResponsiveContainer>
   );
+
+  if (type === 'box_plot') {
+    if (!data?.length) return <div className="flex items-center justify-center h-48 text-white/20 text-sm">Need x and y columns for box plot</div>;
+    return (
+      <div className="overflow-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="border-b border-white/8">
+              {['Group', 'Min', 'Q1', 'Median', 'Q3', 'Max', 'IQR'].map(h => (
+                <th key={h} className="px-3 py-2 text-left text-white/35 font-medium">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((d, i) => (
+              <tr key={i} className="border-b border-white/5 hover:bg-white/2">
+                <td className="px-3 py-2 font-semibold text-white/70">{d.name}</td>
+                <td className="px-3 py-2 font-mono text-white/45">{fmtV(d.min)}</td>
+                <td className="px-3 py-2 font-mono text-blue-400">{fmtV(d.q1)}</td>
+                <td className="px-3 py-2 font-mono text-cyan-400 font-bold">{fmtV(d.median)}</td>
+                <td className="px-3 py-2 font-mono text-blue-400">{fmtV(d.q3)}</td>
+                <td className="px-3 py-2 font-mono text-white/45">{fmtV(d.max)}</td>
+                <td className="px-3 py-2 font-mono text-purple-400">{fmtV(d.iqr)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="mt-3 space-y-2 px-2">
+          {data.slice(0, 8).map((d, i) => {
+            const range = (d.max - d.min) || 1;
+            return (
+              <div key={i} className="flex items-center gap-2 text-xs">
+                <span className="w-20 truncate text-white/40">{d.name}</span>
+                <div className="flex-1 relative h-4">
+                  <div className="absolute inset-y-0 rounded" style={{
+                    left: `${((d.q1 - d.min) / range) * 100}%`,
+                    right: `${((d.max - d.q3) / range) * 100}%`,
+                    background: `${stroke}40`, border: `1px solid ${stroke}80`
+                  }} />
+                  <div className="absolute inset-y-0 w-0.5" style={{ left: `${((d.median - d.min) / range) * 100}%`, background: stroke }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  if (type === 'waterfall') {
+    if (!data?.length) return <div className="flex items-center justify-center h-48 text-white/20 text-sm">Configure x/y for waterfall</div>;
+    const allVals = data.flatMap(d => [d.start, d.end]);
+    const minVal = Math.min(...allVals);
+    const maxVal = Math.max(...allVals);
+    return (
+      <ResponsiveContainer width="100%" height={240}>
+        <ComposedChart data={data} margin={{ top: 4, right: 8, bottom: 20, left: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+          <XAxis dataKey="name" tick={axisStyle} tickLine={false} axisLine={false} interval="preserveStartEnd" angle={-20} textAnchor="end" />
+          <YAxis tick={axisStyle} tickFormatter={fmtV} tickLine={false} axisLine={false} width={40} domain={[minVal * 0.95, maxVal * 1.05]} />
+          <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v, n) => [fmtV(v), n === 'value' ? 'Change' : n]} />
+          <Bar dataKey="start" stackId="a" fill="transparent" />
+          <Bar dataKey="value" stackId="a" radius={[3, 3, 0, 0]}>
+            {data.map((d, i) => <Cell key={i} fill={d.positive ? '#4caf50' : '#f87171'} fillOpacity={0.85} />)}
+          </Bar>
+        </ComposedChart>
+      </ResponsiveContainer>
+    );
+  }
 
   if (type === 'metric_card') {
     const total = data.reduce((s, d) => s + d.value, 0);

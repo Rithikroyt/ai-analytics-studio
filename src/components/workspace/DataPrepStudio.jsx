@@ -11,6 +11,7 @@ import {
   Database, Wand2, RefreshCw, CheckCircle2, AlertTriangle, Download,
   ArrowRight, Hash, Filter, BarChart3, GitMerge, Table2, Shield, Loader2, Info
 } from 'lucide-react';
+import PythonPreviewPanel from '@/components/workspace/PythonPreviewPanel';
 
 const fmtV = v => { if (v == null || isNaN(v)) return '—'; const n = Number(v); if (n >= 1e6) return `${(n/1e6).toFixed(1)}M`; if (n >= 1e3) return `${(n/1e3).toFixed(0)}K`; return n.toLocaleString(undefined, { maximumFractionDigits: 1 }); };
 
@@ -205,6 +206,7 @@ export default function DataPrepStudio() {
                   )}
                 </motion.div>
               )}
+              <PythonPreviewPanel table={table} cleanProfile={cleanProfile} />
             </div>
           )}
 

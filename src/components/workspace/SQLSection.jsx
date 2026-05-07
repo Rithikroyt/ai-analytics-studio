@@ -42,13 +42,20 @@ const EXAMPLE_QUERIES = [
 
 const SQL_TEMPLATES = [
   { id: 'top_n_revenue',        label: 'Top 10 by Revenue',           desc: 'Rank records by total value' },
-  { id: 'monthly_trend',        label: 'Monthly Trend',               desc: 'Aggregate KPI by month' },
+  { id: 'monthly_trend',        label: 'Monthly Revenue Trend',       desc: 'Aggregate KPI by month' },
   { id: 'by_segment',           label: 'KPI by Segment',              desc: 'SUM and AVG by category' },
-  { id: 'avg_by_segment',       label: 'Avg Value by Segment',        desc: 'Average order value pattern' },
+  { id: 'avg_by_segment',       label: 'Avg Order Value by Segment',  desc: 'AOV pattern analysis' },
   { id: 'null_audit',           label: 'Null Audit',                  desc: 'Count nulls per column' },
   { id: 'duplicate_detection',  label: 'Duplicate Detection',         desc: 'Find repeated rows' },
-  { id: 'percentile_distribution', label: 'Percentiles',             desc: 'P25/P50/P75/P95 distribution' },
+  { id: 'percentile_distribution', label: 'Percentile Distribution', desc: 'P25/P50/P75/P95' },
   { id: 'segment_comparison',   label: 'Segment Over Time',           desc: 'Trend by segment + date' },
+  { id: 'funnel_conversion',    label: 'Funnel Conversion by Stage',  desc: 'Users at each funnel stage' },
+  { id: 'retention_cohort',     label: 'Monthly Retention Cohort',    desc: 'Cohort-style retention analysis' },
+  { id: 'anomaly_zscore',       label: 'Anomaly Detection (Z-Score)', desc: 'Find statistical outliers' },
+  { id: 'revenue_growth',       label: 'MoM Revenue Growth %',        desc: 'Period-over-period change' },
+  { id: 'customer_lifetime',    label: 'Customer Lifetime Value',     desc: 'CLV by customer segment' },
+  { id: 'top_bottom_decile',    label: 'Top vs Bottom Decile',        desc: 'P90 vs P10 comparison' },
+  { id: 'correlation_check',    label: 'Correlation Exploration',     desc: 'Co-movement between metrics' },
 ];
 
 // ── In-memory SQL runner ──────────────────────────────────────────

@@ -7,10 +7,11 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useWorkspaceStore } from '@/lib/store';
+import { useState as useLocalState } from 'react';
 import {
   Layers, Hash, Tag, Calendar, Key, TrendingUp, Database,
   GitBranch, ArrowRight, CheckCircle2, AlertTriangle, Info,
-  Sparkles, Copy, Check, BookOpen, Target, Link2
+  Sparkles, Copy, Check, BookOpen, Target, Link2, Plus, Trash2, FlaskConical
 } from 'lucide-react';
 
 const TYPE_META = {
@@ -102,6 +103,8 @@ export default function SemanticSection() {
   const { semanticModel, getActiveTable, setActiveSection, analysisResults } = useWorkspaceStore();
   const table = getActiveTable();
   const [activeTab, setActiveTab] = useState('model');
+  const [customMetrics, setCustomMetrics] = useLocalState([]);
+  const [newMetric, setNewMetric] = useLocalState({ name: '', formula: '', definition: '', aggregation: 'sum' });
 
   const kpis = useMemo(() => buildKPIs(table, semanticModel, analysisResults), [table, semanticModel, analysisResults]);
   const relationships = useMemo(() => buildRelationships(table, semanticModel), [table, semanticModel]);
@@ -127,6 +130,7 @@ export default function SemanticSection() {
     { id:'kpis',      label:`KPI Definitions (${kpis.length})` },
     { id:'measures',  label:`Measures (${semanticModel.measures?.length||0})` },
     { id:'dimensions',label:`Dimensions (${semanticModel.dimensions?.length||0})` },
+    { id:'formulas',  label:`Custom Formulas (${customMetrics.length})` },
     { id:'relations', label:`Relationships` },
     { id:'queries',   label:'Example Queries' },
   ];
@@ -349,6 +353,106 @@ export default function SemanticSection() {
               );
             })}
           </div>
+        </motion.div>
+      )}
+
+      {/* ── Custom Formula Editor ─────────────────────────────────── */}
+      {activeTab === 'formulas' && (
+        <motion.div initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} className="space-y-4">
+          <div className="flex items-start gap-3 p-4 bg-purple-400/5 border border-purple-400/15 rounded-xl text-xs text-purple-300">
+            <FlaskConical className="w-4 h-4 flex-shrink-0 mt-0.5 text-purple-400" />
+            Define custom business metrics with formulas. These will be referenced by the AI Analyst and SQL Studio.
+          </div>
+
+          {/* Create form */}
+          <div className="glass-card rounded-2xl p-5 border border-white/8 space-y-3">
+            <div className="text-xs font-semibold text-white/40 uppercase tracking-widest">New Custom Metric</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-white/35 mb-1 block">Metric Name</label>
+                <input value={newMetric.name} onChange={e => setNewMetric(m => ({ ...m, name: e.target.value }))}
+                  placeholder="e.g. Revenue Per Customer"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-purple-400/30 text-foreground" />
+              </div>
+              <div>
+                <label className="text-xs text-white/35 mb-1 block">Aggregation</label>
+                <select value={newMetric.aggregation} onChange={e => setNewMetric(m => ({ ...m, aggregation: e.target.value }))}
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none text-foreground">
+                  <option value="sum">SUM</option>
+                  <option value="avg">AVG</option>
+                  <option value="ratio">RATIO</option>
+                  <option value="count">COUNT</option>
+                  <option value="custom">Custom Expression</option>
+                </select>
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-xs text-white/35 mb-1 block">Formula</label>
+                <input value={newMetric.formula} onChange={e => setNewMetric(m => ({ ...m, formula: e.target.value }))}
+                  placeholder="e.g. SUM(revenue) / COUNT(DISTINCT customer_id)"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm font-mono focus:outline-none focus:border-purple-400/30 text-foreground" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-xs text-white/35 mb-1 block">Business Definition</label>
+                <input value={newMetric.definition} onChange={e => setNewMetric(m => ({ ...m, definition: e.target.value }))}
+                  placeholder="e.g. Total revenue divided by unique customers — measures average spend per customer"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-purple-400/30 text-foreground" />
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                if (!newMetric.name || !newMetric.formula) return;
+                setCustomMetrics(m => [...m, { ...newMetric, id: Date.now() }]);
+                setNewMetric({ name: '', formula: '', definition: '', aggregation: 'sum' });
+              }}
+              disabled={!newMetric.name || !newMetric.formula}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-400/15 border border-purple-400/25 text-purple-400 rounded-xl text-sm font-semibold disabled:opacity-40 hover:bg-purple-400/20 transition-all">
+              <Plus className="w-3.5 h-3.5" /> Add Custom Metric
+            </button>
+          </div>
+
+          {/* Example definitions */}
+          {customMetrics.length === 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {[
+                { name: 'Revenue', formula: 'SUM(order_amount)', definition: 'Total sales from completed orders', aggregation: 'sum' },
+                { name: 'Retention Rate', formula: 'active_customers / total_customers', definition: 'Percentage of customers who remain active', aggregation: 'ratio' },
+                { name: 'Avg Order Value', formula: 'SUM(revenue) / COUNT(DISTINCT order_id)', definition: 'Average revenue per transaction', aggregation: 'ratio' },
+                { name: 'Customer LTV', formula: 'AVG(revenue) * AVG(frequency) * avg_lifespan', definition: 'Predicted net revenue from a customer over their lifetime', aggregation: 'custom' },
+              ].map((ex, i) => (
+                <div key={i} className="rounded-xl p-4 border border-white/8 bg-white/2 space-y-1.5 opacity-60">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-sm">{ex.name}</span>
+                    <span className="text-xs px-2 py-0.5 rounded bg-purple-400/10 text-purple-400">{ex.aggregation}</span>
+                  </div>
+                  <code className="text-xs text-green-300/80 font-mono block">{ex.formula}</code>
+                  <p className="text-xs text-white/35">{ex.definition}</p>
+                </div>
+              ))}
+              <div className="md:col-span-2 text-xs text-white/20 text-center py-2">↑ Example definitions — add your own above</div>
+            </div>
+          )}
+
+          {/* User-defined metrics */}
+          {customMetrics.length > 0 && (
+            <div className="space-y-2">
+              {customMetrics.map(m => (
+                <div key={m.id} className="flex items-start gap-3 p-4 rounded-xl border border-purple-400/20 bg-purple-400/5">
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-sm">{m.name}</span>
+                      <span className="text-xs px-2 py-0.5 rounded bg-purple-400/10 text-purple-400">{m.aggregation}</span>
+                    </div>
+                    <code className="text-xs text-green-300/80 font-mono block">{m.formula}</code>
+                    {m.definition && <p className="text-xs text-white/45">{m.definition}</p>}
+                  </div>
+                  <button onClick={() => setCustomMetrics(ms => ms.filter(x => x.id !== m.id))}
+                    className="p-1.5 text-white/20 hover:text-red-400 transition-colors flex-shrink-0">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </motion.div>
       )}
 

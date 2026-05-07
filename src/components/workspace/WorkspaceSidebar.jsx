@@ -5,7 +5,7 @@ import {
   Layers, Terminal, FileText, MessageSquare, Download,
   ChevronLeft, Database, GitCompare, PieChart, Bell, Link2, FlaskConical,
   Users, Filter, Activity, Scissors, TrendingUp, History, Shield, Paintbrush,
-  Target, RefreshCw, DollarSign
+  Target, RefreshCw, DollarSign, Zap
 } from 'lucide-react';
 import { useWorkspaceStore } from '@/lib/store';
 
@@ -89,6 +89,7 @@ export default function WorkspaceSidebar({ collapsed, onToggle }) {
             { to: '/collaboration',icon: Users,       label: 'Collaborate',   color: 'text-teal-400' },
             { to: '/predictive',   icon: TrendingUp,  label: 'Predictive AI', color: 'text-purple-400' },
             { to: '/forecast-hub', icon: History,     label: 'Forecast Hub',  color: 'text-teal-400' },
+            { to: '/workbench',    icon: Zap,         label: 'Workbench',     color: 'text-cyan-400' },
             { to: '/integrations', icon: Link2,       label: 'Integrations',  color: 'text-cyan-400' },
           ].map(link => (
             collapsed ? (
