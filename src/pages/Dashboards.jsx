@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useWorkspaceStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
 import AnalystChart from '@/components/workspace/analyst/AnalystChart';
-import { exportToPDF, exportToExcel } from '@/lib/exportUtils';
+import { exportCSV, exportInsightsCSV } from '@/lib/exportUtils.js';
 import {
   LayoutDashboard, Trash2, Pencil, Check, X, Plus, Download,
   FileSpreadsheet, FileText, Sparkles, BarChart2, Database,
@@ -104,12 +104,16 @@ export default function Dashboards() {
 
   const handleExportPDF = () => {
     setExportLoading('pdf');
-    setTimeout(() => { exportToPDF({ messages: chatMessages, tableName: activeTable?.name, analysisResults, savedCharts }); setExportLoading(''); }, 100);
+    setTimeout(() => { exportInsightsCSV(analysisResults, activeTable?.name); setExportLoading(''); }, 100);
   };
 
   const handleExportExcel = () => {
     setExportLoading('excel');
-    setTimeout(() => { exportToExcel({ messages: chatMessages, tableName: activeTable?.name, analysisResults }); setExportLoading(''); }, 100);
+    setTimeout(() => {
+      const cols = activeTable?.columns?.map(c => c.name) || [];
+      exportCSV(activeTable?.rows?.slice(0, 5000) || [], cols, activeTable?.name || 'dashboard');
+      setExportLoading('');
+    }, 100);
   };
 
   const groupedCharts = (() => {
