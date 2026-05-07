@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useWorkspaceStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
 import AnalystChart from '@/components/workspace/analyst/AnalystChart';
+import ChartSummaryDropdown from '@/components/charts/ChartSummaryDropdown';
 import { exportCSV, exportInsightsCSV } from '@/lib/exportUtils.js';
 import {
   LayoutDashboard, Trash2, Pencil, Check, X, Plus, Download,
@@ -81,6 +82,15 @@ function DashboardCard({ item, onDelete, onRename, view }) {
       <div className="flex-1">
         <AnalystChart chart={item.chart} height={190} />
       </div>
+
+      <ChartSummaryDropdown
+        title={label}
+        chartType={item.chart?.type}
+        data={item.chart?.data || []}
+        xKey={item.chart?.x_key || 'name'}
+        yKey={item.chart?.y_key || 'value'}
+        description={item.insight || ''}
+      />
 
       {item.insight && (
         <p className="text-xs text-white/30 leading-relaxed border-t border-white/6 pt-2.5 line-clamp-2 italic">{item.insight}</p>

@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 
 const ACCEPTED = '.csv,.tsv,.xlsx,.xls,.json,.txt,.md,.pdf,.docx';
-const MAX_MB = 150;
+const MAX_MB = Infinity;
 
 function FileIcon({ ext }) {
   if (ext === 'xlsx' || ext === 'xls') return <FileSpreadsheet className="w-5 h-5 text-teal-400" />;
@@ -98,7 +98,7 @@ export default function IntakeSection() {
     setError('');
     for (const file of fileArr) {
       const sizeMB = file.size / 1024 / 1024;
-      if (sizeMB > MAX_MB) { setError(`"${file.name}" exceeds ${MAX_MB}MB limit.`); continue; }
+      // No file size limit
       setProcessing(true);
       setProcessingFile(file.name);
       try {
@@ -224,7 +224,7 @@ export default function IntakeSection() {
                 <Upload className={`w-7 h-7 ${dragging ? 'text-cyan-400' : 'text-white/35'}`} />
               </div>
               <p className="text-base font-semibold mb-1">{dragging ? 'Drop files to upload' : 'Drag & drop or click to upload'}</p>
-              <p className="text-sm text-muted-foreground mb-3">CSV, XLSX, XLS, JSON, TXT — up to {MAX_MB}MB per file</p>
+              <p className="text-sm text-muted-foreground mb-3">CSV, XLSX, XLS, JSON, TXT — no size limit</p>
               <div className="flex flex-wrap gap-2 justify-center text-xs text-muted-foreground">
                 {[{ ext: 'CSV', icon: '📄', color: 'text-cyan-400' }, { ext: 'XLSX', icon: '📊', color: 'text-teal-400' }, { ext: 'JSON', icon: '{ }', color: 'text-blue-400' }, { ext: 'TXT', icon: '📝', color: 'text-purple-400' }].map(f => (
                   <span key={f.ext} className={`px-2 py-1 rounded-lg bg-white/5 border border-white/8 ${f.color} font-mono`}>{f.ext}</span>

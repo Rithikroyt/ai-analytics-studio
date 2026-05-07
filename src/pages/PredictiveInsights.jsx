@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { motion, AnimatePresence } from 'framer-motion';
-import ForecastChart from '@/components/predictive/ForecastChart.jsx';
+import ForecastChart from '@/components/predictive/ForecastChart';
 import TrendCard from '@/components/predictive/TrendCard.jsx';
 import AnomalyFeed from '@/components/predictive/AnomalyFeed.jsx';
 import ScenarioPanel from '@/components/predictive/ScenarioPanel.jsx';
