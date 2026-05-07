@@ -1,0 +1,65 @@
+{
+  "name": "NotebookCell",
+  "type": "object",
+  "properties": {
+    "notebookId": {
+      "type": "string",
+      "title": "Notebook ID"
+    },
+    "cellType": {
+      "type": "string",
+      "enum": [
+        "sql",
+        "python",
+        "chart",
+        "markdown",
+        "ai_insight"
+      ],
+      "title": "Cell Type"
+    },
+    "cellOrder": {
+      "type": "number",
+      "title": "Order"
+    },
+    "content": {
+      "type": "string",
+      "title": "Content"
+    },
+    "output": {
+      "type": "object",
+      "title": "Output",
+      "additionalProperties": true
+    },
+    "chartConfig": {
+      "type": "object",
+      "title": "Chart Config",
+      "additionalProperties": true
+    },
+    "executedAt": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Executed At"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "idle",
+        "running",
+        "success",
+        "error"
+      ],
+      "default": "idle",
+      "title": "Status"
+    },
+    "errorMessage": {
+      "type": "string",
+      "title": "Error Message"
+    }
+  },
+  "required": [
+    "notebookId",
+    "cellType",
+    "cellOrder",
+    "content"
+  ]
+}

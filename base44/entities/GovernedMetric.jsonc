@@ -1,0 +1,83 @@
+{
+  "name": "GovernedMetric",
+  "type": "object",
+  "properties": {
+    "metricId": {
+      "type": "string",
+      "title": "Metric ID"
+    },
+    "displayName": {
+      "type": "string",
+      "title": "Display Name"
+    },
+    "formula": {
+      "type": "string",
+      "title": "Formula"
+    },
+    "businessDefinition": {
+      "type": "string",
+      "title": "Business Definition"
+    },
+    "aggregation": {
+      "type": "string",
+      "enum": [
+        "sum",
+        "avg",
+        "count",
+        "min",
+        "max",
+        "ratio"
+      ],
+      "title": "Aggregation Type"
+    },
+    "sourceTable": {
+      "type": "string",
+      "title": "Source Table"
+    },
+    "sourceColumn": {
+      "type": "string",
+      "title": "Source Column"
+    },
+    "validDimensions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Valid Dimensions"
+    },
+    "owner": {
+      "type": "string",
+      "title": "Owner Email"
+    },
+    "certificationStatus": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "verified",
+        "deprecated"
+      ],
+      "default": "draft",
+      "title": "Certification Status"
+    },
+    "exampleQuestions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Example Questions"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Tags"
+    }
+  },
+  "required": [
+    "metricId",
+    "displayName",
+    "formula",
+    "sourceTable"
+  ]
+}

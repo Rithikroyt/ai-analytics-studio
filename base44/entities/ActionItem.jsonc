@@ -1,0 +1,72 @@
+{
+  "name": "ActionItem",
+  "type": "object",
+  "properties": {
+    "recommendation": {
+      "type": "string",
+      "title": "Recommendation"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "critical",
+        "high",
+        "medium",
+        "low"
+      ],
+      "title": "Priority"
+    },
+    "expectedImpact": {
+      "type": "number",
+      "title": "Expected Impact (0-1)"
+    },
+    "effort": {
+      "type": "number",
+      "title": "Effort Required (0-1)"
+    },
+    "confidence": {
+      "type": "number",
+      "title": "Confidence (0-1)"
+    },
+    "priorityScore": {
+      "type": "number",
+      "title": "Priority Score"
+    },
+    "owner": {
+      "type": "string",
+      "title": "Owner Email"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "in_progress",
+        "done",
+        "dismissed"
+      ],
+      "default": "open",
+      "title": "Status"
+    },
+    "followUpMetric": {
+      "type": "string",
+      "title": "Follow-Up Metric"
+    },
+    "sourceInsightId": {
+      "type": "string",
+      "title": "Source Insight ID"
+    },
+    "dueDate": {
+      "type": "string",
+      "format": "date",
+      "title": "Due Date"
+    },
+    "notes": {
+      "type": "string",
+      "title": "Notes"
+    }
+  },
+  "required": [
+    "recommendation",
+    "priority"
+  ]
+}

@@ -25,6 +25,11 @@ import Workbench from '@/pages/Workbench';
 import Governance from '@/pages/Governance';
 import DataGovernance from '@/pages/DataGovernance';
 import DataContract from '@/pages/DataContract';
+import MetricStore from '@/pages/MetricStore';
+import WhatIfSimulator from '@/pages/WhatIfSimulator';
+import AnalystNotebook from '@/pages/AnalystNotebook';
+import ActionBoard from '@/pages/ActionBoard';
+import DecisionReports from '@/pages/DecisionReports';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -71,6 +76,11 @@ const AuthenticatedApp = () => {
         <Route path="/governance" element={<Governance />} />
         <Route path="/governance" element={<DataGovernance />} />
         <Route path="/data-contract" element={<DataContract />} />
+        <Route path="/metric-store" element={<MetricStore />} />
+        <Route path="/what-if" element={<WhatIfSimulator />} />
+        <Route path="/notebook" element={<AnalystNotebook />} />
+        <Route path="/action-board" element={<ActionBoard />} />
+        <Route path="/decision-reports" element={<DecisionReports />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </>

@@ -1,0 +1,74 @@
+{
+  "name": "ContributionResult",
+  "type": "object",
+  "properties": {
+    "tableId": {
+      "type": "string",
+      "title": "Table ID"
+    },
+    "segmentColumn": {
+      "type": "string",
+      "title": "Segment Column"
+    },
+    "dateColumn": {
+      "type": "string",
+      "title": "Date Column"
+    },
+    "metricColumn": {
+      "type": "string",
+      "title": "Metric Column"
+    },
+    "currentPeriod": {
+      "type": "string",
+      "title": "Current Period"
+    },
+    "previousPeriod": {
+      "type": "string",
+      "title": "Previous Period"
+    },
+    "totalChange": {
+      "type": "number",
+      "title": "Total Change"
+    },
+    "segments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "change": {
+            "type": "number"
+          },
+          "contributionPct": {
+            "type": "number"
+          }
+        }
+      },
+      "title": "Segments"
+    },
+    "topDriver": {
+      "type": "string",
+      "title": "Top Driver"
+    },
+    "businessExplanation": {
+      "type": "string",
+      "title": "Business Explanation"
+    },
+    "recommendedAction": {
+      "type": "string",
+      "title": "Recommended Action"
+    },
+    "analyzedAt": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Analyzed At"
+    }
+  },
+  "required": [
+    "tableId",
+    "segmentColumn",
+    "metricColumn"
+  ]
+}

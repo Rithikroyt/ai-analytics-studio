@@ -1,0 +1,82 @@
+{
+  "name": "WhatIfScenario",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "Scenario Name"
+    },
+    "description": {
+      "type": "string",
+      "title": "Description"
+    },
+    "tableId": {
+      "type": "string",
+      "title": "Table ID"
+    },
+    "tableName": {
+      "type": "string",
+      "title": "Table Name"
+    },
+    "baselineMetrics": {
+      "type": "object",
+      "title": "Baseline Metrics",
+      "additionalProperties": true
+    },
+    "parameters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "currentVal": {
+            "type": "number"
+          },
+          "newVal": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string"
+          }
+        }
+      },
+      "title": "Parameters"
+    },
+    "projectedMetrics": {
+      "type": "object",
+      "title": "Projected Metrics",
+      "additionalProperties": true
+    },
+    "incrementalImpact": {
+      "type": "number",
+      "title": "Incremental Impact"
+    },
+    "liftPct": {
+      "type": "number",
+      "title": "Lift Percentage"
+    },
+    "confidence": {
+      "type": "number",
+      "title": "Confidence (0-100)"
+    },
+    "formula": {
+      "type": "string",
+      "title": "Formula Used"
+    },
+    "savedAt": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Saved At"
+    }
+  },
+  "required": [
+    "name",
+    "tableId",
+    "tableName"
+  ]
+}
