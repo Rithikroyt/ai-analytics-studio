@@ -6,7 +6,8 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWorkspaceStore } from '@/lib/store';
 import { useAnalystChat } from '@/hooks/useAnalystChat';
-import AnalystMessageBubble from '@/components/workspace/analyst/AnalystMessageBubbleV4';
+import { orchestrateV5Workflow } from '@/lib/v5AgentOrchestrator';
+import AnalystMessageBubble from '@/components/workspace/analyst/AnalystMessageBubbleV5';
 import { Send, Sparkles, Database, Loader2, Trash2, ChevronRight, Info, Wand2, Bot, Bookmark } from 'lucide-react';
 
 const ANALYSIS_MODES = [
@@ -49,6 +50,7 @@ export default function AnalystSection() {
   const [input, setInput] = useState('');
   const [mode, setMode] = useState('exploratory');
   const { chatMessages, loading, sendQuestion, clearChat } = useAnalystChat();
+  const [workflowSteps, setWorkflowSteps] = useState(null);
   const [savedToast, setSavedToast] = useState('');
   const bottomRef = useRef(null);
 
@@ -60,6 +62,15 @@ export default function AnalystSection() {
     const question = (text || input).trim();
     if (!question) return;
     setInput('');
+    
+    // Run V5 orchestration workflow
+    const workflowResult = await orchestrateV5Workflow(question, {
+      question,
+      metrics: activeTable?.columns?.filter(c => c.isKpiCandidate) || [],
+      table: activeTable,
+    });
+    
+    setWorkflowSteps(workflowResult.allSteps);
     await sendQuestion(question);
   };
 
@@ -109,6 +120,7 @@ export default function AnalystSection() {
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-purple-400" />
           <span className="font-semibold text-sm">AI Analyst</span>
+          <span className="text-xs px-1.5 py-0.5 rounded-full bg-purple-400/15 text-purple-400 border border-purple-400/25 font-mono">V5</span>
           <span className="text-xs text-muted-foreground">· {activeTable.name} · {activeTable.rowCount?.toLocaleString()} rows</span>
         </div>
         {chatMessages.length > 0 && (
@@ -164,6 +176,21 @@ export default function AnalystSection() {
         )}
 
         <AnimatePresence>
+          {/* Workflow steps indicator */}
+          {workflowSteps && (
+            <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+              className="grid grid-cols-5 gap-1 mb-4 p-2 rounded-lg bg-white/3 border border-white/5 text-xs">
+              {['Intent', 'KPI', 'Readiness', 'Tools', 'Execution', 'Validate', 'Score', 'Explain', 'Recommend', 'Report'].map((step, i) => (
+                <div key={i} className="text-center p-1 rounded">
+                  <div className={`text-xs font-medium ${workflowSteps ? 'text-green-400' : 'text-white/30'}`}>
+                    {workflowSteps ? '✓' : '○'}
+                  </div>
+                  <div className="text-xs text-white/40 truncate">{step}</div>
+                </div>
+              ))}
+            </motion.div>
+          )}
+
           {chatMessages.map((msg, i) => (
             <AnalystMessageBubble
               key={i}
@@ -187,7 +214,7 @@ export default function AnalystSection() {
                     transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15 }} />
                 ))}
               </div>
-              <span className="text-xs text-white/35">Analyzing with AI…</span>
+              <span className="text-xs text-white/35">V5 Agent: Classifying intent → selecting tools → executing…</span>
             </div>
           </motion.div>
         )}
