@@ -138,7 +138,7 @@ export default function AnalystMessageBubble({ message, onSaveChart, onFollowUp 
     );
   }
 
-  const { answer, insights = [], recommendations = [], charts = [], confidence = 100, limitations = [] } = message;
+  const { answer, insights = [], recommendations = [], charts = [], confidence = 100, limitations = [], businessMeaning, rootCauses = [], nextQuestion, intent } = message;
 
   return (
     <motion.div
@@ -152,6 +152,14 @@ export default function AnalystMessageBubble({ message, onSaveChart, onFollowUp 
       </div>
 
       <div className="max-w-[88%] space-y-2.5 min-w-0">
+
+        {/* Intent badge */}
+        {intent && intent !== 'exploratory' && (
+          <div className="flex items-center gap-1.5 text-xs text-white/30">
+            <span className="px-2 py-0.5 rounded-full bg-purple-400/10 text-purple-400 border border-purple-400/20 font-mono capitalize">{intent}</span>
+            <span>analysis mode</span>
+          </div>
+        )}
 
         {/* Answer */}
         {answer && (
@@ -207,6 +215,25 @@ export default function AnalystMessageBubble({ message, onSaveChart, onFollowUp 
           </div>
         ))}
 
+        {/* Business meaning */}
+        {businessMeaning && (
+          <div className="px-3 py-2.5 rounded-xl bg-teal-400/5 border border-teal-400/15">
+            <div className="text-xs font-semibold text-teal-400 uppercase tracking-widest mb-1">Business Meaning</div>
+            <p className="text-xs text-white/60 leading-relaxed">{businessMeaning}</p>
+          </div>
+        )}
+
+        {/* Root causes */}
+        {rootCauses.length > 0 && (
+          <Section title="Root Causes / Drivers" icon={AlertTriangle} color="text-amber-400" defaultOpen={false} badge={rootCauses.length}>
+            {rootCauses.map((rc, i) => (
+              <div key={i} className="flex items-start gap-2 text-xs text-white/55">
+                <span className="text-amber-400 flex-shrink-0">▸</span> {rc}
+              </div>
+            ))}
+          </Section>
+        )}
+
         {/* Confidence + limitations */}
         <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-white/[0.02] border border-white/6">
           <div className="flex items-center gap-1.5">
@@ -224,10 +251,21 @@ export default function AnalystMessageBubble({ message, onSaveChart, onFollowUp 
           )}
         </div>
 
+        {/* Next question suggestion */}
+        {nextQuestion && onFollowUp && (
+          <div className="flex items-center gap-2 pt-1">
+            <span className="text-xs text-white/25">Suggested next:</span>
+            <button onClick={() => onFollowUp(nextQuestion)}
+              className="text-xs px-2.5 py-1 rounded-lg bg-purple-400/8 border border-purple-400/20 text-purple-400/80 hover:text-purple-400 hover:bg-purple-400/12 transition-all">
+              {nextQuestion} →
+            </button>
+          </div>
+        )}
+
         {/* Follow-up suggestions */}
         {onFollowUp && answer && (
           <div className="flex flex-wrap gap-1.5 pt-1">
-            {['Dig deeper', 'Show distribution', 'Compare segments'].map(q => (
+            {['Show distribution', 'Compare segments', 'What are the risks?'].map(q => (
               <button key={q} onClick={() => onFollowUp(q)}
                 className="text-xs px-2.5 py-1 rounded-lg bg-white/4 border border-white/8 text-white/35 hover:text-white/65 hover:bg-white/7 hover:border-purple-400/25 transition-all">
                 {q} →

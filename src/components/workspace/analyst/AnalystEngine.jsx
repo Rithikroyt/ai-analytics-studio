@@ -8,6 +8,20 @@ import { assessConfidence } from '@/lib/analystTools';
 import { obs } from '@/lib/observability';
 import * as localTools from '@/lib/analystToolsLocal.js';
 
+// ── Intent classifier ────────────────────────────────────────────
+export function classifyIntent(question) {
+  const q = question.toLowerCase();
+  if (/forecast|predict|next|will|future|project/.test(q)) return 'predictive';
+  if (/why|cause|drop|decline|issue|problem|anomal|spike|surge/.test(q)) return 'diagnostic';
+  if (/should|recommend|plan|action|focus|priority|improve|fix|optimize/.test(q)) return 'prescriptive';
+  if (/sql|query|select|from|where|group/.test(q)) return 'sql';
+  if (/clean|quality|missing|null|duplicate|fix|invalid/.test(q)) return 'quality';
+  if (/rfm|customer|segment|churn|loyal/.test(q)) return 'rfm';
+  if (/funnel|conversion|dropoff|drop.off/.test(q)) return 'funnel';
+  if (/chart|visuali|plot|graph|show me/.test(q)) return 'visual';
+  return 'exploratory';
+}
+
 // ── Build rich data context for LLM ─────────────────────────────
 function buildDataContext(store, activeTable, analysisResults) {
   const r = analysisResults;
@@ -222,6 +236,25 @@ function buildChart(question, analysisResults, activeTable) {
   return null;
 }
 
+// ── Next question suggester ───────────────────────────────────────
+function generateNextQuestion(question, mode, r) {
+  const suggestions = {
+    exploratory: r?.anomalies?.length > 0
+      ? `Why did the anomaly on ${r.anomalies[0]?.date} occur?`
+      : r?.correlations?.length > 0
+        ? `What drives the correlation between ${r.correlations[0]?.colA} and ${r.correlations[0]?.colB}?`
+        : 'What are the main drivers of this KPI?',
+    predictive: 'What actions should we take based on this forecast?',
+    diagnostic: 'What should we do to fix this issue?',
+    prescriptive: 'What will happen if we implement these recommendations?',
+    quality: 'Can you run a full analysis now that the data is clean?',
+    rfm: 'Which customer segments should we prioritize for marketing?',
+    funnel: 'Where is the biggest conversion opportunity in our funnel?',
+    visual: 'Can you explain what this chart means for the business?',
+  };
+  return suggestions[mode] || 'What else would you like to explore in this data?';
+}
+
 // ── Main workflow ────────────────────────────────────────────────
 export async function executeAnalystWorkflow(question, store, analysisResultsArg, activeTableArg) {
   const activeTable = activeTableArg || store?.tables?.find(t => t.id === store?.activeTableId) || store?.tables?.[0] || null;
@@ -251,15 +284,15 @@ export async function executeAnalystWorkflow(question, store, analysisResultsArg
 
   try {
     // Detect mode from question context
-    const q = question.toLowerCase();
+    const intent = classifyIntent(question);
     let mode = 'exploratory';
-    if (q.includes('forecast') || q.includes('predict') || q.includes('next') || q.includes('will')) mode = 'predictive';
-    else if (q.includes('why') || q.includes('cause') || q.includes('anomal') || q.includes('drop') || q.includes('issue') || q.includes('problem')) mode = 'diagnostic';
-    else if (q.includes('should') || q.includes('recommend') || q.includes('plan') || q.includes('focus') || q.includes('priority') || q.includes('action') || q.includes('improve')) mode = 'prescriptive';
+    if (intent === 'predictive') mode = 'predictive';
+    else if (intent === 'diagnostic') mode = 'diagnostic';
+    else if (intent === 'prescriptive') mode = 'prescriptive';
 
     const dataContext = buildDataContext(store, activeTable, analysisResults);
 
-    // Call LLM for deep analysis
+    // Call LLM for deep analysis — V3 structured response
     const prompt = buildPrompt(question, mode, dataContext);
     let llmAnswer = '';
     const llmTimer = obs.logLLMCall('claude_sonnet_4_6', question);
@@ -268,16 +301,17 @@ export async function executeAnalystWorkflow(question, store, analysisResultsArg
       llmTimer.end({ success: true });
     } catch (llmErr) {
       llmTimer.end({ error: llmErr.message, fallback: true });
-      // Fallback to local tools
       const fallback = await localTools.safeFallbackResponse(store, question);
       llmAnswer = fallback.answer;
     }
 
     response.answer = llmAnswer;
+    response.intent = intent;
+    response.mode = mode;
 
     // Build contextual insights from data
     const kpi = await localTools.getKPISummary(store);
-    const anomalies = await localTools.getAnomalyResults(store);
+    const anomalyData = await localTools.getAnomalyResults(store);
     const recs = await localTools.generateRecommendations(store);
 
     const insights = [];
@@ -285,13 +319,20 @@ export async function executeAnalystWorkflow(question, store, analysisResultsArg
     if (kpi?.quality_score) insights.push(`Data quality: ${kpi.quality_score}% — ${kpi.quality_score >= 90 ? 'analysis-ready' : 'review recommended'}`);
     if (analysisResults?.correlations?.length) {
       const top = analysisResults.correlations[0];
-      insights.push(`Strongest correlation: ${top.colA} ↔ ${top.colB} (r=${top.r})`);
+      insights.push(`Strongest correlation: ${top.colA} ↔ ${top.colB} (r=${top.r}, ${top.strength})`);
     }
-    if (anomalies?.total_anomalies > 0) insights.push(`${anomalies.total_anomalies} statistical anomalies detected (${anomalies.severity_breakdown?.high || 0} high-severity)`);
+    if (anomalyData?.total_anomalies > 0) insights.push(`${anomalyData.total_anomalies} statistical anomalies detected (${anomalyData.severity_breakdown?.high || 0} high-severity)`);
     if (kpi?.top_segments?.length) insights.push(`Top segment: ${kpi.top_segments[0]?.name} contributing ${kpi.top_segments[0]?.value?.toLocaleString()}`);
+    if (analysisResults?.riskSignals?.length) insights.push(...analysisResults.riskSignals.slice(0, 2));
 
     response.insights = insights;
     response.recommendations = recs?.slice(0, 4) || [];
+
+    // V3: Add business meaning, root causes, confidence
+    response.businessMeaning = analysisResults?.dataStory || '';
+    response.rootCauses = analysisResults?.rootCauses || [];
+    response.confidence = analysisResults?.aiConfidence || 75;
+    response.nextQuestion = generateNextQuestion(question, mode, analysisResults);
 
     // Build chart
     const chart = buildChart(question, analysisResults, activeTable);

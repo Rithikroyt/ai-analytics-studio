@@ -58,6 +58,12 @@ export function useAnalystChat() {
         limitations: response.limitations,
         methodology: response.methodology,
         steps: response.steps,
+        // V3 structured fields
+        intent: response.intent,
+        mode: response.mode,
+        businessMeaning: response.businessMeaning,
+        rootCauses: response.rootCauses,
+        nextQuestion: response.nextQuestion,
       });
     } catch (e) {
       console.error('[useAnalystChat]', e);

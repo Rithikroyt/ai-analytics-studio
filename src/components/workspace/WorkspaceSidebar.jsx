@@ -3,17 +3,19 @@ import { Link } from 'react-router-dom';
 import {
   LayoutDashboard, Upload, Settings2, BarChart3, BookOpen,
   Layers, Terminal, FileText, MessageSquare, Download,
-  ChevronLeft, Database, GitCompare, PieChart, Bell, Link2, Wand2, FlaskConical,
-  Users, Filter, Activity, Scissors, TrendingUp, History
+  ChevronLeft, Database, GitCompare, PieChart, Bell, Link2, FlaskConical,
+  Users, Filter, Activity, Scissors, TrendingUp, History, Shield, Paintbrush
 } from 'lucide-react';
 import { useWorkspaceStore } from '@/lib/store';
 
 const sections = [
   { id: 'overview',      label: 'Overview',          icon: LayoutDashboard },
-  { id: 'intake',        label: 'Upload',             icon: Upload },
-  { id: 'prepare',       label: 'Prepare',            icon: Settings2 },
-  { id: 'dataprep',      label: 'Data Prep Studio',   icon: Scissors },
+  { id: 'intake',        label: 'Upload Data',        icon: Upload },
+  { id: 'quality',       label: 'Quality Studio',     icon: Shield },
+  { id: 'prepare',       label: 'Prepare & Profile',  icon: Settings2 },
+  { id: 'dataprep',      label: 'Data Prep',          icon: Scissors },
   { id: 'workbook',      label: 'Dashboard',          icon: BarChart3 },
+  { id: 'visual',        label: 'Visual Builder',     icon: Paintbrush },
   { id: 'analyst',       label: 'AI Analyst',         icon: MessageSquare },
   { id: 'statistics',    label: 'Statistics',         icon: FlaskConical },
   { id: 'rfm',           label: 'RFM Segments',       icon: Users },

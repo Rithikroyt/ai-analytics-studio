@@ -22,11 +22,15 @@ import DataPrepStudio from '@/components/workspace/DataPrepStudio';
 import RFMSection from '@/components/workspace/RFMSection';
 import FunnelSection from '@/components/workspace/FunnelSection';
 import ObservabilityPanel from '@/components/workspace/ObservabilityPanel';
+import DataQualityStudio from '@/components/workspace/DataQualityStudio';
+import VisualBuilder from '@/components/workspace/VisualBuilder';
 import { useWorkspaceStore } from '@/lib/store';
 
 const sectionComponents = {
   overview: OverviewSection,
   intake: IntakeSection,
+  quality: DataQualityStudio,
+  visual: VisualBuilder,
   prepare: PrepareSection,
   story: StorySection,
   workbook: WorkbookSection,

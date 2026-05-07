@@ -148,7 +148,7 @@ export default function PrepareSection() {
       setAnalysisResults(analysis);
       await new Promise(r => setTimeout(r, 350));
       setDone(true);
-      setTimeout(() => setActiveSection('story'), 600);
+      setTimeout(() => setActiveSection('workbook'), 600);
     } catch (e) {
       setError(e.message || 'Analysis failed. Please check your data and try again.');
       setStepIndex(0);
@@ -158,7 +158,6 @@ export default function PrepareSection() {
   };
 
   const highSeverityIssues = issues.filter(i => i.severity === 'high');
-  // Phase 2: always allow analysis — fall back to descriptive profile if no numeric cols
   const canAnalyze = true;
   const hasNumericKpis = numericColumns.length > 0;
 
@@ -397,6 +396,18 @@ export default function PrepareSection() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Quality Studio shortcut */}
+      {issues?.length > 0 && (
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-400/5 border border-amber-400/20">
+          <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+          <div className="flex-1 text-xs text-amber-400/80">{issues.length} quality issue{issues.length > 1 ? 's' : ''} detected. Clean your data first for better analysis.</div>
+          <button onClick={() => setActiveSection('quality')}
+            className="text-xs px-3 py-1.5 bg-amber-400/10 border border-amber-400/20 text-amber-400 rounded-lg hover:bg-amber-400/15 transition-all whitespace-nowrap">
+            Open Quality Studio
+          </button>
         </div>
       )}
 

@@ -6,7 +6,7 @@ import {
   CheckCircle2, AlertTriangle, Loader2,
   Activity, Upload, Layers, GitBranch,
   Bot, PieChart, Link2, Wand2, TrendingUp,
-  Sparkles, ArrowRight, Shield
+  Sparkles, ArrowRight, Shield, Terminal
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import KPIStrip from '@/components/workspace/KPIStrip';
@@ -20,12 +20,15 @@ const bundles = [
 ];
 
 const quickActions = [
-  { id: 'intake', icon: Upload, label: 'Upload Data', desc: 'CSV, XLSX, JSON — real files', color: 'text-cyan-400', bg: 'bg-cyan-400/10', border: 'border-cyan-400/20' },
-  { id: 'story', icon: BarChart3, label: 'Dashboard', desc: 'Executive storytelling view', color: 'text-teal-400', bg: 'bg-teal-400/10', border: 'border-teal-400/20' },
-  { id: 'analyst', icon: Brain, label: 'AI Analyst', desc: 'Grounded, evidence-based answers', color: 'text-purple-400', bg: 'bg-purple-400/10', border: 'border-purple-400/20' },
-  { id: 'workbook', icon: GitBranch, label: 'Workbook', desc: 'Scorecards, trends, distributions', color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/20' },
-  { id: 'reports', icon: FileText, label: 'Reports', desc: 'Board memos & executive PDFs', color: 'text-pink-400', bg: 'bg-pink-400/10', border: 'border-pink-400/20' },
-  { id: 'compare', icon: Layers, label: 'Compare', desc: 'Side-by-side delta analysis', color: 'text-blue-400', bg: 'bg-blue-400/10', border: 'border-blue-400/20' },
+  { id: 'intake',   icon: Upload,   label: 'Upload Data',     desc: 'CSV, XLSX, JSON — no size limit',      color: 'text-cyan-400',   bg: 'bg-cyan-400/10',   border: 'border-cyan-400/20' },
+  { id: 'quality',  icon: Shield,   label: 'Quality Studio',  desc: 'Missing, duplicates, cleaning',         color: 'text-green-400',  bg: 'bg-green-400/10',  border: 'border-green-400/20' },
+  { id: 'workbook', icon: BarChart3, label: 'Dashboard',      desc: 'Scorecards, trends, distributions',     color: 'text-teal-400',   bg: 'bg-teal-400/10',   border: 'border-teal-400/20' },
+  { id: 'visual',   icon: Wand2,    label: 'Visual Builder',  desc: 'Tableau-style chart creation',          color: 'text-amber-400',  bg: 'bg-amber-400/10',  border: 'border-amber-400/20' },
+  { id: 'analyst',  icon: Brain,    label: 'AI Analyst',      desc: 'Tool-based, grounded analysis',         color: 'text-purple-400', bg: 'bg-purple-400/10', border: 'border-purple-400/20' },
+  { id: 'reports',  icon: FileText, label: 'Reports',         desc: 'Board memos & executive PDFs',          color: 'text-pink-400',   bg: 'bg-pink-400/10',   border: 'border-pink-400/20' },
+  { id: 'sql',      icon: Terminal, label: 'SQL Studio',      desc: 'Natural language to SQL',               color: 'text-blue-400',   bg: 'bg-blue-400/10',   border: 'border-blue-400/20' },
+  { id: 'rfm',      icon: TrendingUp, label: 'RFM Segments', desc: 'Customer segmentation analysis',        color: 'text-orange-400', bg: 'bg-orange-400/10', border: 'border-orange-400/20' },
+  { id: 'statistics', icon: Activity, label: 'Statistics',   desc: 'Distributions, correlation, outliers',  color: 'text-indigo-400', bg: 'bg-indigo-400/10', border: 'border-indigo-400/20' },
 ];
 
 const fmtV = (v) => {
@@ -121,7 +124,7 @@ export default function OverviewSection() {
       {/* Quick actions */}
       <div>
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4">Workspace Modules</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
           {quickActions.map((action, i) => (
             <motion.button key={action.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
               onClick={() => setActiveSection(action.id)}

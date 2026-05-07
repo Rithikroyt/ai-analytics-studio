@@ -1,6 +1,7 @@
 /**
- * AI-Powered Data Analyzer — Production Grade
- * Local statistical engine + LLM-driven chart layout & insights
+ * AI-Powered Data Analyzer — V3 Senior Platform
+ * Z-score + IQR anomaly, exponential smoothing + linear regression forecast,
+ * full correlation matrix, LLM-driven chart panels & executive insights
  */
 import { base44 } from '@/api/base44Client';
 
@@ -8,7 +9,7 @@ import { base44 } from '@/api/base44Client';
 
 export function computeStats(values) {
   const nums = values.filter(v => v != null && !isNaN(Number(v))).map(Number);
-  if (!nums.length) return { mean: 0, std: 0, min: 0, max: 0, median: 0, q1: 0, q3: 0, n: 0 };
+  if (!nums.length) return { mean: 0, std: 0, min: 0, max: 0, median: 0, q1: 0, q3: 0, iqr: 0, n: 0, skew: 0 };
   const n = nums.length;
   const sorted = [...nums].sort((a, b) => a - b);
   const mean = nums.reduce((a, b) => a + b, 0) / n;
@@ -16,7 +17,10 @@ export function computeStats(values) {
   const std = Math.sqrt(variance);
   const q1 = sorted[Math.floor(n * 0.25)];
   const q3 = sorted[Math.floor(n * 0.75)];
-  return { mean, std, min: sorted[0], max: sorted[n - 1], median: sorted[Math.floor(n / 2)], q1, q3, iqr: q3 - q1, n };
+  const median = sorted[Math.floor(n / 2)];
+  // Pearson skewness approximation
+  const skew = std > 0 ? (3 * (mean - median)) / std : 0;
+  return { mean, std, min: sorted[0], max: sorted[n - 1], median, q1, q3, iqr: q3 - q1, n, skew: parseFloat(skew.toFixed(3)) };
 }
 
 export function pearsonCorrelation(xs, ys) {
@@ -60,6 +64,37 @@ export function expSmoothingForecast(values, periods = 6, alpha = 0.35, beta = 0
   return Array.from({ length: periods }, (_, i) => Math.max(0, Math.round(level + trend * (i + 1))));
 }
 
+// ── Anomaly detection: Z-score + IQR ─────────────────────────────
+export function detectAnomaliesZScore(trendData, zThreshold = 1.85) {
+  if (trendData.length < 4) return [];
+  const vals = trendData.map(d => d.value);
+  const s = computeStats(vals);
+  return trendData
+    .map(d => {
+      const z = Math.abs((d.value - s.mean) / (s.std || 1));
+      return z > zThreshold
+        ? { date: d.date, value: d.value, expected: Math.round(s.mean), severity: z > 2.8 ? 'high' : 'medium', zScore: parseFloat(z.toFixed(2)), method: 'z-score' }
+        : null;
+    })
+    .filter(Boolean);
+}
+
+export function detectAnomaliesIQR(trendData) {
+  if (trendData.length < 4) return [];
+  const vals = trendData.map(d => d.value);
+  const s = computeStats(vals);
+  const lower = s.q1 - 1.5 * s.iqr;
+  const upper = s.q3 + 1.5 * s.iqr;
+  return trendData
+    .filter(d => d.value < lower || d.value > upper)
+    .map(d => ({
+      date: d.date, value: d.value, expected: Math.round(s.mean),
+      severity: Math.abs(d.value - s.mean) > 3 * s.std ? 'high' : 'medium',
+      zScore: parseFloat(Math.abs((d.value - s.mean) / (s.std || 1)).toFixed(2)),
+      method: 'iqr'
+    }));
+}
+
 export function detectDomain(tableName, columns) {
   const text = `${(tableName || '').toLowerCase()} ${columns.map(c => c.name.toLowerCase()).join(' ')}`;
   if (/sales|revenue|product|customer|order|invoice|price|discount/.test(text)) return 'sales';
@@ -70,10 +105,31 @@ export function detectDomain(tableName, columns) {
   if (/student|grade|course|school|university|enrollment|completion/.test(text)) return 'education';
   if (/supply|inventory|logistics|warehouse|shipment/.test(text)) return 'supply_chain';
   if (/survey|feedback|nps|satisfaction|sentiment/.test(text)) return 'feedback';
+  if (/flight|delay|airline|airport|departure|arrival/.test(text)) return 'aviation';
   return 'general';
 }
 
-// ── Main analysis pipeline ────────────────────────────────────────
+// ── Chart type recommender ────────────────────────────────────────
+export function recommendChartType(colTypes, userIntent = '') {
+  const intent = userIntent.toLowerCase();
+  const hasDate = colTypes.some(t => t === 'date');
+  const numCount = colTypes.filter(t => t === 'numeric').length;
+  const catCount = colTypes.filter(t => t === 'category').length;
+
+  if (/funnel|conversion|drop/i.test(intent)) return 'funnel';
+  if (/distribution|histogram|spread/i.test(intent)) return 'histogram';
+  if (/scatter|correlat|relation/i.test(intent)) return 'scatter';
+  if (/map|geo|location|city|state|country/i.test(intent)) return 'map';
+  if (/waterfall|variance|bridge/i.test(intent)) return 'waterfall';
+  if (/treemap|hierarchy|hierarchical/i.test(intent)) return 'treemap';
+  if (hasDate && numCount >= 1) return 'line_area';
+  if (catCount >= 1 && numCount >= 1) return 'bar';
+  if (numCount === 1) return 'histogram';
+  if (numCount >= 2) return 'scatter';
+  return 'table';
+}
+
+// ── Main analysis pipeline V3 ─────────────────────────────────────
 
 export async function runAIAnalysis(table, overrides = {}) {
   const { rows, columns, name: tableName } = table;
@@ -87,16 +143,20 @@ export async function runAIAnalysis(table, overrides = {}) {
   const catCols = columns.filter(c => c.type === 'category');
   const formatLabel = s => s?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || '';
 
-  // Guard: need at least one numeric column
   if (!numericCols.length) {
     throw new Error('No numeric columns found — please select a dataset with measurable KPIs.');
   }
 
-  // 1. Column statistics
+  // 1. Column statistics (V3: includes skewness, imputation strategy hint)
   const colStats = {};
   numericCols.forEach(col => {
     const vals = rows.map(r => Number(r[col.name])).filter(v => !isNaN(v));
-    colStats[col.name] = computeStats(vals);
+    const stats = computeStats(vals);
+    colStats[col.name] = {
+      ...stats,
+      imputationStrategy: Math.abs(stats.skew) > 1 ? 'median' : 'mean',
+      outlierCount: vals.filter(v => Math.abs(v - stats.mean) > 2 * stats.std).length,
+    };
   });
 
   // 2. Smart primary metric selection
@@ -153,33 +213,39 @@ export async function runAIAnalysis(table, overrides = {}) {
     breakdownMap[catCol.name] = breakdowns;
   });
 
-  // 5. Correlations
+  // 5. Full correlation matrix
   const correlations = [];
   for (let i = 0; i < numericCols.length; i++) {
     for (let j = i + 1; j < numericCols.length; j++) {
       const xs = rows.map(r => Number(r[numericCols[i].name])).filter(v => !isNaN(v));
       const ys = rows.map(r => Number(r[numericCols[j].name])).filter(v => !isNaN(v));
       const r = pearsonCorrelation(xs, ys);
-      if (Math.abs(r) > 0.28) {
-        correlations.push({ colA: numericCols[i].name, colB: numericCols[j].name, r, significant: Math.abs(r) > 0.5 });
+      if (Math.abs(r) > 0.25) {
+        correlations.push({
+          colA: numericCols[i].name, colB: numericCols[j].name, r,
+          strength: Math.abs(r) > 0.7 ? 'strong' : Math.abs(r) > 0.4 ? 'moderate' : 'weak',
+          significant: Math.abs(r) > 0.5,
+          direction: r > 0 ? 'positive' : 'negative',
+        });
       }
     }
   }
+  correlations.sort((a, b) => Math.abs(b.r) - Math.abs(a.r));
 
-  // 6. Anomaly detection
+  // 6. Anomaly detection (Z-score + IQR combined, deduplicated)
   const primaryTrend = primaryMetric ? (trendMap[primaryMetric.name] || []) : [];
-  const anomalies = [];
-  if (primaryTrend.length > 4) {
-    const vals = primaryTrend.map(d => d.value);
-    const s = computeStats(vals);
-    primaryTrend.forEach(d => {
-      const z = Math.abs((d.value - s.mean) / (s.std || 1));
-      if (z > 1.85) anomalies.push({ date: d.date, value: d.value, expected: Math.round(s.mean), severity: z > 2.8 ? 'high' : 'medium', zScore: parseFloat(z.toFixed(2)) });
-    });
-  }
+  const zAnomalies = detectAnomaliesZScore(primaryTrend);
+  const iqrAnomalies = detectAnomaliesIQR(primaryTrend);
+  // Merge: prefer z-score results, add IQR-only catches
+  const anomalyDates = new Set(zAnomalies.map(a => a.date));
+  const anomalies = [
+    ...zAnomalies,
+    ...iqrAnomalies.filter(a => !anomalyDates.has(a.date)),
+  ].sort((a, b) => b.zScore - a.zScore);
 
-  // 7. Forecasting
+  // 7. Forecasting (Exp smoothing + LR blended)
   let forecastData = [];
+  let forecastAccuracy = null;
   if (primaryTrend.length >= 6) {
     const vals = primaryTrend.map(d => d.value);
     const xs = vals.map((_, i) => i);
@@ -193,6 +259,8 @@ export async function runAIAnalysis(table, overrides = {}) {
       const blended = Math.round(v * 0.6 + lrVal * 0.4);
       return { date: d.toISOString().slice(0, 7), value: blended, isForecast: true };
     });
+    // Pseudo-accuracy via R² of linear trend component
+    forecastAccuracy = Math.round(lr.r2 * 100);
   }
 
   // 8. Final metric values
@@ -204,71 +272,82 @@ export async function runAIAnalysis(table, overrides = {}) {
     ? parseFloat(((primaryTrend[primaryTrend.length - 1].value - primaryTrend[0].value) / (primaryTrend[0].value || 1) * 100).toFixed(1))
     : null;
 
-  // 9. LLM analysis for adaptive charts + insights
-  const statsSnippet = numericCols.slice(0, 6).map(c => {
+  // 9. Data quality detailed stats (V3: per-column nulls)
+  const nullSummary = {};
+  columns.forEach(col => {
+    const nulls = rows.filter(r => r[col.name] == null || r[col.name] === '' || r[col.name] === 'null').length;
+    nullSummary[col.name] = { count: nulls, pct: Math.round((nulls / rows.length) * 100) };
+  });
+  const rowHashes = rows.slice(0, 1000).map(r => JSON.stringify(r));
+  const duplicateRows = rowHashes.length - new Set(rowHashes).size;
+
+  // 10. LLM call for AI insights
+  const statsSnippet = numericCols.slice(0, 8).map(c => {
     const s = colStats[c.name];
-    return s ? `${c.name}: mean=${Math.round(s.mean)}, std=${Math.round(s.std)}, min=${s.min}, max=${s.max}` : '';
+    return s ? `${c.name}: mean=${Math.round(s.mean)}, std=${Math.round(s.std)}, min=${s.min}, max=${s.max}, skew=${s.skew}, outliers=${s.outlierCount}` : '';
   }).filter(Boolean).join('\n');
 
-  const sampleRows = rows.slice(0, 4).map(r => JSON.stringify(r)).join('\n');
-
+  const sampleRows = rows.slice(0, 5).map(r => JSON.stringify(r)).join('\n');
   let aiInsights = null;
+
   try {
     aiInsights = await base44.integrations.Core.InvokeLLM({
-      prompt: `You are a world-class senior data scientist producing an executive analytics briefing.
+      prompt: `You are a world-class senior data scientist & business analyst producing an enterprise analytics briefing.
 
 DATASET: "${tableName}"
 DOMAIN: ${domain}
+ROWS: ${rows.length.toLocaleString()} | COLS: ${columns.length}
+QUALITY: Completeness ${Math.round((1 - Object.values(nullSummary).reduce((s, v) => s + v.pct, 0) / (100 * columns.length)) * 100)}% | Duplicates: ${duplicateRows}
 
-EXACT COLUMN NAMES (use ONLY these, character-for-character):
-- All: ${columns.map(c => c.name).join(', ')}
+EXACT COLUMN NAMES (use ONLY these):
 - Numeric: ${numericCols.map(c => c.name).join(', ')}
 - Category: ${catCols.map(c => c.name).join(', ')}
 - Date: ${dateCol ? dateCol.name : 'none'}
 
-TOTAL ROWS: ${rows.length}
 SAMPLE ROWS:
 ${sampleRows}
 
-STATISTICS:
+COLUMN STATISTICS:
 ${statsSnippet}
 
-TOP CORRELATIONS: ${correlations.slice(0, 4).map(c => `${c.colA} ↔ ${c.colB}: r=${c.r}`).join(', ') || 'none computed'}
-ANOMALIES: ${anomalies.length} detected
-FORECAST AVAILABLE: ${primaryTrend.length >= 6}
-GROWTH RATE: ${growthRate != null ? growthRate + '%' : 'N/A (no date column)'}
+CORRELATIONS: ${correlations.slice(0, 5).map(c => `${c.colA} ↔ ${c.colB}: r=${c.r} (${c.strength})`).join(', ') || 'none'}
+ANOMALIES: ${anomalies.length} (${anomalies.filter(a => a.severity === 'high').length} high-severity)
+GROWTH RATE: ${growthRate != null ? growthRate + '%' : 'N/A'}
+FORECAST: ${primaryTrend.length >= 6 ? 'Available' : 'Not available'}
 
-RULES FOR chart_panels:
-1. x_column and y_column must be EXACT column names from the list above
-2. date→numeric = line_area, category→numeric = bar or donut, numeric→numeric = scatter
-3. Generate 6–8 varied, insightful chart panels covering different dimensions and metrics
-4. NEVER invent column names
+CHART RULES:
+- x_column and y_column MUST be EXACT column names from above
+- date→numeric = line_area | category→numeric = bar or donut | numeric→numeric = scatter
+- Generate 6–8 varied chart panels across different dimensions
 
 Return ONLY valid JSON:
 {
-  "domain_label": "string — e.g. 'Sales Performance Analytics 2023-2024'",
-  "primary_metric_name": "EXACT numeric column name — the most important KPI",
+  "domain_label": "string",
+  "primary_metric_name": "EXACT numeric column name",
   "secondary_metric_name": "EXACT numeric column name or null",
   "primary_dimension": "EXACT category column name or null",
-  "chart_panels": [
-    {
-      "id": "panel_1",
-      "title": "Chart title (max 6 words)",
-      "chart_type": "line_area|bar|horizontal_bar|donut|scatter|histogram|metric_card",
-      "x_column": "EXACT column name or null",
-      "y_column": "EXACT column name or null",
-      "insight": "One concrete insight sentence with a number",
-      "color_theme": "cyan|purple|orange|green|pink|yellow|teal"
-    }
-  ],
-  "executive_summary": "4–5 sentence professional summary with specific numbers",
-  "key_findings": ["finding with data point", "finding with data point", "finding with data point", "finding with data point"],
+  "chart_panels": [{
+    "id": "string",
+    "title": "string (max 6 words)",
+    "chart_type": "line_area|bar|horizontal_bar|donut|scatter|histogram|metric_card",
+    "x_column": "EXACT column name or null",
+    "y_column": "EXACT column name or null",
+    "insight": "one sentence with a specific number",
+    "color_theme": "cyan|purple|orange|green|pink|yellow|teal",
+    "x_axis_label": "string",
+    "y_axis_label": "string"
+  }],
+  "executive_summary": "4-5 sentence professional summary with specific numbers",
+  "key_findings": ["finding with data point", "finding", "finding", "finding"],
   "recommendations": [
-    {"priority": "high|medium|low|critical", "action": "Specific, actionable recommendation"},
-    {"priority": "high|medium|low", "action": "Specific, actionable recommendation"},
-    {"priority": "medium|low", "action": "Specific, actionable recommendation"}
+    {"priority": "high|medium|low|critical", "action": "specific actionable recommendation", "impact": "expected business impact"},
+    {"priority": "high|medium|low", "action": "specific actionable recommendation", "impact": "expected business impact"},
+    {"priority": "medium|low", "action": "specific actionable recommendation", "impact": "expected business impact"}
   ],
-  "data_story": "One sentence narrative arc of what this data says"
+  "data_story": "one sentence narrative arc",
+  "risk_signals": ["risk with context", "risk"],
+  "root_causes": ["potential root cause for primary trend"],
+  "confidence": 85
 }`,
       response_json_schema: {
         type: 'object',
@@ -277,33 +356,22 @@ Return ONLY valid JSON:
           primary_metric_name: { type: 'string' },
           secondary_metric_name: { type: ['string', 'null'] },
           primary_dimension: { type: ['string', 'null'] },
-          chart_panels: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                id: { type: 'string' },
-                title: { type: 'string' },
-                chart_type: { type: 'string' },
-                x_column: { type: ['string', 'null'] },
-                y_column: { type: ['string', 'null'] },
-                insight: { type: 'string' },
-                color_theme: { type: 'string' },
-              },
-            },
-          },
+          chart_panels: { type: 'array', items: { type: 'object' } },
           executive_summary: { type: 'string' },
           key_findings: { type: 'array', items: { type: 'string' } },
           recommendations: { type: 'array', items: { type: 'object' } },
           data_story: { type: 'string' },
+          risk_signals: { type: 'array', items: { type: 'string' } },
+          root_causes: { type: 'array', items: { type: 'string' } },
+          confidence: { type: 'number' },
         },
       },
     });
   } catch (e) {
-    console.warn('[AIAnalyzer] LLM call failed, using local fallback:', e?.message);
+    console.warn('[AIAnalyzer V3] LLM call failed, using local fallback:', e?.message);
   }
 
-  // 10. Resolve AI metric names against actual columns (case-insensitive fallback)
+  // 11. Resolve AI metric names
   const resolveCol = (name) => {
     if (!name) return null;
     return columns.find(c => c.name === name) || columns.find(c => c.name.toLowerCase() === name.toLowerCase());
@@ -324,21 +392,21 @@ Return ONLY valid JSON:
     ? parseFloat(((finalTrend[finalTrend.length - 1].value - finalTrend[0].value) / (finalTrend[0].value || 1) * 100).toFixed(1))
     : growthRate;
 
-  // Local fallback summaries if LLM failed
   const localFindings = [
     `Total ${formatLabel(finalPrimary?.name)} is ${Math.round(finalTotalValue).toLocaleString()}.`,
     finalGrowthRate != null ? `Overall trend: ${finalGrowthRate > 0 ? '+' : ''}${finalGrowthRate}% over the period.` : 'No date column — time-series analysis unavailable.',
-    finalBreakdown[0] ? `Top ${finalPrimaryDim?.name?.replace(/_/g, ' ') || 'segment'}: "${finalBreakdown[0].name}" (${Math.round(finalBreakdown[0].value / (Math.round(finalTotalValue) || 1) * 100)}% of total).` : null,
-    anomalies.length > 0 ? `${anomalies.length} anomaly${anomalies.length > 1 ? 'ies' : ''} detected outside normal statistical range.` : 'No anomalies detected — data within normal bounds.',
-    correlations[0] ? `Significant correlation: ${formatLabel(correlations[0].colA)} ↔ ${formatLabel(correlations[0].colB)} (r=${correlations[0].r}).` : null,
+    finalBreakdown[0] ? `Top segment: "${finalBreakdown[0].name}" (${Math.round(finalBreakdown[0].value / (Math.round(finalTotalValue) || 1) * 100)}% of total).` : null,
+    anomalies.length > 0 ? `${anomalies.length} statistical anomalies detected (${anomalies.filter(a => a.severity === 'high').length} high-severity).` : 'No anomalies — data within normal bounds.',
+    correlations[0] ? `Strongest correlation: ${formatLabel(correlations[0].colA)} ↔ ${formatLabel(correlations[0].colB)} (r=${correlations[0].r}, ${correlations[0].strength}).` : null,
+    duplicateRows > 0 ? `${duplicateRows} duplicate rows detected — consider deduplication.` : null,
   ].filter(Boolean);
 
   const localRecommendations = [
-    Number(finalGrowthRate) > 10 && { priority: 'high', action: `Accelerate investment to sustain ${finalGrowthRate}% growth.` },
-    Number(finalGrowthRate) < -5 && { priority: 'critical', action: `Investigate declining trend (${finalGrowthRate}%) — convene task force immediately.` },
-    anomalies.length > 0 && { priority: 'medium', action: `Review ${anomalies.length} detected anomal${anomalies.length > 1 ? 'ies' : 'y'} for data quality or external causes.` },
-    finalBreakdown[0] && { priority: 'medium', action: `Prioritize "${finalBreakdown[0].name}" — the top-performing segment. Replicate its drivers.` },
-    { priority: 'low', action: 'Schedule quarterly data review to maintain analytical reliability.' },
+    Number(finalGrowthRate) > 10 && { priority: 'high', action: `Accelerate investment to sustain ${finalGrowthRate}% growth.`, impact: 'Revenue uplift' },
+    Number(finalGrowthRate) < -5 && { priority: 'critical', action: `Investigate declining trend (${finalGrowthRate}%) — convene task force immediately.`, impact: 'Risk mitigation' },
+    anomalies.length > 0 && { priority: 'medium', action: `Review ${anomalies.length} anomalies for data quality or external causes.`, impact: 'Data integrity' },
+    finalBreakdown[0] && { priority: 'medium', action: `Prioritize "${finalBreakdown[0].name}" — top-performing segment. Replicate its drivers.`, impact: 'Performance optimization' },
+    { priority: 'low', action: 'Schedule quarterly data review to maintain analytical reliability.', impact: 'Governance' },
   ].filter(Boolean).slice(0, 4);
 
   return {
@@ -354,19 +422,25 @@ Return ONLY valid JSON:
     totalValue: Math.round(finalTotalValue),
     secondValue: finalSecondary ? Math.round(rows.reduce((s, r) => s + (Number(r[finalSecondary.name]) || 0), 0)) : Math.round(secondValue),
     growthRate: finalGrowthRate,
-    trendData: finalTrend.slice(-24),
+    trendData: finalTrend.slice(-36),
     forecastData,
+    forecastAccuracy,
     breakdownData: finalBreakdown,
     allBreakdowns: breakdownMap,
     allTrends: trendMap,
     correlations,
     colStats,
     anomalies,
+    nullSummary,
+    duplicateRows,
     chartPanels: aiInsights?.chart_panels || null,
-    executiveSummary: aiInsights?.executive_summary || `Analysis of ${tableName}: total ${formatLabel(finalPrimary?.name)} is ${Math.round(finalTotalValue).toLocaleString()}. ${localFindings[1] || ''} ${anomalies.length > 0 ? `${anomalies.length} anomalies detected.` : 'Data quality is reliable.'}`,
+    executiveSummary: aiInsights?.executive_summary || `Analysis of ${tableName}: total ${formatLabel(finalPrimary?.name)} is ${Math.round(finalTotalValue).toLocaleString()}.`,
     keyFindings: (aiInsights?.key_findings?.length ? aiInsights.key_findings : localFindings),
     recommendations: (aiInsights?.recommendations?.length ? aiInsights.recommendations : localRecommendations),
-    dataStory: aiInsights?.data_story || `${tableName} data tells a story of ${Number(finalGrowthRate) > 0 ? 'growth' : Number(finalGrowthRate) < 0 ? 'decline' : 'stability'} — key decisions lie in segment differentiation.`,
+    dataStory: aiInsights?.data_story || `${tableName} data shows ${Number(finalGrowthRate) > 0 ? 'growth' : Number(finalGrowthRate) < 0 ? 'decline' : 'stability'}.`,
+    riskSignals: aiInsights?.risk_signals || [],
+    rootCauses: aiInsights?.root_causes || [],
+    aiConfidence: aiInsights?.confidence || 75,
     canForecast: finalTrend.length >= 6,
     numericCols,
     catCols,
