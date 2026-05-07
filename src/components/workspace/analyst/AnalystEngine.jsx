@@ -5,6 +5,7 @@
  */
 import { base44 } from '@/api/base44Client';
 import { assessConfidence } from '@/lib/analystTools';
+import { obs } from '@/lib/observability';
 import * as localTools from '@/lib/analystToolsLocal.js';
 
 // ── Build rich data context for LLM ─────────────────────────────
@@ -261,9 +262,12 @@ export async function executeAnalystWorkflow(question, store, analysisResultsArg
     // Call LLM for deep analysis
     const prompt = buildPrompt(question, mode, dataContext);
     let llmAnswer = '';
+    const llmTimer = obs.logLLMCall('claude_sonnet_4_6', question);
     try {
       llmAnswer = await base44.integrations.Core.InvokeLLM({ prompt, model: 'claude_sonnet_4_6' });
-    } catch {
+      llmTimer.end({ success: true });
+    } catch (llmErr) {
+      llmTimer.end({ error: llmErr.message, fallback: true });
       // Fallback to local tools
       const fallback = await localTools.safeFallbackResponse(store, question);
       llmAnswer = fallback.answer;

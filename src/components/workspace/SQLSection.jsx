@@ -40,6 +40,17 @@ const EXAMPLE_QUERIES = [
   'Show records with the highest values',
 ];
 
+const SQL_TEMPLATES = [
+  { id: 'top_n_revenue',        label: 'Top 10 by Revenue',           desc: 'Rank records by total value' },
+  { id: 'monthly_trend',        label: 'Monthly Trend',               desc: 'Aggregate KPI by month' },
+  { id: 'by_segment',           label: 'KPI by Segment',              desc: 'SUM and AVG by category' },
+  { id: 'avg_by_segment',       label: 'Avg Value by Segment',        desc: 'Average order value pattern' },
+  { id: 'null_audit',           label: 'Null Audit',                  desc: 'Count nulls per column' },
+  { id: 'duplicate_detection',  label: 'Duplicate Detection',         desc: 'Find repeated rows' },
+  { id: 'percentile_distribution', label: 'Percentiles',             desc: 'P25/P50/P75/P95 distribution' },
+  { id: 'segment_comparison',   label: 'Segment Over Time',           desc: 'Trend by segment + date' },
+];
+
 // ── In-memory SQL runner ──────────────────────────────────────────
 function runInMemorySQL(sql, table) {
   try {
@@ -172,74 +183,46 @@ export default function SQLSection() {
   const [copied, setCopied] = useState(false);
   const [view, setView] = useState('table');
   const [history, setHistory] = useState([]);
+  const [showTemplates, setShowTemplates] = useState(false);
 
-  const handleGenerate = async (q) => {
+  const handleGenerate = async (q, templateId = null) => {
     const question = (q || query).trim();
-    if (!question || !table) return;
+    if (!question && !templateId || !table) return;
     setLoading(true);
     setResult(null);
-    const cols = table.columns?.map(c => `${c.name} (${c.type})`).join(', ');
-    const catCols = table.columns?.filter(c => c.type === 'category').map(c => c.name).join(', ');
-    const numCols = table.columns?.filter(c => c.type === 'numeric').map(c => c.name).join(', ');
-    const dateCols = table.columns?.filter(c => c.type === 'date').map(c => c.name).join(', ');
-    // Build semantic context for better SQL generation
-    const semanticCtx = semanticModel ? `
-SEMANTIC MODEL:
-  Primary KPI: ${semanticModel.measures?.[0]?.label || 'unknown'} (column: ${semanticModel.measures?.[0]?.name || 'unknown'})
-  Measures: ${semanticModel.measures?.map(m=>`${m.label}=${m.name}`).join(', ') || 'none'}
-  Dimensions: ${semanticModel.dimensions?.map(d=>`${d.label}=${d.name}`).join(', ') || 'none'}` : '';
     try {
-      const resp = await base44.integrations.Core.InvokeLLM({
-        prompt: `You are a SQL expert with knowledge of the business semantic model.
-Table: "${table.name}"
-Columns: ${cols}
-Numeric: ${numCols}
-Category: ${catCols}
-Date: ${dateCols || 'none'}
-Rows: ${table.rowCount}
-${semanticCtx}
-
-User question: "${question}"
-
-Generate a SQL SELECT query using EXACT column names above.
-- GROUP BY + SUM/COUNT/AVG for aggregations
-- ORDER BY + LIMIT for rankings
-- Use semantic model labels to understand business intent
-- If the question uses a business name (e.g. "Revenue"), map it to the correct column
-
-If you cannot generate valid SQL, set can_generate=false and provide:
-1. What IS answerable from the semantic model
-2. The closest semantic answer using available data
-3. Suggested rephrasing that would work
-
-Return JSON: {"sql": "SELECT ..." or null, "explanation": "plain English explanation", "can_generate": true/false, "semantic_answer": "optional: closest semantic answer if SQL not possible"}`,
-        response_json_schema: {
-          type: 'object',
-          properties: {
-            sql: { type: ['string', 'null'] },
-            explanation: { type: 'string' },
-            can_generate: { type: 'boolean' },
-            semantic_answer: { type: ['string', 'null'] },
-          },
-        },
+      const resp = await base44.functions.invoke('generateSQL', {
+        question: question || templateId,
+        tableName: table.name,
+        columns: table.columns,
+        templateId,
+        sampleData: table.rows?.slice(0, 3),
       });
-
+      const data = resp.data || {};
       let queryResult = null;
-      if (resp.can_generate && resp.sql && table.rows) {
-        queryResult = runInMemorySQL(resp.sql, table);
+      if (data.can_generate && data.sql && table.rows) {
+        queryResult = runInMemorySQL(data.sql, table);
       }
-
-      const r = { ...resp, queryResult, question };
+      const r = { ...data, queryResult, question: question || templateId };
       setResult(r);
-      setHistory(h => [r, ...h].slice(0, 5));
+      setHistory(h => [r, ...h].slice(0, 8));
       setView('table');
     } catch (e) {
-      setResult({
-        sql: null,
-        explanation: 'SQL generation failed. Try the AI Analyst for natural language questions about your data.',
-        can_generate: false,
-        question,
-      });
+      // Fallback to direct LLM
+      try {
+        const cols = table.columns?.map(c => `${c.name} (${c.type})`).join(', ');
+        const resp = await base44.integrations.Core.InvokeLLM({
+          prompt: `Generate SQL for table "${table.name}" columns: ${cols}. Question: "${question}". Return JSON: {sql, explanation, can_generate, chart_type}`,
+          response_json_schema: { type: 'object', properties: { sql: { type: ['string','null'] }, explanation: { type: 'string' }, can_generate: { type: 'boolean' }, chart_type: { type: 'string' } } },
+        });
+        let queryResult = null;
+        if (resp.can_generate && resp.sql) queryResult = runInMemorySQL(resp.sql, table);
+        const r = { ...resp, queryResult, question };
+        setResult(r);
+        setHistory(h => [r, ...h].slice(0, 8));
+      } catch {
+        setResult({ sql: null, explanation: 'SQL generation failed. Try the AI Analyst.', can_generate: false, question });
+      }
     }
     setLoading(false);
   };
@@ -305,18 +288,38 @@ Return JSON: {"sql": "SELECT ..." or null, "explanation": "plain English explana
         </div>
       </div>
 
-      {/* Example queries */}
-      <div>
-        <div className="text-xs text-white/30 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-          <Lightbulb className="w-3 h-3" /> Example queries
+      {/* Templates + Example queries */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setShowTemplates(v => !v)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs border transition-all ${showTemplates ? 'bg-cyan-400/10 border-cyan-400/25 text-cyan-400' : 'bg-white/4 border-white/8 text-white/45 hover:text-white/70'}`}>
+            <Database className="w-3 h-3" /> {showTemplates ? 'Hide' : 'Show'} 8 SQL Templates
+          </button>
+          <span className="text-xs text-white/25">or ask a question below</span>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {EXAMPLE_QUERIES.map(q => (
-            <button key={q} onClick={() => { setQuery(q); handleGenerate(q); }}
-              className="px-3 py-1.5 bg-white/4 border border-white/8 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:border-cyan-400/25 hover:bg-white/7 transition-all">
-              {q}
-            </button>
-          ))}
+        {showTemplates && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {SQL_TEMPLATES.map(t => (
+              <button key={t.id} onClick={() => handleGenerate(t.label, t.id)}
+                className="p-3 text-left bg-white/3 border border-white/8 rounded-xl hover:border-cyan-400/25 hover:bg-white/6 transition-all">
+                <div className="text-xs font-semibold text-white/75 mb-0.5">{t.label}</div>
+                <div className="text-xs text-white/35">{t.desc}</div>
+              </button>
+            ))}
+          </div>
+        )}
+        <div>
+          <div className="text-xs text-white/30 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+            <Lightbulb className="w-3 h-3" /> Quick questions
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {EXAMPLE_QUERIES.slice(0, 5).map(q => (
+              <button key={q} onClick={() => { setQuery(q); handleGenerate(q); }}
+                className="px-3 py-1.5 bg-white/4 border border-white/8 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:border-cyan-400/25 hover:bg-white/7 transition-all">
+                {q}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

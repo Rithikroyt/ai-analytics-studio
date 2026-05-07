@@ -18,6 +18,10 @@ import AnalystSection from '@/components/workspace/AnalystSection';
 import ReportsSection from '@/components/workspace/ReportsSection';
 import CompareSection from '@/components/workspace/CompareSection';
 import StatisticsSection from '@/components/workspace/StatisticsSection';
+import DataPrepStudio from '@/components/workspace/DataPrepStudio';
+import RFMSection from '@/components/workspace/RFMSection';
+import FunnelSection from '@/components/workspace/FunnelSection';
+import ObservabilityPanel from '@/components/workspace/ObservabilityPanel';
 import { useWorkspaceStore } from '@/lib/store';
 
 const sectionComponents = {
@@ -33,6 +37,10 @@ const sectionComponents = {
   reports: ReportsSection,
   compare: CompareSection,
   statistics: StatisticsSection,
+  dataprep: DataPrepStudio,
+  rfm: RFMSection,
+  funnel: FunnelSection,
+  observability: ObservabilityPanel,
 };
 
 export default function Workspace() {

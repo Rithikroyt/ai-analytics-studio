@@ -197,8 +197,39 @@ Format:
 RULES: Include a Quality Metrics Summary Table (Markdown) with column name, type, missing %, unique count. Reference the actual quality score (${table.qualityScore}%). Technical but clear. 400-500 words.`,
     };
 
+    // Map report type IDs to backend function type names
+    const typeMap = {
+      executive: 'executive_summary',
+      board: 'board_memo',
+      kpi_trend: 'kpi_trend',
+      anomaly: 'anomaly_risk',
+      forecast: 'forecast',
+      quality: 'data_quality',
+      feedback: 'insight_digest',
+    };
+
     try {
-      const content = await base44.integrations.Core.InvokeLLM({ prompt: prompts[type] });
+      let content;
+      try {
+        const resp = await base44.functions.invoke('generateReport', {
+          reportType: typeMap[type] || type,
+          tableContext: {
+            name: table.name,
+            rowCount: table.rowCount,
+            columnCount: table.columns?.length,
+            qualityScore: table.qualityScore,
+            issues: table.issues,
+            nullsByColumn: {},
+          },
+          analysisResults,
+        });
+        content = resp.data?.content;
+        if (!content) throw new Error('No content returned');
+      } catch {
+        // Fallback to direct LLM
+        content = await base44.integrations.Core.InvokeLLM({ prompt: prompts[type] });
+      }
+
       const report = {
         id: `${type}-${Date.now()}`,
         type,
@@ -210,19 +241,9 @@ RULES: Include a Quality Metrics Summary Table (Markdown) with column name, type
       addReport(report);
       setGenerated(g => ({ ...g, [type]: report }));
       setExpandedReport(type);
-
-      // Trigger Slack notification if enabled
-      if (notifySlack && globalThis.notificationCenter) {
-        globalThis.notificationCenter.addNotification(
-          'report_generated',
-          `${reportTypes.find(rt => rt.id === type)?.label || 'Report'} generated and ready to share`,
-          5000
-        );
-        // In production, call webhook here via backend function
-      }
-      } catch (e) {
+    } catch (e) {
       setGenerated(g => ({ ...g, [type]: { content: 'Report generation failed. Please try again.', error: true } }));
-      }
+    }
     setGenerating('');
   };
 

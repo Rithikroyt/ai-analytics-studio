@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import {
   LayoutDashboard, Upload, Settings2, BarChart3, BookOpen,
   Layers, Terminal, FileText, MessageSquare, Download,
-  ChevronLeft, Database, GitCompare, PieChart, Bell, Link2, Wand2, FlaskConical
+  ChevronLeft, Database, GitCompare, PieChart, Bell, Link2, Wand2, FlaskConical,
+  Users, Filter, Activity
 } from 'lucide-react';
 import { useWorkspaceStore } from '@/lib/store';
 
@@ -17,10 +18,14 @@ const sections = [
   { id: 'reports',     label: 'Reports',         icon: Download },
   { id: 'story',       label: 'Story',           icon: BookOpen },
   { id: 'compare',     label: 'Compare',         icon: GitCompare },
-  { id: 'statistics',  label: 'Statistics',      icon: FlaskConical },
-  { id: 'semantic',    label: 'Semantic Model',  icon: Layers },
-  { id: 'sql',         label: 'SQL Studio',      icon: Terminal },
-  { id: 'docs',        label: 'Docs & Evidence', icon: FileText },
+  { id: 'statistics',    label: 'Statistics',      icon: FlaskConical },
+  { id: 'dataprep',     label: 'Data Prep',       icon: Wand2 },
+  { id: 'rfm',          label: 'RFM Segments',    icon: Users },
+  { id: 'funnel',       label: 'Funnel',          icon: Filter },
+  { id: 'semantic',     label: 'Semantic Model',  icon: Layers },
+  { id: 'sql',          label: 'SQL Studio',      icon: Terminal },
+  { id: 'docs',         label: 'Docs & Evidence', icon: FileText },
+  { id: 'observability',label: 'Observability',   icon: Activity },
 ];
 
 export default function WorkspaceSidebar({ collapsed, onToggle }) {
