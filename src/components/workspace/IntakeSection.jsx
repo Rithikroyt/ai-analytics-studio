@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 
 const ACCEPTED = '.csv,.tsv,.xlsx,.xls,.json,.txt,.md,.pdf,.docx';
-const MAX_MB = 25;
+const MAX_MB = 150;
 
 function FileIcon({ ext }) {
   if (ext === 'xlsx' || ext === 'xls') return <FileSpreadsheet className="w-5 h-5 text-teal-400" />;
