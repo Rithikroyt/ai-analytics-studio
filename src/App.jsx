@@ -30,6 +30,9 @@ import WhatIfSimulator from '@/pages/WhatIfSimulator';
 import AnalystNotebook from '@/pages/AnalystNotebook';
 import ActionBoard from '@/pages/ActionBoard';
 import DecisionReports from '@/pages/DecisionReports';
+import MLWorkbench from '@/pages/MLWorkbench';
+import PolicyCenter from '@/pages/PolicyCenter';
+import AgentStudio from '@/pages/AgentStudio';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -81,6 +84,9 @@ const AuthenticatedApp = () => {
         <Route path="/notebook" element={<AnalystNotebook />} />
         <Route path="/action-board" element={<ActionBoard />} />
         <Route path="/decision-reports" element={<DecisionReports />} />
+        <Route path="/ml-workbench" element={<MLWorkbench />} />
+        <Route path="/policy-center" element={<PolicyCenter />} />
+        <Route path="/agent-studio" element={<AgentStudio />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </>

@@ -1,0 +1,69 @@
+{
+  "name": "AgentPersona",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "Persona Name"
+    },
+    "department": {
+      "type": "string",
+      "title": "Department"
+    },
+    "role": {
+      "type": "string",
+      "title": "Role"
+    },
+    "personality": {
+      "type": "string",
+      "title": "Personality / Tone"
+    },
+    "systemInstructions": {
+      "type": "string",
+      "title": "System Instructions"
+    },
+    "preferredTools": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Preferred Analysis Tools"
+    },
+    "focusMetrics": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Focus Metrics"
+    },
+    "defaultMode": {
+      "type": "string",
+      "enum": [
+        "exploratory",
+        "diagnostic",
+        "predictive",
+        "prescriptive"
+      ],
+      "default": "exploratory",
+      "title": "Default Analysis Mode"
+    },
+    "avatarColor": {
+      "type": "string",
+      "title": "Avatar Color"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true,
+      "title": "Active"
+    },
+    "usageCount": {
+      "type": "number",
+      "default": 0,
+      "title": "Usage Count"
+    }
+  },
+  "required": [
+    "name",
+    "department"
+  ]
+}

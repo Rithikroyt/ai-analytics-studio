@@ -1,0 +1,60 @@
+{
+  "name": "DataLineage",
+  "type": "object",
+  "properties": {
+    "sourceTable": {
+      "type": "string",
+      "title": "Source Table"
+    },
+    "sourceColumn": {
+      "type": "string",
+      "title": "Source Column"
+    },
+    "targetTable": {
+      "type": "string",
+      "title": "Target Table / Report"
+    },
+    "targetColumn": {
+      "type": "string",
+      "title": "Target Column / KPI"
+    },
+    "transformationType": {
+      "type": "string",
+      "enum": [
+        "direct",
+        "aggregation",
+        "join",
+        "formula",
+        "filter",
+        "ml_feature"
+      ],
+      "title": "Transformation Type"
+    },
+    "transformationDetails": {
+      "type": "string",
+      "title": "Transformation Details"
+    },
+    "impactedReports": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Impacted Reports"
+    },
+    "impactedKPIs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Impacted KPIs"
+    },
+    "workspaceId": {
+      "type": "string",
+      "title": "Workspace ID"
+    }
+  },
+  "required": [
+    "sourceTable",
+    "targetTable"
+  ]
+}

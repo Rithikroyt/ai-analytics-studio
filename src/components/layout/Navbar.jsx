@@ -10,6 +10,9 @@ const navLinks = [
   { label: 'Universal Data', path: '/universal-data' },
   { label: 'Dashboards', path: '/dashboards' },
   { label: 'Governance', path: '/governance' },
+  { label: 'ML Workbench', path: '/ml-workbench' },
+  { label: 'Policy Center', path: '/policy-center' },
+  { label: 'Agent Studio', path: '/agent-studio' },
 ];
 
 export default function Navbar() {
@@ -18,7 +21,7 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
 
   // Hide navbar on workspace/app pages
-  const appPages = ['/workspace', '/dashboards', '/story-builder', '/alerts', '/integrations', '/data-mapping', '/reports', '/collaboration', '/predictive', '/forecast-hub', '/governance', '/workbench'];
+  const appPages = ['/workspace', '/dashboards', '/story-builder', '/alerts', '/integrations', '/data-mapping', '/reports', '/collaboration', '/predictive', '/forecast-hub', '/governance', '/workbench', '/ml-workbench', '/policy-center', '/agent-studio'];
   const isWorkspace = appPages.some(p => location.pathname.startsWith(p));
   
   useEffect(() => {

@@ -1,0 +1,87 @@
+{
+  "name": "DataPolicy",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "Policy Name"
+    },
+    "description": {
+      "type": "string",
+      "title": "Description"
+    },
+    "policyType": {
+      "type": "string",
+      "enum": [
+        "masking",
+        "retention",
+        "access_control",
+        "quality_threshold",
+        "compliance"
+      ],
+      "title": "Policy Type"
+    },
+    "appliesTo": {
+      "type": "string",
+      "title": "Applies To (Table/Column)"
+    },
+    "ruleDefinition": {
+      "type": "object",
+      "title": "Rule Definition",
+      "additionalProperties": true
+    },
+    "enforcement": {
+      "type": "string",
+      "enum": [
+        "alert",
+        "block",
+        "mask",
+        "archive"
+      ],
+      "default": "alert",
+      "title": "Enforcement Action"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "info",
+        "warning",
+        "critical"
+      ],
+      "default": "warning",
+      "title": "Severity"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive",
+        "draft"
+      ],
+      "default": "active",
+      "title": "Status"
+    },
+    "lastTriggeredAt": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Last Triggered At"
+    },
+    "triggerCount": {
+      "type": "number",
+      "title": "Trigger Count",
+      "default": 0
+    },
+    "owner": {
+      "type": "string",
+      "title": "Owner Email"
+    },
+    "complianceFramework": {
+      "type": "string",
+      "title": "Compliance Framework (GDPR/HIPAA/SOC2)"
+    }
+  },
+  "required": [
+    "name",
+    "policyType"
+  ]
+}

@@ -1,0 +1,114 @@
+{
+  "name": "MachineLearningModel",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "Model Name"
+    },
+    "description": {
+      "type": "string",
+      "title": "Description"
+    },
+    "modelType": {
+      "type": "string",
+      "enum": [
+        "classification",
+        "regression",
+        "clustering",
+        "anomaly_detection",
+        "forecasting"
+      ],
+      "title": "Model Type"
+    },
+    "targetColumn": {
+      "type": "string",
+      "title": "Target Column"
+    },
+    "featureColumns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Feature Columns"
+    },
+    "algorithm": {
+      "type": "string",
+      "title": "Algorithm"
+    },
+    "hyperparameters": {
+      "type": "object",
+      "title": "Hyperparameters",
+      "additionalProperties": true
+    },
+    "trainedAt": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Trained At"
+    },
+    "accuracy": {
+      "type": "number",
+      "title": "Accuracy (%)"
+    },
+    "f1Score": {
+      "type": "number",
+      "title": "F1 Score"
+    },
+    "rmse": {
+      "type": "number",
+      "title": "RMSE"
+    },
+    "featureImportance": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "title": "Feature Importance"
+    },
+    "confusionMatrix": {
+      "type": "object",
+      "title": "Confusion Matrix",
+      "additionalProperties": true
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "training",
+        "trained",
+        "deployed",
+        "deprecated"
+      ],
+      "default": "draft",
+      "title": "Status"
+    },
+    "tableId": {
+      "type": "string",
+      "title": "Source Table ID"
+    },
+    "tableName": {
+      "type": "string",
+      "title": "Source Table Name"
+    },
+    "version": {
+      "type": "number",
+      "title": "Version",
+      "default": 1
+    },
+    "notes": {
+      "type": "string",
+      "title": "Notes"
+    },
+    "predictionResults": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "title": "Prediction Results"
+    }
+  },
+  "required": [
+    "name",
+    "modelType"
+  ]
+}
