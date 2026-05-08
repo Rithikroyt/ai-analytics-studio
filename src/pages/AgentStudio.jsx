@@ -5,10 +5,10 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useWorkspaceStore } from '@/lib/store';
-import { Bot, Plus, Sparkles, Play, Brain, Zap, Users, ChevronRight, Loader2, Send, Trash2, Star, Settings } from 'lucide-react';
+import { Bot, Plus, Sparkles, Play, Brain, Zap, Users, ChevronRight, Loader2, Send, Trash2, Star, Settings, GitMerge } from 'lucide-react';
 import PersonaCard from '@/components/agents/PersonaCard';
 import PersonaForm from '@/components/agents/PersonaForm';
-import MultiAgentChat from '@/components/agents/MultiAgentChat';
+import AgentPipelineBuilder from '@/components/agents/AgentPipelineBuilder';
 import ReactMarkdown from 'react-markdown';
 
 const DEFAULT_PERSONAS = [
@@ -26,6 +26,7 @@ export default function AgentStudio() {
   const [chatHistory, setChatHistory] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [studioTab, setStudioTab] = useState('chat'); // 'chat' | 'pipeline'
 
   useEffect(() => {
     base44.entities.AgentPersona.list('-usageCount', 20)
@@ -87,10 +88,22 @@ export default function AgentStudio() {
             <p className="text-xs text-muted-foreground">Multi-agent AI with specialized department personas</p>
           </div>
         </div>
-        <button onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-pink-400/10 border border-pink-400/20 text-pink-400 text-xs font-semibold rounded-xl hover:bg-pink-400/15 transition-all">
-          <Plus className="w-3.5 h-3.5" /> Custom Persona
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex gap-0.5 p-1 bg-white/5 rounded-xl border border-white/8">
+            <button onClick={() => setStudioTab('chat')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${studioTab === 'chat' ? 'bg-pink-400/20 text-pink-400' : 'text-white/40 hover:text-white/70'}`}>
+              <Brain className="w-3.5 h-3.5" /> Chat
+            </button>
+            <button onClick={() => setStudioTab('pipeline')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${studioTab === 'pipeline' ? 'bg-pink-400/20 text-pink-400' : 'text-white/40 hover:text-white/70'}`}>
+              <GitMerge className="w-3.5 h-3.5" /> Pipeline
+            </button>
+          </div>
+          <button onClick={() => setShowForm(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-pink-400/10 border border-pink-400/20 text-pink-400 text-xs font-semibold rounded-xl hover:bg-pink-400/15 transition-all">
+            <Plus className="w-3.5 h-3.5" /> Custom Persona
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-1 overflow-hidden">
@@ -103,8 +116,15 @@ export default function AgentStudio() {
           ))}
         </div>
 
+        {/* Pipeline Tab */}
+        {studioTab === 'pipeline' && (
+          <div className="flex-1 overflow-y-auto p-6">
+            <AgentPipelineBuilder activeTable={activeTable} activePersona={activePersona} />
+          </div>
+        )}
+
         {/* Chat Area */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        {studioTab === 'chat' && <div className="flex-1 flex flex-col overflow-hidden" key="chat-area">
           {/* Active Persona Banner */}
           <div className="px-5 py-3 border-b border-white/5 flex items-center gap-3 flex-shrink-0"
             style={{ background: `${activePersona.avatarColor}10`, borderColor: `${activePersona.avatarColor}20` }}>
@@ -221,7 +241,7 @@ export default function AgentStudio() {
               </button>
             </div>
           </div>
-        </div>
+        </div>}
       </div>
 
       <AnimatePresence>

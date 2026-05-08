@@ -9,6 +9,7 @@ import {
   ShieldAlert, Filter, ChevronDown
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import StreamingConnectors from '@/components/alerts/StreamingConnectors';
 
 const CONDITIONS = [
   { id: 'above', label: 'Goes above', icon: TrendingUp },
@@ -228,6 +229,7 @@ Format with clear sections. Use professional but friendly tone.`,
   const TABS = [
     { id: 'alerts', label: 'Alert Rules', count: alerts.length },
     { id: 'history', label: 'Trigger History', count: unreadCount || null, badge: unreadCount > 0 ? 'red' : null },
+    { id: 'streaming', label: 'Live Streams', count: null },
     { id: 'digest', label: 'AI Digest', count: null },
   ];
 
@@ -582,6 +584,9 @@ Format with clear sections. Use professional but friendly tone.`,
             )}
           </div>
         )}
+
+        {/* ── STREAMING TAB ── */}
+        {activeTab === 'streaming' && <StreamingConnectors />}
 
         {/* ── AI DIGEST TAB ── */}
         {activeTab === 'digest' && (

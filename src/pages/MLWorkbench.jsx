@@ -5,10 +5,18 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useWorkspaceStore } from '@/lib/store';
-import { Brain, Play, CheckCircle2, AlertTriangle, BarChart2, Zap, ChevronRight, Loader2, TrendingUp, Target, Upload, RefreshCw } from 'lucide-react';
+import { Brain, Play, CheckCircle2, AlertTriangle, BarChart2, Zap, ChevronRight, Loader2, TrendingUp, Target, Upload, RefreshCw, Code2 } from 'lucide-react';
 import MLModelCard from '@/components/ml/MLModelCard';
 import MLTrainingForm from '@/components/ml/MLTrainingForm';
 import MLResultsPanel from '@/components/ml/MLResultsPanel';
+import MLOpsPanel from '@/components/ml/MLOpsPanel';
+import ScriptUploadPanel from '@/components/ml/ScriptUploadPanel';
+
+const MAIN_TABS = [
+  { id: 'train', label: 'Train Models', icon: Brain },
+  { id: 'mlops', label: 'MLOps', icon: RefreshCw },
+  { id: 'scripts', label: 'Custom Scripts', icon: BarChart2 },
+];
 
 export default function MLWorkbench() {
   const { getActiveTable } = useWorkspaceStore();
@@ -17,6 +25,7 @@ export default function MLWorkbench() {
   const [training, setTraining] = useState(false);
   const [activeModel, setActiveModel] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [mainTab, setMainTab] = useState('train');
 
   const handleTrain = async (config) => {
     if (!activeTable?.rows?.length) return;
@@ -84,12 +93,25 @@ export default function MLWorkbench() {
             <p className="text-xs text-muted-foreground">Train & deploy machine learning models on <span className="text-purple-400 font-semibold">{activeTable.name}</span> · {activeTable.rowCount?.toLocaleString()} rows</p>
           </div>
         </div>
-        <button onClick={() => setShowForm(true)} disabled={training}
-          className="flex items-center gap-2 px-5 py-2.5 bg-purple-400 text-xs font-bold rounded-xl hover:bg-purple-300 transition-all disabled:opacity-50"
-          style={{ color: 'hsl(222,47%,6%)' }}>
-          {training ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-          {training ? 'Training…' : 'Train New Model'}
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Main Tabs */}
+          <div className="flex gap-0.5 p-1 bg-white/5 rounded-xl border border-white/8">
+            {MAIN_TABS.map(t => (
+              <button key={t.id} onClick={() => setMainTab(t.id)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${mainTab === t.id ? 'bg-purple-400/20 text-purple-400' : 'text-white/40 hover:text-white/70'}`}>
+                <t.icon className="w-3.5 h-3.5" /> {t.label}
+              </button>
+            ))}
+          </div>
+          {mainTab === 'train' && (
+            <button onClick={() => setShowForm(true)} disabled={training}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-400 text-xs font-bold rounded-xl hover:bg-purple-300 transition-all disabled:opacity-50"
+              style={{ color: 'hsl(222,47%,6%)' }}>
+              {training ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+              {training ? 'Training…' : 'Train Model'}
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex h-[calc(100vh-81px)]">
@@ -129,22 +151,26 @@ export default function MLWorkbench() {
 
         {/* Main Content */}
         <div className="flex-1 overflow-y-auto p-6">
-          {activeModel ? (
-            <MLResultsPanel model={activeModel} />
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full text-center">
-              <Brain className="w-16 h-16 text-purple-400/20 mb-4" />
-              <h2 className="text-lg font-bold mb-2">Select or Train a Model</h2>
-              <p className="text-muted-foreground text-sm max-w-md">Train classification, regression, clustering, or anomaly detection models on your workspace data with one click.</p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-8">
-                {['Classification', 'Regression', 'Clustering', 'Anomaly Detection'].map((t, i) => (
-                  <div key={t} className="p-4 glass rounded-xl border border-white/8 text-xs font-semibold text-center hover:border-purple-400/30 transition-all cursor-pointer" onClick={() => setShowForm(true)}>
-                    <div className="text-2xl mb-2">{['🎯','📈','🔵','🚨'][i]}</div>
-                    {t}
-                  </div>
-                ))}
+          {mainTab === 'mlops' && <MLOpsPanel model={activeModel} onRetrain={() => setShowForm(true)} />}
+          {mainTab === 'scripts' && <ScriptUploadPanel table={activeTable} />}
+          {mainTab === 'train' && (
+            activeModel ? (
+              <MLResultsPanel model={activeModel} />
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-center">
+                <Brain className="w-16 h-16 text-purple-400/20 mb-4" />
+                <h2 className="text-lg font-bold mb-2">Select or Train a Model</h2>
+                <p className="text-muted-foreground text-sm max-w-md">Train classification, regression, clustering, or anomaly detection models on your workspace data with one click.</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-8">
+                  {['Classification', 'Regression', 'Clustering', 'Anomaly Detection'].map((t, i) => (
+                    <div key={t} className="p-4 glass rounded-xl border border-white/8 text-xs font-semibold text-center hover:border-purple-400/30 transition-all cursor-pointer" onClick={() => setShowForm(true)}>
+                      <div className="text-2xl mb-2">{['🎯','📈','🔵','🚨'][i]}</div>
+                      {t}
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )
           )}
         </div>
       </div>
