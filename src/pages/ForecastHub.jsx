@@ -8,7 +8,7 @@ import { useWorkspaceStore } from '@/lib/store';
 import {
   History, TrendingUp, TrendingDown, Plus, Trash2, Eye,
   CheckCircle2, AlertTriangle, BarChart3, Brain, Save, Loader2,
-  ArrowUpRight, ArrowDownRight, Minus, Target, Database
+  ArrowUpRight, ArrowDownRight, Minus, Target, Database, RefreshCw
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
@@ -16,6 +16,7 @@ import {
   ResponsiveContainer, Legend
 } from 'recharts';
 import ForecastEvaluator from '@/components/workspace/ForecastEvaluator';
+import MLOpsPipelinePanel from '@/components/forecast/MLOpsPipelinePanel';
 
 const fmtV = v => {
   if (v == null || isNaN(Number(v))) return '—';
@@ -40,6 +41,7 @@ export default function ForecastHub() {
   const [notes, setNotes] = useState('');
   const [showNotes, setShowNotes] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
+  const [activeTab, setActiveTab] = useState('history'); // 'history' | 'mlops'
   const [showCI, setShowCI] = useState(true);
   const [ciWidth, setCiWidth] = useState(20); // ±% confidence band
   const [growthAdj, setGrowthAdj] = useState(0); // manual growth adjustment %
@@ -109,10 +111,21 @@ export default function ForecastHub() {
             <p className="text-sm text-muted-foreground">Track, compare, and validate past predictive analyses against actual performance</p>
           </div>
           <div className="flex items-center gap-3">
+            {/* Tab switcher */}
+            <div className="flex gap-0.5 p-1 bg-white/5 rounded-xl border border-white/8">
+              <button onClick={() => setActiveTab('history')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeTab === 'history' ? 'bg-teal-400/20 text-teal-400' : 'text-white/40 hover:text-white/70'}`}>
+                <History className="w-3.5 h-3.5" /> History
+              </button>
+              <button onClick={() => setActiveTab('mlops')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeTab === 'mlops' ? 'bg-teal-400/20 text-teal-400' : 'text-white/40 hover:text-white/70'}`}>
+                <RefreshCw className="w-3.5 h-3.5" /> MLOps
+              </button>
+            </div>
             <Link to="/predictive" className="flex items-center gap-2 px-4 py-2 bg-purple-400/10 border border-purple-400/20 text-purple-400 rounded-xl text-sm font-semibold hover:bg-purple-400/15 transition-all">
-              <Brain className="w-3.5 h-3.5" /> Predictive Dashboard
+              <Brain className="w-3.5 h-3.5" /> Predictive
             </Link>
-            {r && table && (
+            {r && table && activeTab === 'history' && (
               <button onClick={() => setShowNotes(v => !v)}
                 className="flex items-center gap-2 px-4 py-2.5 bg-teal-400 rounded-xl text-sm font-bold hover:bg-teal-300 transition-all"
                 style={{ color: 'hsl(222,47%,6%)' }}>
@@ -124,6 +137,13 @@ export default function ForecastHub() {
       </div>
 
       <div className="max-w-6xl mx-auto px-8 py-6 space-y-6">
+        {/* MLOps Tab */}
+        {activeTab === 'mlops' && (
+          <MLOpsPipelinePanel history={history} />
+        )}
+
+        {activeTab === 'history' && <>
+
         {/* Confidence interval + growth projection controls */}
         {r?.forecastData?.length > 0 && (
           <div className="glass-card rounded-2xl p-5 border border-purple-400/15 bg-purple-400/3">
@@ -378,6 +398,7 @@ export default function ForecastHub() {
             })}
           </div>
         )}
+        </>}
       </div>
     </div>
   );

@@ -7,7 +7,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useWorkspaceStore } from '@/lib/store';
 import { useAnalystChat } from '@/hooks/useAnalystChat';
 import AnalystMessageBubble from '@/components/workspace/analyst/AnalystMessageBubbleV5';
-import { Send, Sparkles, Database, Loader2, Trash2, ChevronRight, Info, Wand2, Bot, Bookmark, Upload } from 'lucide-react';
+import { Send, Sparkles, Database, Loader2, Trash2, ChevronRight, Info, Wand2, Bot, Bookmark, Upload, Brain } from 'lucide-react';
+import AnalystMemoryPanel from '@/components/workspace/analyst/AnalystMemoryPanel';
 import { WORKFLOW_STEP_LABELS } from '@/hooks/useAnalystChat';
 
 const ANALYSIS_MODES = [
@@ -45,13 +46,15 @@ const STARTER_QUESTIONS = {
 };
 
 export default function AnalystSection() {
-  const { getActiveTable, setActiveSection, saveToDashboard } = useWorkspaceStore();
+  const { getActiveTable, setActiveSection, saveToDashboard, analystMemory } = useWorkspaceStore();
   const activeTable = getActiveTable();
   const [input, setInput] = useState('');
   const [mode, setMode] = useState('exploratory');
   const { chatMessages, loading, currentStep, sendQuestion, clearChat } = useAnalystChat();
   const [savedToast, setSavedToast] = useState('');
+  const [showMemory, setShowMemory] = useState(false);
   const bottomRef = useRef(null);
+  const insightCount = analystMemory?.sessionInsights?.length || 0;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -100,7 +103,7 @@ export default function AnalystSection() {
   const suggestions = STARTER_QUESTIONS[mode] || [];
 
   return (
-    <div className="flex flex-col h-full relative">
+    <div className="flex flex-col h-full relative overflow-hidden">
       {/* Save Toast */}
       <AnimatePresence>
         {savedToast && (
@@ -119,11 +122,18 @@ export default function AnalystSection() {
           <span className="text-xs px-1.5 py-0.5 rounded-full bg-purple-400/15 text-purple-400 border border-purple-400/25 font-mono">V5</span>
           <span className="text-xs text-muted-foreground">· {activeTable.name} · {activeTable.rowCount?.toLocaleString()} rows</span>
         </div>
-        {chatMessages.length > 0 && (
-          <button onClick={clearChat} className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all">
-            <Trash2 className="w-3 h-3" /> Clear
+        <div className="flex items-center gap-1">
+          <button onClick={() => setShowMemory(v => !v)}
+            className={`relative flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-lg transition-all ${showMemory ? 'text-purple-400 bg-purple-400/10' : 'text-white/30 hover:text-white/60 hover:bg-white/5'}`}>
+            <Brain className="w-3.5 h-3.5" />
+            {insightCount > 0 && <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-purple-400 text-white text-xs flex items-center justify-center font-bold leading-none" style={{ fontSize: 8 }}>{insightCount > 9 ? '9+' : insightCount}</span>}
           </button>
-        )}
+          {chatMessages.length > 0 && (
+            <button onClick={clearChat} className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all">
+              <Trash2 className="w-3 h-3" /> Clear
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Mode Selector */}
@@ -234,7 +244,17 @@ export default function AnalystSection() {
           </button>
         </div>
         <div className="text-xs text-muted-foreground mt-1.5">Press Enter to send · Shift+Enter for new line</div>
-      </div>
-    </div>
-  );
-}
+        </div>
+
+        {/* Memory Panel */}
+        <AnimatePresence>
+        {showMemory && (
+          <AnalystMemoryPanel
+            onClose={() => setShowMemory(false)}
+            onLoadInsight={(q) => { setInput(q); setShowMemory(false); }}
+          />
+        )}
+        </AnimatePresence>
+        </div>
+        );
+        }

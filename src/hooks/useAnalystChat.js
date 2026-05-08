@@ -5,6 +5,22 @@ import { useState, useCallback } from 'react';
 import { useWorkspaceStore } from '@/lib/store';
 import { orchestrateV5Workflow } from '@/lib/v5AgentOrchestrator';
 
+// Build memory context string from persisted store
+function buildMemoryContext(memory, tableId) {
+  if (!memory) return '';
+  const parts = [];
+  const recentInsights = (memory.sessionInsights || []).slice(0, 5);
+  if (recentInsights.length > 0) {
+    parts.push(`Previous session insights: ${recentInsights.map(i => `"${i.question}" → ${i.answer?.slice(0, 80)}`).join('; ')}`);
+  }
+  const prefs = memory.userPreferences || {};
+  if (prefs.preferredMode) parts.push(`User prefers ${prefs.preferredMode} analysis mode.`);
+  if (prefs.commonMetrics?.length) parts.push(`Frequently analyzed metrics: ${prefs.commonMetrics.join(', ')}.`);
+  const pattern = tableId && memory.dataPatterns?.[tableId];
+  if (pattern?.summary) parts.push(`Known data patterns for this table: ${pattern.summary}`);
+  return parts.length > 0 ? `\n\n[Memory context: ${parts.join(' ')}]` : '';
+}
+
 // #6: Step labels for real-time workflow indicator
 export const WORKFLOW_STEP_LABELS = [
   'Classifying intent',
@@ -36,6 +52,7 @@ export function useAnalystChat() {
     // Always pull fresh state to avoid stale closures
     const freshState = useWorkspaceStore.getState();
     const activeTable = freshState.getActiveTable();
+    const memory = freshState.analystMemory;
     if (!activeTable) {
       // #2: Better no-data error with actionable guidance
       addMessage({
@@ -66,8 +83,12 @@ export function useAnalystChat() {
     }, 1200);
 
     try {
+      // Build memory-enriched question
+      const memoryContext = buildMemoryContext(memory, activeTable?.id);
+      const enrichedQuestion = question + memoryContext;
+
       // Execute V5 10-step agentic workflow
-      const v5Result = await orchestrateV5Workflow(question, {
+      const v5Result = await orchestrateV5Workflow(enrichedQuestion, {
         question,
         metrics: activeTable?.columns?.filter(c => c.isKpiCandidate) || [],
         table: activeTable,
@@ -91,6 +112,24 @@ export function useAnalystChat() {
         v5Result.chart,
         ...( v5Result.evidence?.toolResults?.map(r => r.result?.chart).filter(Boolean) || []),
       ].filter(Boolean);
+
+      // Persist insight to memory store
+      const addInsight = freshState.addAnalystInsight;
+      if (addInsight && v5Result.answer) {
+        addInsight({ question, answer: v5Result.answer?.slice(0, 300), tableId: activeTable?.id, tableName: activeTable?.name });
+        // Update user preferences based on detected intent
+        const setPreference = freshState.setUserPreference;
+        if (setPreference && v5Result.allSteps?.intent?.intent) {
+          const current = memory?.userPreferences?.preferredMode;
+          if (!current) setPreference('preferredMode', v5Result.allSteps.intent.intent);
+          // Track common metrics
+          const usedMetric = activeTable?.columns?.find(c => c.isKpiCandidate)?.name;
+          if (usedMetric) {
+            const existing = memory?.userPreferences?.commonMetrics || [];
+            if (!existing.includes(usedMetric)) setPreference('commonMetrics', [...existing.slice(0, 4), usedMetric]);
+          }
+        }
+      }
 
       addMessage({
         role: 'assistant',

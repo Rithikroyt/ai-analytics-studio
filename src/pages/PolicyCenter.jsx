@@ -6,13 +6,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useWorkspaceStore } from '@/lib/store';
 import { Shield, Plus, Play, AlertTriangle, CheckCircle2, GitBranch, Eye, Loader2, Trash2, RefreshCw, FileText, Lock, Archive } from 'lucide-react';
+
 import LineageGraph from '@/components/governance/LineageGraph';
 import PolicyCard from '@/components/governance/PolicyCard';
 import PolicyForm from '@/components/governance/PolicyForm';
+import DataLineageView from '@/components/governance/DataLineageView';
 
 const TABS = [
   { id: 'policies', label: 'Policies', icon: Shield },
   { id: 'lineage', label: 'Data Lineage', icon: GitBranch },
+  { id: 'lineage_flow', label: 'Flow Graph', icon: Eye },
   { id: 'compliance', label: 'Compliance', icon: Lock },
 ];
 
@@ -162,7 +165,10 @@ export default function PolicyCenter() {
           </div>
         )}
 
-        {/* Lineage Tab */}
+        {/* Flow Graph Tab */}
+        {tab === 'lineage_flow' && <DataLineageView />}
+
+        {/* Lineage Tab (legacy AI-generated) */}
         {tab === 'lineage' && (
           <div>
             {!lineageData ? (

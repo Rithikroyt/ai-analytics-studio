@@ -130,7 +130,42 @@ export const useWorkspaceStore = create(
         return tables.find(t => t.id === activeTableId) || tables[0] || null;
       },
 
-      // Resets only the current workspace session — preserved: savedCharts, stories, alerts, documents
+      // ── Analyst Memory Store ──
+      analystMemory: {
+        sessionInsights: [],    // { question, answer, chart, timestamp, tableId }
+        userPreferences: {},    // { preferredMode, commonMetrics, lastQuestions }
+        dataPatterns: {},       // { tableId: { patterns: [], summary } }
+      },
+
+      addAnalystInsight: (insight) => set((state) => ({
+        analystMemory: {
+          ...state.analystMemory,
+          sessionInsights: [
+            { ...insight, id: Date.now().toString(), timestamp: new Date().toISOString() },
+            ...state.analystMemory.sessionInsights.slice(0, 49),
+          ],
+        },
+      })),
+
+      setUserPreference: (key, value) => set((state) => ({
+        analystMemory: {
+          ...state.analystMemory,
+          userPreferences: { ...state.analystMemory.userPreferences, [key]: value },
+        },
+      })),
+
+      setDataPattern: (tableId, pattern) => set((state) => ({
+        analystMemory: {
+          ...state.analystMemory,
+          dataPatterns: { ...state.analystMemory.dataPatterns, [tableId]: pattern },
+        },
+      })),
+
+      clearAnalystMemory: () => set({
+        analystMemory: { sessionInsights: [], userPreferences: {}, dataPatterns: {} },
+      }),
+
+      // ── Resets only the current workspace session — preserved: savedCharts, stories, alerts, documents
       reset: () => set({
         tables: [],
         activeTableId: null,
@@ -144,7 +179,7 @@ export const useWorkspaceStore = create(
       }),
     }),
     {
-      name: 'omnidata-workspace-v2',
+      name: 'omnidata-workspace-v3',
       partialize: (state) => ({
         savedCharts: state.savedCharts,
         stories: state.stories,
@@ -158,6 +193,11 @@ export const useWorkspaceStore = create(
         activeTableId: state.activeTableId,
         semanticModel: state.semanticModel,
         documents: (state.documents || []).map(d => ({ ...d, content: d.content?.slice(0, 2000) })),
+        analystMemory: {
+          sessionInsights: (state.analystMemory?.sessionInsights || []).slice(0, 30),
+          userPreferences: state.analystMemory?.userPreferences || {},
+          dataPatterns: state.analystMemory?.dataPatterns || {},
+        },
         // Cap analysisResults colStats + trendData to avoid bloat
         analysisResults: state.analysisResults ? {
           ...state.analysisResults,
