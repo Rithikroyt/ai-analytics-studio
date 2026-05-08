@@ -6,9 +6,9 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWorkspaceStore } from '@/lib/store';
 import { useAnalystChat } from '@/hooks/useAnalystChat';
-import { orchestrateV5Workflow } from '@/lib/v5AgentOrchestrator';
 import AnalystMessageBubble from '@/components/workspace/analyst/AnalystMessageBubbleV5';
-import { Send, Sparkles, Database, Loader2, Trash2, ChevronRight, Info, Wand2, Bot, Bookmark } from 'lucide-react';
+import { Send, Sparkles, Database, Loader2, Trash2, ChevronRight, Info, Wand2, Bot, Bookmark, Upload } from 'lucide-react';
+import { WORKFLOW_STEP_LABELS } from '@/hooks/useAnalystChat';
 
 const ANALYSIS_MODES = [
   { id: 'exploratory', label: 'Exploratory', color: 'text-cyan-400', bg: 'bg-cyan-400/10', border: 'border-cyan-400/25' },
@@ -49,8 +49,7 @@ export default function AnalystSection() {
   const activeTable = getActiveTable();
   const [input, setInput] = useState('');
   const [mode, setMode] = useState('exploratory');
-  const { chatMessages, loading, sendQuestion, clearChat } = useAnalystChat();
-  const [workflowSteps, setWorkflowSteps] = useState(null);
+  const { chatMessages, loading, currentStep, sendQuestion, clearChat } = useAnalystChat();
   const [savedToast, setSavedToast] = useState('');
   const bottomRef = useRef(null);
 
@@ -62,15 +61,6 @@ export default function AnalystSection() {
     const question = (text || input).trim();
     if (!question) return;
     setInput('');
-    
-    // Run V5 orchestration workflow
-    const workflowResult = await orchestrateV5Workflow(question, {
-      question,
-      metrics: activeTable?.columns?.filter(c => c.isKpiCandidate) || [],
-      table: activeTable,
-    });
-    
-    setWorkflowSteps(workflowResult.allSteps);
     await sendQuestion(question);
   };
 
@@ -89,12 +79,18 @@ export default function AnalystSection() {
   if (!activeTable) {
     return (
       <div className="p-8 flex flex-col items-center justify-center min-h-[500px] text-center">
-        <Database className="w-12 h-12 text-muted-foreground mb-4" />
-        <h2 className="text-lg font-semibold mb-2">No Data Loaded</h2>
-        <p className="text-muted-foreground text-sm mb-6">Upload data in Intake to start asking the AI Analyst.</p>
+        <div className="w-16 h-16 rounded-2xl bg-cyan-400/10 border border-cyan-400/20 flex items-center justify-center mx-auto mb-4">
+          <Upload className="w-7 h-7 text-cyan-400" />
+        </div>
+        <h2 className="text-lg font-semibold mb-2">No Dataset Loaded</h2>
+        <p className="text-muted-foreground text-sm mb-2 max-w-sm leading-relaxed">
+          Upload a CSV, Excel, or JSON file to start asking questions and getting AI-grounded insights.
+        </p>
+        <p className="text-xs text-white/30 mb-6">Supported: .csv, .xlsx, .xls, .json, .txt</p>
         <button onClick={() => setActiveSection('intake')}
-          className="flex items-center gap-2 px-5 py-2.5 bg-cyan-400/10 border border-cyan-400/20 text-cyan-400 rounded-xl text-sm font-semibold hover:bg-cyan-400/15 transition-colors">
-          Upload Data <ChevronRight className="w-4 h-4" />
+          className="flex items-center gap-2 px-5 py-2.5 bg-cyan-400 text-xs font-bold rounded-xl hover:bg-cyan-300 transition-colors"
+          style={{ color: 'hsl(222,47%,6%)' }}>
+          <Upload className="w-4 h-4" /> Upload Data Now
         </button>
       </div>
     );
@@ -176,21 +172,6 @@ export default function AnalystSection() {
         )}
 
         <AnimatePresence>
-          {/* Workflow steps indicator */}
-          {workflowSteps && (
-            <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-              className="grid grid-cols-5 gap-1 mb-4 p-2 rounded-lg bg-white/3 border border-white/5 text-xs">
-              {['Intent', 'KPI', 'Readiness', 'Tools', 'Execution', 'Validate', 'Score', 'Explain', 'Recommend', 'Report'].map((step, i) => (
-                <div key={i} className="text-center p-1 rounded">
-                  <div className={`text-xs font-medium ${workflowSteps ? 'text-green-400' : 'text-white/30'}`}>
-                    {workflowSteps ? '✓' : '○'}
-                  </div>
-                  <div className="text-xs text-white/40 truncate">{step}</div>
-                </div>
-              ))}
-            </motion.div>
-          )}
-
           {chatMessages.map((msg, i) => (
             <AnalystMessageBubble
               key={i}
@@ -203,18 +184,28 @@ export default function AnalystSection() {
 
         {loading && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3">
-            <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-purple-400/20 to-blue-400/10 border border-purple-400/25 flex items-center justify-center flex-shrink-0">
+            <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-purple-400/20 to-blue-400/10 border border-purple-400/25 flex items-center justify-center flex-shrink-0 mt-1">
               <Wand2 className="w-3.5 h-3.5 text-purple-400 animate-pulse" />
             </div>
-            <div className="px-4 py-3 rounded-2xl bg-white/4 border border-white/8 flex items-center gap-3">
-              <div className="flex gap-1">
-                {[0,1,2].map(i => (
-                  <motion.div key={i} className="w-1.5 h-1.5 rounded-full bg-purple-400"
-                    animate={{ scale: [1, 1.4, 1], opacity: [0.5, 1, 0.5] }}
-                    transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15 }} />
-                ))}
+            <div className="flex-1 px-4 py-3 rounded-2xl bg-white/4 border border-white/8 space-y-2">
+              <div className="flex items-center gap-3">
+                <div className="flex gap-1">
+                  {[0,1,2].map(i => (
+                    <motion.div key={i} className="w-1.5 h-1.5 rounded-full bg-purple-400"
+                      animate={{ scale: [1, 1.4, 1], opacity: [0.5, 1, 0.5] }}
+                      transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15 }} />
+                  ))}
+                </div>
+                <span className="text-xs text-purple-300/70 font-medium">
+                  Step {currentStep + 1}/10 — {WORKFLOW_STEP_LABELS[currentStep] || 'Processing…'}
+                </span>
               </div>
-              <span className="text-xs text-white/35">V5 Agent: Classifying intent → selecting tools → executing…</span>
+              {/* Mini progress bar */}
+              <div className="h-0.5 bg-white/8 rounded-full overflow-hidden">
+                <motion.div className="h-full bg-purple-400 rounded-full"
+                  animate={{ width: `${((currentStep + 1) / 10) * 100}%` }}
+                  transition={{ duration: 0.4 }} />
+              </div>
             </div>
           </motion.div>
         )}

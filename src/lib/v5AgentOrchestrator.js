@@ -5,6 +5,56 @@
 
 import { base44 } from '@/api/base44Client';
 
+// ── In-memory SQL executor (handles basic GROUP BY / ORDER BY / LIMIT / SELECT) ──
+function executeInMemorySQL(sql, rows, columns) {
+  if (!sql || !rows?.length) return null;
+  const s = sql.toLowerCase();
+
+  // Detect GROUP BY
+  const groupMatch = s.match(/group\s+by\s+([\w_]+)/);
+  const orderMatch = s.match(/order\s+by\s+(\w+)\s*(desc|asc)?/);
+  const limitMatch = s.match(/limit\s+(\d+)/);
+
+  // Find numeric and category cols from columns meta
+  const numCol = columns.find(c => c.type === 'numeric')?.name;
+  const catCol = columns.find(c => c.type === 'category')?.name;
+
+  // Try to detect aggregated column from SELECT clause
+  const aggMatch = s.match(/sum\(([\w_]+)\)|avg\(([\w_]+)\)|count\(\*\)/);
+  const aggType = aggMatch ? (aggMatch[0].startsWith('sum') ? 'sum' : aggMatch[0].startsWith('avg') ? 'avg' : 'count') : 'sum';
+  const aggCol = aggMatch?.[1] || aggMatch?.[2] || numCol;
+
+  if (groupMatch) {
+    const groupCol = columns.find(c => c.name.toLowerCase() === groupMatch[1])?.name || catCol;
+    if (!groupCol) return null;
+    // Group rows
+    const groups = {};
+    for (const row of rows) {
+      const key = String(row[groupCol] ?? 'Unknown');
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(row);
+    }
+    let result = Object.entries(groups).map(([key, grpRows]) => {
+      const agg = aggType === 'count' ? grpRows.length
+        : aggType === 'avg' ? grpRows.reduce((s, r) => s + (Number(r[aggCol]) || 0), 0) / grpRows.length
+        : grpRows.reduce((s, r) => s + (Number(r[aggCol]) || 0), 0);
+      return { name: key, value: Math.round(agg * 100) / 100, [groupCol]: key, [aggCol || 'value']: Math.round(agg * 100) / 100 };
+    });
+    // Sort
+    if (orderMatch) {
+      const desc = (orderMatch[2] || 'desc') === 'desc';
+      result.sort((a, b) => desc ? b.value - a.value : a.value - b.value);
+    }
+    // Limit
+    const limit = limitMatch ? parseInt(limitMatch[1]) : 20;
+    return result.slice(0, limit);
+  }
+
+  // Fallback: return first N rows as-is
+  const limit = limitMatch ? parseInt(limitMatch[1]) : 10;
+  return rows.slice(0, limit).map(r => ({ ...r }));
+}
+
 // Tool registry with strict schemas
 const AGENT_TOOLS = {
   validate_data_contract: {
@@ -150,7 +200,7 @@ export async function orchestrateV5Workflow(question, context) {
     }
 
     // Step 4: Tool Selection
-    steps.toolSelection = selectTools(steps.intent, steps.kpiLookup);
+    steps.toolSelection = selectTools(steps.intent, steps.kpiLookup, context);
 
     // Step 5: Tool Execution
     steps.execution = await executeTools(steps.toolSelection.tools, context);
@@ -174,6 +224,7 @@ export async function orchestrateV5Workflow(question, context) {
       success: true,
       answer: steps.explanation.answer,
       businessMeaning: steps.explanation.businessMeaning,
+      chart: steps.explanation.chart,
       evidence: steps.execution,
       insightScore: steps.insightScore,
       recommendations: steps.recommendation,
@@ -242,11 +293,15 @@ async function checkDataReadiness(context) {
 }
 
 // Step 4: Tool Selection
-function selectTools(intent, kpiLookup) {
+function selectTools(intent, kpiLookup, context) {
   // Always include generate_sql as the primary data retrieval tool
   const tools = [{ name: 'generate_sql', args: {} }];
 
-  if (intent.intent === 'diagnostic') {
+  const columns = context?.table?.columns || [];
+  const hasCategoryCols = columns.some(c => c.inferredType === 'category' || c.isSegmentCandidate);
+  const hasNumericCols = columns.some(c => c.inferredType === 'numeric' || c.isKpiCandidate);
+
+  if (intent.intent === 'diagnostic' && hasCategoryCols && hasNumericCols) {
     tools.push({ name: 'run_contribution_analysis', args: {} });
   }
 
@@ -284,10 +339,18 @@ async function executeTools(tools, context) {
         } else {
           const resp = await base44.functions.invoke('generateSQL', {
             question: context.question,
-            columns: columns,           // [{name, type}] format
+            columns: columns,
             tableName: table?.name || 'dataset',
           });
           result = resp.data || resp;
+          // #3: Execute SQL in-memory against actual table rows
+          if (result?.sql && table?.rows?.length) {
+            try {
+              result.queryResults = executeInMemorySQL(result.sql, table.rows, columns);
+            } catch (_) {
+              result.queryResults = null;
+            }
+          }
         }
       } else if (tool.name === 'detect_anomalies') {
         result = { anomalies: [], method: 'z_score' };
@@ -351,36 +414,53 @@ async function scoreInsight(answer, method) {
 async function generateExplanation(question, steps, context) {
   const table = context?.table;
   const colList = (table?.columns || []).map(c => `${c.name} (${c.inferredType || c.type || 'unknown'})`).join(', ') || 'unknown columns';
-  const sampleRows = table?.rows?.slice(0, 5) || [];
-  const sampleStr = sampleRows.length ? `Sample data:\n${JSON.stringify(sampleRows, null, 2).slice(0, 500)}` : '';
+
+  // #5: Use actual SQL query results if available (much more specific answers)
+  const sqlResult = steps.execution?.toolResults?.find(r => r.tool === 'generate_sql')?.result;
+  const queryRows = sqlResult?.queryResults;
+  const sqlStr = sqlResult?.sql ? `SQL used:\n${sqlResult.sql}` : '';
+  const resultStr = queryRows?.length
+    ? `Query results (${queryRows.length} rows):\n${JSON.stringify(queryRows.slice(0, 10), null, 2).slice(0, 800)}`
+    : (table?.rows?.slice(0, 5).length ? `Sample data:\n${JSON.stringify(table.rows.slice(0, 5), null, 2).slice(0, 500)}` : '');
 
   const executionSummary = steps.execution.toolResults
-    .filter(r => r.success)
-    .map(r => `${r.tool}: ${JSON.stringify(r.result || {}).slice(0, 400)}`)
-    .join('\n') || 'Analysis completed.';
+    .filter(r => r.success && r.tool !== 'generate_sql')
+    .map(r => `${r.tool}: ${JSON.stringify(r.result || {}).slice(0, 300)}`)
+    .join('\n');
 
-  const prompt = `You are a senior data analyst. Answer this business question using the dataset information below.
+  const prompt = `You are a senior data analyst. Answer this business question using the ACTUAL query results below.
 
 Question: "${question}"
 Intent: ${steps.intent?.intent || 'exploratory'}
 Dataset: "${table?.name || 'dataset'}" with ${table?.rowCount || 0} rows
 Columns: ${colList}
-${sampleStr}
 
-Analysis Results:
-${executionSummary}
+${sqlStr}
 
-Provide a clear, specific answer in 3-5 sentences based on the ACTUAL columns and data above. Include:
-1. A direct, data-specific answer to the question
+${resultStr}
+${executionSummary ? `\nAdditional analysis:\n${executionSummary}` : ''}
+
+Provide a clear, specific answer in 3-5 sentences using the ACTUAL numbers from the query results above. Include:
+1. A direct, data-specific answer with real values from the results
 2. Key business implication
 3. One recommended action
 
-Use actual column names and any specific values found in the analysis.`;
+Reference actual column names and specific numeric values from the results.`;
 
   const explanation = await base44.integrations.Core.InvokeLLM({ prompt });
 
+  // #1: Build chart from SQL query results
+  const chart = queryRows?.length >= 2 ? {
+    type: sqlResult?.chartType || 'bar',
+    title: question,
+    data: queryRows,
+    x_key: Object.keys(queryRows[0]).find(k => typeof queryRows[0][k] === 'string') || Object.keys(queryRows[0])[0],
+    y_key: Object.keys(queryRows[0]).find(k => typeof queryRows[0][k] === 'number') || Object.keys(queryRows[0])[1],
+  } : null;
+
   return {
     answer: explanation,
+    chart,
     businessMeaning: 'Analysis provides actionable business insight grounded in your data.',
     suggestedNextQuestion: steps.intent?.intent === 'exploratory'
       ? 'Which segment is driving the most change?'
