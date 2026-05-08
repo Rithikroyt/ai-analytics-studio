@@ -243,18 +243,11 @@ async function checkDataReadiness(context) {
 
 // Step 4: Tool Selection
 function selectTools(intent, kpiLookup) {
-  const tools = [];
+  // Always include generate_sql as the primary data retrieval tool
+  const tools = [{ name: 'generate_sql', args: {} }];
 
-  if (intent.intent === 'exploratory') {
-    tools.push({ name: 'generate_sql', args: {} });
-  } else if (intent.intent === 'diagnostic') {
-    tools.push({ name: 'detect_anomalies', args: {} });
+  if (intent.intent === 'diagnostic') {
     tools.push({ name: 'run_contribution_analysis', args: {} });
-  } else if (intent.intent === 'predictive') {
-    tools.push({ name: 'run_forecast', args: {} });
-  } else if (intent.intent === 'prescriptive') {
-    tools.push({ name: 'run_what_if_simulation', args: {} });
-    tools.push({ name: 'generate_decision_report', args: {} });
   }
 
   return { tools, reasoning: `Selected ${tools.length} tools for ${intent.intent} analysis` };
@@ -286,12 +279,16 @@ async function executeTools(tools, context) {
     try {
       let result;
       if (tool.name === 'generate_sql') {
-        const resp = await base44.functions.invoke('generateSQL', {
-          question: context.question,
-          columns: columns,           // [{name, type}] format
-          tableName: table?.name || 'dataset',
-        });
-        result = resp.data || resp;
+        if (!columns.length) {
+          result = { sql: null, can_generate: false, explanation: 'No columns found in dataset' };
+        } else {
+          const resp = await base44.functions.invoke('generateSQL', {
+            question: context.question,
+            columns: columns,           // [{name, type}] format
+            tableName: table?.name || 'dataset',
+          });
+          result = resp.data || resp;
+        }
       } else if (tool.name === 'detect_anomalies') {
         result = { anomalies: [], method: 'z_score' };
       } else if (tool.name === 'run_forecast') {
@@ -338,8 +335,10 @@ function validateResults(execution) {
 // Step 7: Insight Scoring
 async function scoreInsight(answer, method) {
   try {
+    const safeAnswer = (typeof answer === 'string' ? answer : JSON.stringify(answer)) || 'analysis complete';
+    if (!safeAnswer.trim()) return { overallScore: 70, confidence: 'medium', limitations: [] };
     const resp = await base44.functions.invoke('scoreInsight', {
-      answer: typeof answer === 'string' ? answer : JSON.stringify(answer) || 'analysis complete',
+      answer: safeAnswer,
       method: method || 'llm',
     });
     return resp.data || resp;
