@@ -162,7 +162,7 @@ export async function orchestrateV5Workflow(question, context) {
     steps.insightScore = await scoreInsight(steps.execution.answer, steps.execution.method);
 
     // Step 8: AI Explanation (via LLM)
-    steps.explanation = await generateExplanation(question, steps);
+    steps.explanation = await generateExplanation(question, steps, context);
 
     // Step 9: Generate Recommendation
     steps.recommendation = await generateRecommendation(steps);
@@ -264,9 +264,23 @@ function selectTools(intent, kpiLookup) {
 async function executeTools(tools, context) {
   const results = [];
   const table = context.table;
-  const columns = table?.columns?.map(c => c.name || c) || [];
-  const numericCols = table?.columns?.filter(c => c.inferredType === 'numeric' || c.isKpiCandidate).map(c => c.name || c) || [];
-  const categoryCols = table?.columns?.filter(c => c.inferredType === 'category').map(c => c.name || c) || [];
+
+  // Normalize columns into {name, type} objects for the generateSQL backend
+  const normalizeType = (col) => {
+    const t = col.inferredType || col.type || '';
+    if (t === 'numeric' || col.isKpiCandidate) return 'numeric';
+    if (t === 'date' || col.isDateCandidate) return 'date';
+    if (t === 'category' || col.isSegmentCandidate) return 'category';
+    if (t === 'id') return 'id';
+    return 'text';
+  };
+
+  const columns = (table?.columns || []).map(c => ({
+    name: c.name || c,
+    type: normalizeType(typeof c === 'string' ? { type: 'text' } : c),
+  }));
+  const numericCols = columns.filter(c => c.type === 'numeric').map(c => c.name);
+  const categoryCols = columns.filter(c => c.type === 'category').map(c => c.name);
 
   for (const tool of tools) {
     try {
@@ -274,10 +288,8 @@ async function executeTools(tools, context) {
       if (tool.name === 'generate_sql') {
         const resp = await base44.functions.invoke('generateSQL', {
           question: context.question,
-          columns: columns,
+          columns: columns,           // [{name, type}] format
           tableName: table?.name || 'dataset',
-          numericColumns: numericCols,
-          categoryColumns: categoryCols,
         });
         result = resp.data || resp;
       } else if (tool.name === 'detect_anomalies') {
@@ -337,26 +349,34 @@ async function scoreInsight(answer, method) {
 }
 
 // Step 8: AI Explanation
-async function generateExplanation(question, steps) {
-  const table = steps.dataReadiness;
+async function generateExplanation(question, steps, context) {
+  const table = context?.table;
+  const colList = (table?.columns || []).map(c => `${c.name} (${c.inferredType || c.type || 'unknown'})`).join(', ') || 'unknown columns';
+  const sampleRows = table?.rows?.slice(0, 5) || [];
+  const sampleStr = sampleRows.length ? `Sample data:\n${JSON.stringify(sampleRows, null, 2).slice(0, 500)}` : '';
+
   const executionSummary = steps.execution.toolResults
     .filter(r => r.success)
-    .map(r => `${r.tool}: ${JSON.stringify(r.result || {}).slice(0, 300)}`)
-    .join('\n') || 'General data analysis performed.';
+    .map(r => `${r.tool}: ${JSON.stringify(r.result || {}).slice(0, 400)}`)
+    .join('\n') || 'Analysis completed.';
 
-  const prompt = `You are a senior data analyst. Answer this business question based on the analysis results below.
+  const prompt = `You are a senior data analyst. Answer this business question using the dataset information below.
 
 Question: "${question}"
 Intent: ${steps.intent?.intent || 'exploratory'}
+Dataset: "${table?.name || 'dataset'}" with ${table?.rowCount || 0} rows
+Columns: ${colList}
+${sampleStr}
+
 Analysis Results:
 ${executionSummary}
 
-Provide a clear, concise answer in 3-5 sentences. Include:
-1. A direct answer to the question
+Provide a clear, specific answer in 3-5 sentences based on the ACTUAL columns and data above. Include:
+1. A direct, data-specific answer to the question
 2. Key business implication
 3. One recommended action
 
-Be specific and data-driven. If analysis results are limited, provide general guidance based on the question.`;
+Use actual column names and any specific values found in the analysis.`;
 
   const explanation = await base44.integrations.Core.InvokeLLM({ prompt });
 
