@@ -23,7 +23,7 @@ import RFMSection from '@/components/workspace/RFMSection';
 import FunnelSection from '@/components/workspace/FunnelSection';
 import ObservabilityPanel from '@/components/workspace/ObservabilityPanel';
 import DataQualityStudio from '@/components/workspace/DataQualityStudio';
-import VisualBuilder from '@/components/workspace/VisualBuilder';
+import VisualBuilder from '@/components/workspace/VisualBuilder/index.jsx';
 import ContributionAnalysis from '@/components/workspace/ContributionAnalysis';
 import CLVSection from '@/components/workspace/CLVSection';
 import CohortSection from '@/components/workspace/CohortSection';
