@@ -5,10 +5,11 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useWorkspaceStore } from '@/lib/store';
-import { Bot, Plus, Sparkles, Play, Brain, Zap, Users, ChevronRight, Loader2, Send, Trash2, Star, Settings, GitMerge } from 'lucide-react';
+import { Bot, Plus, Sparkles, Play, Brain, Zap, Users, ChevronRight, Loader2, Send, Trash2, Star, Settings, GitMerge, ClipboardList } from 'lucide-react';
 import PersonaCard from '@/components/agents/PersonaCard';
 import PersonaForm from '@/components/agents/PersonaForm';
 import AgentPipelineBuilder from '@/components/agents/AgentPipelineBuilder';
+import TaskBoard from '@/components/agents/TaskBoard';
 import ReactMarkdown from 'react-markdown';
 
 const DEFAULT_PERSONAS = [
@@ -26,7 +27,7 @@ export default function AgentStudio() {
   const [chatHistory, setChatHistory] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [studioTab, setStudioTab] = useState('chat'); // 'chat' | 'pipeline'
+  const [studioTab, setStudioTab] = useState('chat'); // 'chat' | 'pipeline' | 'tasks'
 
   useEffect(() => {
     base44.entities.AgentPersona.list('-usageCount', 20)
@@ -98,6 +99,10 @@ export default function AgentStudio() {
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${studioTab === 'pipeline' ? 'bg-pink-400/20 text-pink-400' : 'text-white/40 hover:text-white/70'}`}>
               <GitMerge className="w-3.5 h-3.5" /> Pipeline
             </button>
+            <button onClick={() => setStudioTab('tasks')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${studioTab === 'tasks' ? 'bg-pink-400/20 text-pink-400' : 'text-white/40 hover:text-white/70'}`}>
+              <ClipboardList className="w-3.5 h-3.5" /> Tasks
+            </button>
           </div>
           <button onClick={() => setShowForm(true)}
             className="flex items-center gap-2 px-4 py-2 bg-pink-400/10 border border-pink-400/20 text-pink-400 text-xs font-semibold rounded-xl hover:bg-pink-400/15 transition-all">
@@ -120,6 +125,13 @@ export default function AgentStudio() {
         {studioTab === 'pipeline' && (
           <div className="flex-1 overflow-y-auto p-6">
             <AgentPipelineBuilder activeTable={activeTable} activePersona={activePersona} />
+          </div>
+        )}
+
+        {/* Tasks Tab */}
+        {studioTab === 'tasks' && (
+          <div className="flex-1 overflow-y-auto p-6">
+            <TaskBoard personas={personas} activeTable={activeTable} />
           </div>
         )}
 

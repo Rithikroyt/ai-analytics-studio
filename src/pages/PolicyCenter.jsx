@@ -11,6 +11,7 @@ import LineageGraph from '@/components/governance/LineageGraph';
 import PolicyCard from '@/components/governance/PolicyCard';
 import PolicyForm from '@/components/governance/PolicyForm';
 import DataLineageView from '@/components/governance/DataLineageView';
+import DataPipelineFlow from '@/components/governance/DataPipelineFlow';
 
 const TABS = [
   { id: 'policies', label: 'Policies', icon: Shield },
@@ -165,8 +166,8 @@ export default function PolicyCenter() {
           </div>
         )}
 
-        {/* Flow Graph Tab */}
-        {tab === 'lineage_flow' && <DataLineageView />}
+        {/* Flow Graph Tab — full ingestion → models → reports pipeline */}
+        {tab === 'lineage_flow' && <DataPipelineFlow />}
 
         {/* Lineage Tab (legacy AI-generated) */}
         {tab === 'lineage' && (
