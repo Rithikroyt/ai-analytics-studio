@@ -8,12 +8,12 @@ import { useWorkspaceStore } from '@/lib/store';
 import { base44 } from '@/api/base44Client';
 import { Sparkles, Save, CheckCircle2, Loader2, Database, ArrowRight, Wand2, LayoutPanelLeft } from 'lucide-react';
 
-import VBShowMeGallery, { recommendChartType } from '@/components/visualbuilder/VBShowMeGallery';
-import VBFieldShelves from '@/components/visualbuilder/VBFieldShelves';
-import VBMarksCard from '@/components/visualbuilder/VBMarksCard';
-import VBTooltipBuilder from '@/components/visualbuilder/VBTooltipBuilder';
-import VBChartPreview, { buildChartData, fmtV } from '@/components/visualbuilder/VBChartPreview';
-import VBBottomPanel from '@/components/visualbuilder/VBBottomPanel';
+import VBShowMeGallery, { recommendChartType } from '@/components/visualbuilder/VBShowMeGallery.jsx';
+import VBFieldShelves from '@/components/visualbuilder/VBFieldShelves.jsx';
+import VBMarksCard from '@/components/visualbuilder/VBMarksCard.jsx';
+import VBTooltipBuilder from '@/components/visualbuilder/VBTooltipBuilder.jsx';
+import VBChartPreview, { buildChartData, fmtV } from '@/components/visualbuilder/VBChartPreview.jsx';
+import VBBottomPanel from '@/components/visualbuilder/VBBottomPanel.jsx';
 
 const CENTER_TABS = [
   { id: 'shelves', label: 'Shelves' },
@@ -54,8 +54,8 @@ export default function VisualBuilder() {
 
   const chartData = useMemo(() => {
     if (!table?.rows) return [];
-    return buildChartData(table.rows, shelves, aggFn, chartType);
-  }, [table, shelves, aggFn, chartType]);
+    return buildChartData(table.rows, shelves, aggFn, chartType, marks);
+  }, [table, shelves, aggFn, chartType, marks]);
 
   const addToShelf = useCallback((shelfId, colName, cols) => {
     const col = cols.find(c => c.name === colName);
