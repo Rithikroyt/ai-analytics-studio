@@ -5,7 +5,7 @@ import {
   Layers, Terminal, FileText, MessageSquare, Download,
   ChevronLeft, Database, GitCompare, PieChart, Bell, Link2, FlaskConical,
   Users, Filter, Activity, Scissors, TrendingUp, History, Shield, Paintbrush,
-  Target, RefreshCw, DollarSign, Zap
+  Target, RefreshCw, DollarSign, Zap, Bot
 } from 'lucide-react';
 import { useWorkspaceStore } from '@/lib/store';
 
@@ -31,6 +31,7 @@ const sections = [
   { id: 'sql',           label: 'SQL Studio',         icon: Terminal },
   { id: 'docs',          label: 'Docs & Evidence',    icon: FileText },
   { id: 'observability', label: 'Observability',      icon: Activity },
+  { id: 'agentStudio',   label: 'Agent Studio',       icon: Bot },
 ];
 
 export default function WorkspaceSidebar({ collapsed, onToggle }) {

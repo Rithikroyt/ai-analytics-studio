@@ -27,6 +27,7 @@ import VisualBuilder from '@/components/workspace/VisualBuilder';
 import ContributionAnalysis from '@/components/workspace/ContributionAnalysis';
 import CLVSection from '@/components/workspace/CLVSection';
 import CohortSection from '@/components/workspace/CohortSection';
+import AgentStudioSection from '@/components/workspace/AgentStudioSection';
 import { useWorkspaceStore } from '@/lib/store';
 
 const sectionComponents = {
@@ -51,6 +52,7 @@ const sectionComponents = {
   contribution: ContributionAnalysis,
   clv: CLVSection,
   cohort: CohortSection,
+  agentStudio: AgentStudioSection,
 };
 
 export default function Workspace() {
