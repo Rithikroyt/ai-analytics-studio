@@ -90,8 +90,28 @@ function FeedbackBar({ sessionId, agentName, question, agentColor }) {
 export default function AgentStructuredAnswer({ result, agentColor, agentName }) {
   if (!result) return null;
 
+  const isInsufficient = result.data_sufficiency?.status === 'insufficient';
+
   return (
     <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="space-y-2.5">
+
+      {/* Data insufficiency banner */}
+      {isInsufficient && (
+        <div className="p-3 rounded-xl border border-amber-400/30 bg-amber-400/8 flex items-start gap-2.5">
+          <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <div className="text-xs font-bold text-amber-400">Dataset Insufficient for This Question</div>
+            <div className="text-xs text-white/60 leading-relaxed">
+              Required fields missing: <span className="text-amber-300 font-mono">{result.data_sufficiency.missingFields?.slice(0,4).join(', ')}</span>
+            </div>
+            {result.data_sufficiency.availableFields?.length > 0 && (
+              <div className="text-xs text-white/40">
+                Dataset has: {result.data_sufficiency.availableFields.slice(0,6).join(', ')}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Direct answer — prominent */}
       {result.direct_answer && (

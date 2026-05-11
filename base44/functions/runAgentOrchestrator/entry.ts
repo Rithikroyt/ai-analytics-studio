@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 // ── F-D-E-A-R Reasoning Loop Orchestrator ─────────────────────────────────────
 // Frame → Diagnose → Explain → Act → Review
-// 12-agent pipeline with intent classification, tool routing, confidence scoring
+// With: data sufficiency check, semantic column classifier, safe SQL generator
 
 const AGENT_CONFIGS = {
   cfo: {
@@ -16,11 +16,9 @@ const AGENT_CONFIGS = {
       'Revenue per Employee': 'Revenue / Headcount',
       'Payroll Cost Ratio': 'PayrollCost / Revenue * 100',
       'Runway (months)': 'CashBalance / MonthlyBurn',
-      'ROI': '(Gain - Cost) / Cost * 100',
     },
     outputFormat: ['Direct Answer','Financial Evidence','Business Meaning','Risk','Recommended Action','Confidence','Next Question'],
     decisionFramework: 'Variance → Driver → Risk → Action',
-    priorityWeights: { financial_impact: 0.40, variance_pct: 0.25, risk_level: 0.20, confidence: 0.15 },
   },
   growth: {
     name: 'Growth Analyst',
@@ -32,11 +30,9 @@ const AGENT_CONFIGS = {
       'Churn Rate': 'LostCustomers / StartingCustomers * 100',
       'Retention Rate': 'ReturningUsers / TotalUsers * 100',
       'LTV/CAC': 'CustomerLifetimeValue / CustomerAcquisitionCost',
-      'Funnel Dropoff': '1 - UsersAtStage_i / UsersAtStage_{i-1}',
     },
     outputFormat: ['Direct Answer','Growth Evidence','Funnel/Cohort/RFM Insight','Business Meaning','Experiment Recommendation','Expected Impact','Confidence','Next Question'],
     decisionFramework: 'Acquire → Activate → Retain → Expand',
-    priorityWeights: { revenue_impact: 0.35, conversion_gap: 0.25, audience_size: 0.20, confidence: 0.20 },
   },
   operations: {
     name: 'Operations Analyst',
@@ -48,65 +44,230 @@ const AGENT_CONFIGS = {
       'Capacity Utilization': 'ActualOutput / MaximumCapacity * 100',
       'SLA Compliance': 'TasksCompletedWithinSLA / TotalTasks * 100',
       'Defect Rate': 'DefectiveUnits / TotalUnits * 100',
-      'Backlog Growth': 'NewTasks - CompletedTasks',
     },
     outputFormat: ['Direct Answer','Operational Evidence','Bottleneck Analysis','Risk','Process Improvement Action','Follow-up Metric','Confidence'],
     decisionFramework: 'DMAIC: Define → Measure → Analyze → Improve → Control',
-    priorityWeights: { bottleneck_score: 0.30, sla_risk: 0.25, cost_impact: 0.20, automation_potential: 0.15, confidence: 0.10 },
   },
 };
 
+// ── Semantic Column Classifier ─────────────────────────────────────────────────
+// Classifies columns by type so SQL generator only uses valid columns
+function classifyColumn(colName, sampleValues) {
+  const n = colName.toLowerCase();
+  const idPatterns = ['_id', 'id_', '^id$', 'uuid', 'key', 'code', 'ref', 'record_id', 'patient_id', 'user_id', 'order_id', 'transaction_id'];
+  const rankPatterns = ['rank', 'score', 'index', 'rating', 'quintile', 'decile', 'percentile', 'tier'];
+  const datePatterns = ['date', 'month', 'year', 'quarter', 'week', 'period', 'time', 'created_at', 'updated_at', 'timestamp'];
+  const demographicPatterns = ['age', 'gender', 'sex', 'ethnicity', 'race', 'zip', 'postal'];
+  const currencyPatterns = ['revenue', 'cost', 'salary', 'wage', 'payroll', 'price', 'amount', 'value', 'fee', 'charge', 'spend', 'budget', 'expense', 'income', 'profit', 'margin', 'payment', 'compensation', 'bonus', 'commission'];
+  const countPatterns = ['count', 'num_', 'number_', 'qty', 'quantity', 'headcount', 'total_orders', 'total_users', 'total_sessions', 'frequency', 'visits'];
+  const categoryPatterns = ['department', 'category', 'type', 'status', 'region', 'country', 'city', 'state', 'channel', 'product', 'segment', 'group', 'tier', 'plan', 'source', 'medium', 'campaign', 'role', 'team', 'location'];
+  const ratePatterns = ['rate', 'ratio', 'pct', 'percent', 'percentage', 'share', 'proportion'];
+
+  if (idPatterns.some(p => n.match(new RegExp(p)))) return 'id';
+  if (datePatterns.some(p => n.includes(p))) return 'date';
+  if (demographicPatterns.some(p => n.includes(p))) return 'demographic';
+  if (currencyPatterns.some(p => n.includes(p))) return 'currency_measure';
+  if (ratePatterns.some(p => n.includes(p))) return 'rate_measure';
+  if (countPatterns.some(p => n.includes(p))) return 'count_measure';
+  if (rankPatterns.some(p => n.includes(p))) return 'rank_score';
+  if (categoryPatterns.some(p => n.includes(p))) return 'category';
+
+  // Check by sample values
+  if (sampleValues && sampleValues.length > 0) {
+    const numericCount = sampleValues.filter(v => !isNaN(Number(v)) && v !== '' && v !== null).length;
+    if (numericCount / sampleValues.length > 0.8) return 'numeric_measure';
+    return 'category';
+  }
+
+  return 'unknown';
+}
+
+// ── Business Intent & Required Field Mapper ────────────────────────────────────
+const DOMAIN_REQUIREMENTS = {
+  payroll: {
+    keywords: ['payroll','salary','wage','compensation','overtime','headcount','hours worked','pay period','employee cost','labor cost'],
+    requiredFieldSignals: ['payroll','salary','wage','compensation','overtime','hourly_rate','hours_worked'],
+    optionalFieldSignals: ['department','employee','headcount','role','location','bonus','period','date'],
+    analysisType: 'payroll_cost_diagnosis',
+    domain: 'finance',
+    sqlTemplate: (catCol, dateCol) => `SELECT ${catCol || 'department'}, ${dateCol ? `DATE_TRUNC('month', ${dateCol}) AS month,` : ''}\n  SUM(payroll_cost) AS total_payroll_cost,\n  COUNT(DISTINCT employee_id) AS headcount\nFROM workforce_data\n${catCol ? `GROUP BY ${catCol}${dateCol ? ', month' : ''}\nORDER BY total_payroll_cost DESC` : ''}\nLIMIT 20;`,
+  },
+  revenue: {
+    keywords: ['revenue','sales','income','gmv','arr','mrr','booking','deal'],
+    requiredFieldSignals: ['revenue','sales','income','amount','value','gmv','arr','mrr'],
+    optionalFieldSignals: ['date','period','month','category','product','region','channel','segment'],
+    analysisType: 'revenue_diagnosis',
+    domain: 'finance',
+  },
+  margin: {
+    keywords: ['margin','gross margin','net margin','profit','profitability','cogs'],
+    requiredFieldSignals: ['margin','profit','revenue','cogs','cost'],
+    optionalFieldSignals: ['product','category','date','segment'],
+    analysisType: 'margin_diagnosis',
+    domain: 'finance',
+  },
+  budget: {
+    keywords: ['budget','variance','forecast','actual vs','over budget','under budget'],
+    requiredFieldSignals: ['budget','actual','forecast','variance','target'],
+    optionalFieldSignals: ['department','category','period','date'],
+    analysisType: 'budget_variance_diagnosis',
+    domain: 'finance',
+  },
+  churn: {
+    keywords: ['churn','retention','attrition','lost customers','customer drop'],
+    requiredFieldSignals: ['churn','retention','cancelled','churned','status'],
+    optionalFieldSignals: ['date','customer','cohort','segment','plan','product'],
+    analysisType: 'churn_diagnosis',
+    domain: 'growth',
+  },
+  conversion: {
+    keywords: ['conversion','funnel','drop off','drop-off','signup','activation'],
+    requiredFieldSignals: ['conversion','signup','activated','funnel','stage'],
+    optionalFieldSignals: ['date','source','channel','campaign','product','segment'],
+    analysisType: 'funnel_diagnosis',
+    domain: 'growth',
+  },
+  bottleneck: {
+    keywords: ['bottleneck','sla','cycle time','throughput','delay','backlog','queue'],
+    requiredFieldSignals: ['cycle_time','lead_time','sla','throughput','duration','processing_time'],
+    optionalFieldSignals: ['stage','department','team','date','status','priority'],
+    analysisType: 'bottleneck_diagnosis',
+    domain: 'operations',
+  },
+};
+
+function detectDomain(question) {
+  const q = question.toLowerCase();
+  for (const [domain, config] of Object.entries(DOMAIN_REQUIREMENTS)) {
+    if (config.keywords.some(kw => q.includes(kw))) {
+      return { domain, config };
+    }
+  }
+  return null;
+}
+
+// ── Data Sufficiency Check ─────────────────────────────────────────────────────
+function checkDataSufficiency(question, columns, rows) {
+  const domainMatch = detectDomain(question);
+  if (!domainMatch) return { status: 'sufficient', missingFields: [], availableFields: columns.map(c => c.name || c), note: '' };
+
+  const { domain, config } = domainMatch;
+  const colNames = columns.map(c => (c.name || c).toLowerCase());
+
+  const hasRequired = config.requiredFieldSignals.some(signal =>
+    colNames.some(col => col.includes(signal))
+  );
+  const hasOptional = config.optionalFieldSignals.some(signal =>
+    colNames.some(col => col.includes(signal))
+  );
+
+  if (!hasRequired) {
+    return {
+      status: 'insufficient',
+      domain,
+      analysisType: config.analysisType,
+      missingFields: config.requiredFieldSignals,
+      optionalFields: config.optionalFieldSignals,
+      availableFields: columns.map(c => c.name || c).slice(0, 15),
+      note: `The current dataset does not contain ${domain}-related fields required to answer this question.`,
+    };
+  }
+
+  if (hasRequired && !hasOptional) {
+    return {
+      status: 'partial',
+      domain,
+      analysisType: config.analysisType,
+      missingFields: config.optionalFieldSignals.slice(0, 3),
+      availableFields: columns.map(c => c.name || c).slice(0, 15),
+      note: `Dataset contains some ${domain} fields but may be missing dimensional context.`,
+    };
+  }
+
+  return { status: 'sufficient', domain, analysisType: config.analysisType, missingFields: [], availableFields: columns.map(c => c.name || c).slice(0, 15) };
+}
+
+// ── Safe SQL Generator ─────────────────────────────────────────────────────────
+// Only generates SQL when columns are semantically valid for the question
+function generateSafeSQL(question, columns, rows, tableName) {
+  const domainMatch = detectDomain(question);
+  const colNames = columns.map(c => c.name || c);
+
+  // Classify all columns semantically
+  const classified = colNames.map(col => {
+    const sampleVals = rows.slice(0, 10).map(r => r[col]);
+    return { col, type: classifyColumn(col, sampleVals) };
+  });
+
+  // Safe aggregatable columns = currency_measure, count_measure, rate_measure (not id, not rank, not demographic)
+  const safeNumericCols = classified
+    .filter(c => ['currency_measure', 'count_measure', 'rate_measure', 'numeric_measure'].includes(c.type))
+    .filter(c => {
+      // Additional guard: don't sum columns that look like IDs or ranks even if numeric
+      const n = c.col.toLowerCase();
+      return !n.match(/_id$|^id_|^id$|rank|score|index|age$|zip$|postal$/);
+    })
+    .map(c => c.col);
+
+  const catCols = classified.filter(c => c.type === 'category').map(c => c.col);
+  const dateCols = classified.filter(c => c.type === 'date').map(c => c.col);
+
+  // If domain-specific required fields are not present, don't generate SQL
+  if (domainMatch) {
+    const hasRequired = domainMatch.config.requiredFieldSignals.some(signal =>
+      colNames.some(col => col.toLowerCase().includes(signal))
+    );
+    if (!hasRequired) return null;
+  }
+
+  if (safeNumericCols.length === 0) return null;
+
+  const groupBy = catCols[0] || dateCols[0];
+  const metricCol = safeNumericCols[0];
+  const extraMetrics = safeNumericCols.slice(1, 3).map(c => `SUM(${c}) AS total_${c}`).join(', ');
+
+  if (groupBy) {
+    return `SELECT ${groupBy}, SUM(${metricCol}) AS total_${metricCol}${extraMetrics ? ',\n       ' + extraMetrics : ''}\nFROM ${tableName || 'dataset'}\nGROUP BY ${groupBy}\nORDER BY total_${metricCol} DESC\nLIMIT 20;`;
+  } else {
+    return `SELECT SUM(${metricCol}) AS total_${metricCol}${extraMetrics ? ', ' + extraMetrics : ''}\nFROM ${tableName || 'dataset'};`;
+  }
+}
+
+// ── Intent Classifier ──────────────────────────────────────────────────────────
 function classifyIntent(question) {
   const q = question.toLowerCase();
   const financeKw = ['revenue','cost','payroll','margin','budget','variance','profit','cash','runway','roi','cogs','expense','salary','headcount','finance','financial','spend','burn'];
   const growthKw = ['conversion','churn','retention','acquisition','funnel','cohort','rfm','ltv','cac','activation','signup','user','growth','campaign','segment','engagement'];
   const opsKw = ['cycle time','throughput','sla','bottleneck','capacity','defect','utilization','process','workflow','backlog','queue','efficiency','productivity','automation','rework'];
-  
+
   const finScore = financeKw.filter(k => q.includes(k)).length;
   const growthScore = growthKw.filter(k => q.includes(k)).length;
   const opsScore = opsKw.filter(k => q.includes(k)).length;
-  
+
   const max = Math.max(finScore, growthScore, opsScore);
-  if (max === 0) return { category: 'general', agent: 'cfo', confidence: 50, scores: { finance: 0, growth: 0, operations: 0 } };
-  
+  if (max === 0) return { category: 'general', agent: 'cfo', confidence: 50 };
+
   let category = 'finance', agent = 'cfo';
   if (growthScore === max) { category = 'growth'; agent = 'growth'; }
   else if (opsScore === max) { category = 'operations'; agent = 'operations'; }
-  
+
   const total = finScore + growthScore + opsScore || 1;
   const confidence = Math.round((max / total) * 100);
-  return { category, agent, confidence, scores: { finance: finScore, growth: growthScore, operations: opsScore } };
-}
-
-function deriveAvailableKPIs(columns, agentConfig) {
-  const colNames = columns.map(c => (c.name || c).toLowerCase());
-  const matched = agentConfig.kpis.filter(kpi => 
-    colNames.some(c => c.includes(kpi.toLowerCase().replace(/[^a-z]/g,'').slice(0,6)))
-  );
-  return matched.length > 0 ? matched : agentConfig.kpis.slice(0, 5);
+  return { category, agent, confidence };
 }
 
 function buildDataContextSummary(rows, columns) {
   if (!rows?.length || !columns?.length) return 'No dataset loaded.';
-  const numCols = columns.filter(c => {
-    const vals = rows.slice(0,20).map(r => Number(r[c.name||c])).filter(v => !isNaN(v));
-    return vals.length > 5;
-  });
-  const catCols = columns.filter(c => !numCols.find(n => (n.name||n) === (c.name||c)));
-  const sample = rows.slice(0,5);
-  return `Dataset: ${rows.length} rows, ${columns.length} columns. Numeric columns: ${numCols.map(c=>c.name||c).slice(0,8).join(', ')}. Category columns: ${catCols.map(c=>c.name||c).slice(0,5).join(', ')}. Sample row: ${JSON.stringify(sample[0]).slice(0,200)}`;
+  const colNames = columns.map(c => c.name || c);
+  const sample = rows.slice(0,3);
+  return `Dataset: ${rows.length} rows, ${columns.length} columns. Columns: ${colNames.slice(0,12).join(', ')}. Sample row: ${JSON.stringify(sample[0]).slice(0,250)}`;
 }
 
-function calculateConfidence(intent, rows, columns, matchedKPIs) {
-  let score = 50;
-  if (intent.confidence > 70) score += 15;
-  else if (intent.confidence > 40) score += 8;
-  if (rows?.length > 100) score += 10;
-  if (rows?.length > 500) score += 5;
-  if (matchedKPIs.length > 2) score += 10;
-  if (columns?.length > 5) score += 5;
-  if (rows?.length === 0) score -= 20;
-  return Math.min(Math.max(score, 20), 95);
+// ── Final Answer Validation ────────────────────────────────────────────────────
+function isWeakAnswer(answer) {
+  if (!answer || typeof answer !== 'string') return true;
+  const weakPhrases = ['analysis complete','done','completed','here is the analysis','no answer available','analysis performed'];
+  return weakPhrases.some(phrase => answer.toLowerCase().trim() === phrase) || answer.trim().length < 30;
 }
 
 Deno.serve(async (req) => {
@@ -132,35 +293,41 @@ Deno.serve(async (req) => {
     const rows = tableContext?.rows || [];
     const columns = tableContext?.columns || [];
     const dataContext = buildDataContextSummary(rows, columns);
-    const availableKPIs = deriveAvailableKPIs(columns, agentConfig);
-    const confidence = calculateConfidence(intent, rows, columns, availableKPIs);
 
-    // ── Step 3: SQL Agent — generate analysis SQL ──────────────────────────────
-    const colNames = columns.map(c => c.name || c).slice(0, 20).join(', ');
-    const numericCols = columns.filter(c => {
-      const vals = rows.slice(0,10).map(r => Number(r[c.name||c])).filter(v => !isNaN(v));
-      return vals.length > 3;
-    }).map(c => c.name || c);
-    const catCols = columns.filter(c => !numericCols.includes(c.name||c)).map(c => c.name || c);
+    // ── Step 3: DATA SUFFICIENCY CHECK (new) ──────────────────────────────────
+    const sufficiency = checkDataSufficiency(question, columns, rows);
 
-    let generatedSQL = '';
-    if (numericCols.length > 0 && catCols.length > 0) {
-      generatedSQL = `SELECT ${catCols[0]}, ${numericCols.slice(0,3).map(c=>`SUM(${c}) AS total_${c}`).join(', ')}\nFROM ${tableContext?.name || 'dataset'}\nGROUP BY ${catCols[0]}\nORDER BY total_${numericCols[0]} DESC\nLIMIT 20;`;
+    // ── Step 4: Safe SQL Generator (new) ──────────────────────────────────────
+    const generatedSQL = sufficiency.status !== 'insufficient'
+      ? generateSafeSQL(question, columns, rows, tableContext?.name)
+      : null;
+
+    // ── Step 5: Statistical tool layer ────────────────────────────────────────
+    const stats = {};
+    if (sufficiency.status !== 'insufficient') {
+      const colNames = columns.map(c => c.name || c);
+      const classified = colNames.map(col => {
+        const sampleVals = rows.slice(0, 10).map(r => r[col]);
+        return { col, type: classifyColumn(col, sampleVals) };
+      });
+      const safeNumericCols = classified
+        .filter(c => ['currency_measure', 'count_measure', 'rate_measure', 'numeric_measure'].includes(c.type))
+        .filter(c => !c.col.toLowerCase().match(/_id$|^id_|^id$|rank|score|index|age$|zip$|postal$/))
+        .map(c => c.col)
+        .slice(0, 5);
+
+      safeNumericCols.forEach(col => {
+        const vals = rows.map(r => Number(r[col])).filter(v => !isNaN(v));
+        if (!vals.length) return;
+        const sum = vals.reduce((a,b) => a+b, 0);
+        const mean = sum / vals.length;
+        const sorted = [...vals].sort((a,b) => a-b);
+        const std = Math.sqrt(vals.reduce((s,v) => s+(v-mean)**2, 0) / vals.length);
+        stats[col] = { sum: Math.round(sum*100)/100, mean: Math.round(mean*100)/100, std: Math.round(std*100)/100, min: sorted[0], max: sorted[sorted.length-1], count: vals.length };
+      });
     }
 
-    // ── Step 4: Statistical tool layer — compute key stats ────────────────────
-    const stats = {};
-    numericCols.slice(0, 5).forEach(col => {
-      const vals = rows.map(r => Number(r[col])).filter(v => !isNaN(v));
-      if (!vals.length) return;
-      const sum = vals.reduce((a,b) => a+b, 0);
-      const mean = sum / vals.length;
-      const sorted = [...vals].sort((a,b) => a-b);
-      const std = Math.sqrt(vals.reduce((s,v) => s+(v-mean)**2, 0) / vals.length);
-      stats[col] = { sum: Math.round(sum*100)/100, mean: Math.round(mean*100)/100, std: Math.round(std*100)/100, min: sorted[0], max: sorted[sorted.length-1], count: vals.length };
-    });
-
-    // ── Step 5: Anomaly detection ─────────────────────────────────────────────
+    // ── Step 6: Anomaly detection ─────────────────────────────────────────────
     const anomalies = [];
     Object.entries(stats).forEach(([col, s]) => {
       if (s.std > 0 && Math.abs(s.max - s.mean) > 2 * s.std) {
@@ -168,9 +335,26 @@ Deno.serve(async (req) => {
       }
     });
 
-    // ── Step 6: Build specialist agent prompt (F-D-E-A-R) ─────────────────────
+    // ── Step 7: Build specialist agent prompt with sufficiency context ─────────
     const statsStr = Object.entries(stats).slice(0,4).map(([k,v]) => `${k}: sum=${v.sum}, mean=${v.mean}, max=${v.max}`).join('\n');
     const anomalyStr = anomalies.length > 0 ? anomalies.map(a => `ANOMALY: ${a.column} value ${a.value} is ${a.deviation}σ above mean`).join('\n') : 'No anomalies detected.';
+
+    // For insufficient data, add explicit instructions to explain the problem
+    const insufficiencyInstructions = sufficiency.status === 'insufficient' ? `
+⚠️ DATA SUFFICIENCY ALERT:
+The user is asking about "${sufficiency.domain}" but the current dataset is "${tableContext?.name || 'unknown'}" and does NOT contain the required ${sufficiency.domain}-related fields.
+
+REQUIRED FIELDS THAT ARE MISSING: ${sufficiency.missingFields.join(', ')}
+FIELDS ACTUALLY IN DATASET: ${sufficiency.availableFields.slice(0, 12).join(', ')}
+
+YOU MUST:
+1. Set direct_answer to a clear explanation that the dataset is insufficient
+2. Explain exactly which fields are missing and why they matter
+3. Tell the user what dataset/fields to upload to answer this question
+4. Set confidence_score to 95 (you are 95% confident the data is insufficient)
+5. Do NOT pretend to answer the question — explain the data gap honestly
+6. Do NOT generate meaningless evidence from unrelated fields
+` : '';
 
     const systemPrompt = `You are the ${agentConfig.name}: ${agentConfig.role}.
 
@@ -185,35 +369,32 @@ YOUR FOCUS AREAS: ${agentConfig.focus.join(', ')}
 YOUR KPI OWNERSHIP: ${agentConfig.kpis.join(', ')}
 YOUR DECISION FRAMEWORK: ${agentConfig.decisionFramework}
 
-AVAILABLE FORMULAS:
-${Object.entries(agentConfig.formulas).map(([k,v]) => `${k} = ${v}`).join('\n')}
-
 CRITICAL RULES:
-- NEVER answer from general knowledge only when data is available
-- ALWAYS use the dataset statistics below for your evidence
-- ALWAYS show specific numbers from the data
-- If data is insufficient, say exactly what is missing
-- Score confidence honestly based on data completeness`;
+- NEVER return "Analysis complete" as the direct_answer — it is meaningless
+- ALWAYS write at least 2-3 sentences in direct_answer with specific findings or clear data gap explanation
+- If data is insufficient, explain EXACTLY what is missing and what dataset is needed
+- If data IS available, use the statistical evidence below with specific numbers
+- Always be specific: use column names, numbers, and business context`;
 
     const userPrompt = `USER QUESTION: "${question}"
 
 DATASET: ${tableContext?.name || 'No dataset'} (${tableContext?.rowCount || rows.length} rows)
+DATA SUFFICIENCY STATUS: ${sufficiency.status.toUpperCase()}
+${insufficiencyInstructions}
 DATA CONTEXT: ${dataContext}
-AVAILABLE KPIs IN DATASET: ${availableKPIs.join(', ')}
 INTENT CLASSIFIED AS: ${intent.category} (confidence: ${intent.confidence}%)
 
-STATISTICAL EVIDENCE FROM DATA:
-${statsStr || 'No numeric columns found.'}
+STATISTICAL EVIDENCE FROM DATASET (safe numeric columns only):
+${statsStr || 'No safe numeric columns found that match this question.'}
 
 ANOMALY DETECTION:
 ${anomalyStr}
 
-GENERATED SQL:
-${generatedSQL || 'No SQL generated — insufficient column context.'}
+SQL STATUS: ${generatedSQL ? 'Generated:\n' + generatedSQL : 'Not generated — required columns missing or unsafe to execute.'}
 
-Now answer using the F-D-E-A-R loop. Return a structured JSON answer.`;
+Now answer using the F-D-E-A-R loop. Return a complete structured JSON answer. The direct_answer must be at least 2-3 meaningful sentences.`;
 
-    // ── Step 7: LLM Specialist Agent ──────────────────────────────────────────
+    // ── Step 8: LLM Specialist Agent ──────────────────────────────────────────
     const agentResult = await base44.asServiceRole.integrations.Core.InvokeLLM({
       model: 'claude_sonnet_4_6',
       prompt: `${systemPrompt}\n\n${userPrompt}`,
@@ -241,42 +422,60 @@ Now answer using the F-D-E-A-R loop. Return a structured JSON answer.`;
       },
     });
 
-    // ── Step 8: Strategy Agent — priority scoring ──────────────────────────────
-    const rawConfidence = agentResult?.confidence_score || confidence;
-    const financialImpact = stats[numericCols[0]]?.sum > 0 ? Math.min(stats[numericCols[0]].std / (stats[numericCols[0]].mean || 1), 1) : 0.5;
-    const priorityScore = Math.round((0.40 * financialImpact + 0.25 * (rawConfidence/100) + 0.20 * (anomalies.length > 0 ? 1 : 0.3) + 0.15 * (rows.length > 100 ? 1 : 0.5)) * 100) / 100;
+    // ── Step 9: Final Answer Validation & Fallback ─────────────────────────────
+    let finalDirectAnswer = agentResult?.direct_answer || '';
+    if (isWeakAnswer(finalDirectAnswer)) {
+      if (sufficiency.status === 'insufficient') {
+        finalDirectAnswer = `I cannot accurately answer "${question}" from the current dataset "${tableContext?.name || 'unknown'}" because the required ${sufficiency.domain}-related fields are missing. The dataset appears to contain ${sufficiency.availableFields.slice(0,5).join(', ')} — which are not sufficient for ${sufficiency.analysisType?.replace(/_/g,' ')}. To properly analyze this, please upload a dataset containing: ${sufficiency.missingFields.slice(0,5).join(', ')}.`;
+      } else {
+        finalDirectAnswer = `The analysis ran but the answer synthesizer returned an incomplete response. Please rephrase the question or ensure the active dataset contains the relevant fields for this question.`;
+      }
+    }
 
-    // ── Step 9: Report Writer — assemble final output ─────────────────────────
+    // ── Step 10: Assemble final output ────────────────────────────────────────
+    const rawConfidence = agentResult?.confidence_score || (sufficiency.status === 'insufficient' ? 95 : 50);
+
     const output = {
       session_id: sid,
       agent: agentConfig.name,
       agent_role: agentConfig.role,
       intent: intent.category,
       intent_confidence: intent.confidence,
-      
+
       // 10-field structured answer
-      direct_answer: agentResult?.direct_answer || 'Analysis complete.',
-      kpi_impact: agentResult?.kpi_impact || availableKPIs[0],
-      evidence: agentResult?.evidence || [],
+      direct_answer: finalDirectAnswer,
+      kpi_impact: agentResult?.kpi_impact || (sufficiency.status === 'insufficient' ? `${sufficiency.domain} KPI — cannot compute` : agentConfig.kpis[0]),
+      evidence: agentResult?.evidence?.length > 0 ? agentResult.evidence : (sufficiency.status === 'insufficient' ? [`Dataset: ${tableContext?.name}`, `Missing required fields: ${sufficiency.missingFields?.slice(0,4).join(', ')}`, `Available fields: ${sufficiency.availableFields?.slice(0,5).join(', ')}`] : []),
       driver_root_cause: agentResult?.driver_root_cause || '',
       risk: agentResult?.risk || '',
-      recommendation: agentResult?.recommendation || [],
+      recommendation: agentResult?.recommendation?.length > 0 ? agentResult.recommendation : (sufficiency.status === 'insufficient' ? [`Upload a ${sufficiency.domain} dataset containing: ${sufficiency.missingFields?.slice(0,4).join(', ')}`, 'Map the correct dataset fields to this analysis type', 'Then re-run this question for a complete executive answer'] : []),
       expected_impact: agentResult?.expected_impact || '',
       confidence_score: rawConfidence,
-      confidence_explanation: agentResult?.confidence_explanation || '',
+      confidence_explanation: agentResult?.confidence_explanation || (sufficiency.status === 'insufficient' ? `High confidence that the current dataset is insufficient for ${sufficiency.domain} analysis.` : ''),
       follow_up_metric: agentResult?.follow_up_metric || '',
       suggested_next_question: agentResult?.suggested_next_question || '',
+
+      // Data sufficiency result (exposed to UI)
+      data_sufficiency: {
+        status: sufficiency.status,
+        domain: sufficiency.domain,
+        missingFields: sufficiency.missingFields || [],
+        availableFields: sufficiency.availableFields || [],
+      },
 
       // Reasoning trace (F-D-E-A-R)
       reasoning_trace: {
         interpreted_intent: `${intent.category} question — ${intent.confidence}% confidence`,
         dataset_used: tableContext?.name || 'None',
-        kpis_used: availableKPIs.slice(0,5),
-        tools_called: ['intent_classifier','data_context_agent','sql_agent','anomaly_detector',`${agentConfig.name.toLowerCase().replace(' ','_')}`, 'strategy_agent','report_writer'],
-        sql_generated: generatedSQL,
-        statistical_method: 'descriptive_statistics + anomaly_detection (2σ)',
+        kpis_used: agentConfig.kpis.slice(0,5),
+        tools_called: ['intent_classifier','data_sufficiency_check','semantic_column_classifier','safe_sql_generator','anomaly_detector',`${activeAgentKey}_analyst`, 'strategy_agent','final_answer_synthesizer'],
+        sql_generated: generatedSQL || 'Not generated — required columns missing or would produce meaningless results.',
+        statistical_method: sufficiency.status !== 'insufficient' ? 'descriptive_statistics + anomaly_detection (2σ) on safe columns only' : 'skipped — dataset insufficient',
         confidence_score: rawConfidence,
-        limitations: rows.length < 50 ? 'Limited data — fewer than 50 rows. Confidence reduced.' : '',
+        data_sufficiency_status: sufficiency.status,
+        limitations: sufficiency.status === 'insufficient'
+          ? `Dataset "${tableContext?.name}" does not contain required ${sufficiency.domain} fields: ${sufficiency.missingFields?.slice(0,4).join(', ')}`
+          : (rows.length < 50 ? 'Limited data — fewer than 50 rows. Confidence reduced.' : ''),
         anomalies_found: anomalies.length,
         f_step: agentResult?.frame_step || '',
         d_step: agentResult?.diagnose_step || '',
@@ -285,15 +484,13 @@ Now answer using the F-D-E-A-R loop. Return a structured JSON answer.`;
         r_step: agentResult?.review_step || '',
       },
 
-      // Stats for rendering
       stats,
       anomalies,
-      priority_score: priorityScore,
       pipeline_preset: pipelinePreset,
       duration_ms: Date.now() - startTime,
     };
 
-    // ── Step 10: Persist decision log ─────────────────────────────────────────
+    // ── Persist decision log ───────────────────────────────────────────────────
     base44.asServiceRole.entities.AgentDecisionLog.create({
       sessionId: sid,
       agentName: agentConfig.name,
@@ -301,11 +498,12 @@ Now answer using the F-D-E-A-R loop. Return a structured JSON answer.`;
       interpretedIntent: intent.category,
       intentCategory: intent.category,
       datasetUsed: tableContext?.name || '',
-      kpisUsed: availableKPIs.slice(0,5),
+      kpisUsed: agentConfig.kpis.slice(0,5),
       toolsCalled: output.reasoning_trace.tools_called,
-      sqlGenerated: generatedSQL,
-      statisticalMethod: 'descriptive_statistics',
+      sqlGenerated: generatedSQL || '',
+      statisticalMethod: output.reasoning_trace.statistical_method,
       confidenceScore: rawConfidence,
+      limitations: output.reasoning_trace.limitations,
     }).catch(() => {});
 
     return Response.json(output);
