@@ -1,0 +1,55 @@
+{
+  "name": "AgentPlaybook",
+  "type": "object",
+  "properties": {
+    "agent": {
+      "type": "string",
+      "title": "Agent Name"
+    },
+    "playbookName": {
+      "type": "string",
+      "title": "Playbook Name"
+    },
+    "triggerQuestions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Trigger Questions"
+    },
+    "requiredTools": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Required Tools"
+    },
+    "outputTemplate": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Output Template"
+    },
+    "kpiOwnership": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "KPI Ownership"
+    },
+    "decisionFramework": {
+      "type": "string",
+      "title": "Decision Framework"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true,
+      "title": "Active"
+    }
+  },
+  "required": [
+    "agent",
+    "playbookName"
+  ]
+}

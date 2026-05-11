@@ -1,0 +1,53 @@
+{
+  "name": "AgentToolCall",
+  "type": "object",
+  "properties": {
+    "sessionId": {
+      "type": "string",
+      "title": "Session ID"
+    },
+    "agentName": {
+      "type": "string",
+      "title": "Agent Name"
+    },
+    "toolName": {
+      "type": "string",
+      "title": "Tool Name"
+    },
+    "inputPayload": {
+      "type": "object",
+      "title": "Input",
+      "additionalProperties": true
+    },
+    "outputPayload": {
+      "type": "object",
+      "title": "Output",
+      "additionalProperties": true
+    },
+    "durationMs": {
+      "type": "number",
+      "title": "Duration (ms)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "success",
+        "error",
+        "skipped"
+      ],
+      "default": "success"
+    },
+    "sqlGenerated": {
+      "type": "string",
+      "title": "SQL Generated"
+    },
+    "errorMessage": {
+      "type": "string",
+      "title": "Error Message"
+    }
+  },
+  "required": [
+    "agentName",
+    "toolName"
+  ]
+}

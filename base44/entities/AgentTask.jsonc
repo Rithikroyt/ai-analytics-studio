@@ -1,0 +1,88 @@
+{
+  "name": "AgentTask",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "title": "Task Title"
+    },
+    "taskType": {
+      "type": "string",
+      "enum": [
+        "data_cleaning",
+        "kpi_review",
+        "sql_analysis",
+        "forecast_review",
+        "anomaly_review",
+        "rfm_segmentation",
+        "funnel_diagnosis",
+        "cost_variance_review",
+        "payroll_efficiency_review",
+        "executive_report",
+        "recommendation_prioritization"
+      ],
+      "title": "Task Type"
+    },
+    "assignedAgent": {
+      "type": "string",
+      "title": "Assigned Agent"
+    },
+    "playbookId": {
+      "type": "string",
+      "title": "Playbook ID"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "running",
+        "done",
+        "error"
+      ],
+      "default": "pending",
+      "title": "Status"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "critical",
+        "high",
+        "medium",
+        "low"
+      ],
+      "default": "medium",
+      "title": "Priority"
+    },
+    "input": {
+      "type": "string",
+      "title": "Input / Question"
+    },
+    "output": {
+      "type": "object",
+      "title": "Structured Output",
+      "additionalProperties": true
+    },
+    "confidenceScore": {
+      "type": "number",
+      "title": "Confidence Score (0-100)"
+    },
+    "tableId": {
+      "type": "string",
+      "title": "Source Table ID"
+    },
+    "tableName": {
+      "type": "string",
+      "title": "Source Table Name"
+    },
+    "dueDate": {
+      "type": "string",
+      "format": "date",
+      "title": "Due Date"
+    }
+  },
+  "required": [
+    "title",
+    "taskType",
+    "assignedAgent"
+  ]
+}

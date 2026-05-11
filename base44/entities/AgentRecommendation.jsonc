@@ -1,0 +1,62 @@
+{
+  "name": "AgentRecommendation",
+  "type": "object",
+  "properties": {
+    "sourceAgent": {
+      "type": "string",
+      "title": "Source Agent"
+    },
+    "sessionId": {
+      "type": "string",
+      "title": "Session ID"
+    },
+    "recommendation": {
+      "type": "string",
+      "title": "Recommendation"
+    },
+    "kpiAffected": {
+      "type": "string",
+      "title": "KPI Affected"
+    },
+    "expectedImpact": {
+      "type": "string",
+      "title": "Expected Impact"
+    },
+    "priorityScore": {
+      "type": "number",
+      "title": "Priority Score (0-1)"
+    },
+    "confidenceScore": {
+      "type": "number",
+      "title": "Confidence (0-100)"
+    },
+    "urgency": {
+      "type": "string",
+      "enum": [
+        "immediate",
+        "this_week",
+        "this_month",
+        "backlog"
+      ],
+      "default": "this_week"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "accepted",
+        "dismissed",
+        "done"
+      ],
+      "default": "open"
+    },
+    "owner": {
+      "type": "string",
+      "title": "Owner Email"
+    }
+  },
+  "required": [
+    "sourceAgent",
+    "recommendation"
+  ]
+}

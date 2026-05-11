@@ -1,0 +1,77 @@
+{
+  "name": "AgentDecisionLog",
+  "type": "object",
+  "properties": {
+    "sessionId": {
+      "type": "string",
+      "title": "Session ID"
+    },
+    "agentName": {
+      "type": "string",
+      "title": "Agent Name"
+    },
+    "userQuestion": {
+      "type": "string",
+      "title": "User Question"
+    },
+    "interpretedIntent": {
+      "type": "string",
+      "title": "Interpreted Intent"
+    },
+    "intentCategory": {
+      "type": "string",
+      "enum": [
+        "finance",
+        "growth",
+        "operations",
+        "general"
+      ],
+      "title": "Intent Category"
+    },
+    "datasetUsed": {
+      "type": "string",
+      "title": "Dataset Used"
+    },
+    "kpisUsed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "KPIs Used"
+    },
+    "toolsCalled": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Tools Called"
+    },
+    "sqlGenerated": {
+      "type": "string",
+      "title": "SQL Generated"
+    },
+    "statisticalMethod": {
+      "type": "string",
+      "title": "Statistical Method"
+    },
+    "confidenceScore": {
+      "type": "number",
+      "title": "Confidence (0-100)"
+    },
+    "limitations": {
+      "type": "string",
+      "title": "Limitations / Caveats"
+    },
+    "frameworkSteps": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "title": "F-D-E-A-R Steps"
+    }
+  },
+  "required": [
+    "agentName",
+    "userQuestion"
+  ]
+}

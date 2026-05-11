@@ -1,0 +1,49 @@
+{
+  "name": "AgentFeedback",
+  "type": "object",
+  "properties": {
+    "sessionId": {
+      "type": "string",
+      "title": "Session ID"
+    },
+    "agentName": {
+      "type": "string",
+      "title": "Agent Name"
+    },
+    "userQuestion": {
+      "type": "string",
+      "title": "User Question"
+    },
+    "rating": {
+      "type": "string",
+      "enum": [
+        "useful",
+        "not_useful"
+      ],
+      "title": "Rating"
+    },
+    "issueType": {
+      "type": "string",
+      "enum": [
+        "needs_more_detail",
+        "wrong_metric",
+        "wrong_chart",
+        "better_recommendation",
+        "other"
+      ],
+      "title": "Issue Type"
+    },
+    "comment": {
+      "type": "string",
+      "title": "Comment"
+    },
+    "userEmail": {
+      "type": "string",
+      "title": "User Email"
+    }
+  },
+  "required": [
+    "agentName",
+    "rating"
+  ]
+}

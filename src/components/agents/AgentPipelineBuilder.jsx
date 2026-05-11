@@ -1,241 +1,214 @@
 /**
- * AgentPipelineBuilder — Visual multi-agent workflow designer
+ * AgentPipelineBuilder V2 — 6 senior-level pipeline presets
+ * Real orchestrator routing with structured outputs
  */
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import {
-  ArrowRight, Plus, Play, Brain, Search, Target, BarChart2,
-  FileText, Zap, CheckCircle2, Loader2, X, ChevronDown, Sparkles
+  Play, CheckCircle2, Loader2, ChevronRight, Zap, Search,
+  BarChart2, TrendingUp, AlertTriangle, Users, Settings, Brain
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import AgentStructuredAnswer from './AgentStructuredAnswer.jsx';
 
-const AGENT_NODES = [
-  { id: 'intent', label: 'Intent Classifier', icon: Brain, color: '#7b2fff', desc: 'Classifies question type and selects tools', output: 'intent + tool list' },
-  { id: 'sql', label: 'SQL Agent', icon: Search, color: '#00e5ff', desc: 'Generates and executes SQL queries', output: 'query results + chart' },
-  { id: 'context', label: 'Business Context', icon: BarChart2, color: '#ff6b35', desc: 'Adds industry benchmarks and business framing', output: 'context + KPIs' },
-  { id: 'anomaly', label: 'Anomaly Detector', icon: Zap, color: '#ffcc02', desc: 'Scans for outliers and anomalies in results', output: 'anomaly flags' },
-  { id: 'strategy', label: 'Strategy Agent', icon: Target, color: '#4caf50', desc: 'Generates prioritized recommendations', output: 'action items' },
-  { id: 'report', label: 'Report Writer', icon: FileText, color: '#ff2d7a', desc: 'Synthesizes into executive narrative', output: 'final report' },
+const PIPELINE_PRESETS = [
+  {
+    id: 'quick_insight',
+    label: 'Quick Insight',
+    icon: Zap,
+    color: '#00e5ff',
+    desc: 'Fast KPI summary. Use for simple questions.',
+    nodes: ['Intent Classifier', 'SQL Agent', 'Business Context', 'Report Writer'],
+    useWhen: 'Simple KPI questions or summaries',
+    output: 'Direct answer · 1 recommendation',
+  },
+  {
+    id: 'deep_diagnosis',
+    label: 'Deep Diagnosis',
+    icon: Search,
+    color: '#a855f7',
+    desc: 'Full root cause analysis. For drops, spikes, anomalies.',
+    nodes: ['Intent Classifier', 'Data Quality', 'SQL Agent', 'Anomaly Detector', 'Specialist Agent', 'Business Context', 'Strategy Agent', 'Report Writer'],
+    useWhen: 'KPI changed, anomaly detected, root cause needed',
+    output: 'Driver breakdown · Evidence · Action plan',
+  },
+  {
+    id: 'executive_brief',
+    label: 'Executive Brief',
+    icon: Brain,
+    color: '#ffcc02',
+    desc: 'Full business review. CFO + Growth + Ops all collaborate.',
+    nodes: ['Data Quality', 'KPI Agent', 'CFO Agent', 'Growth Agent', 'Ops Agent', 'Strategy Agent', 'Report Writer'],
+    useWhen: 'Weekly/monthly review, board memo, leadership summary',
+    output: 'Executive summary · All KPIs · Risks · Actions',
+  },
+  {
+    id: 'anomaly_hunt',
+    label: 'Anomaly Hunt',
+    icon: AlertTriangle,
+    color: '#ef4444',
+    desc: 'Find and explain unexpected data patterns.',
+    nodes: ['Data Quality', 'SQL Agent', 'Anomaly Detector', 'Contribution Analyst', 'Specialist Agent', 'Strategy Agent'],
+    useWhen: 'Unexplained changes, outlier investigation',
+    output: 'Anomaly · Expected vs Actual · Top driver · Fix',
+  },
+  {
+    id: 'growth_opportunity',
+    label: 'Growth Opportunity',
+    icon: TrendingUp,
+    color: '#ff2d7a',
+    desc: 'Identifies the #1 growth lever in your dataset.',
+    nodes: ['Intent Classifier', 'Funnel Analyst', 'RFM Analyst', 'Cohort Analyst', 'Growth Agent', 'Strategy Agent', 'Report Writer'],
+    useWhen: 'Growth questions, retention issues, funnel optimization',
+    output: 'Top conversion gap · Segments · Retention · Experiments',
+  },
+  {
+    id: 'ops_optimization',
+    label: 'Ops Optimization',
+    icon: Settings,
+    color: '#4caf50',
+    desc: 'DMAIC-based process and efficiency analysis.',
+    nodes: ['Intent Classifier', 'Process Analyst', 'Bottleneck Detector', 'SLA Analyst', 'Operations Agent', 'Strategy Agent', 'Report Writer'],
+    useWhen: 'Efficiency improvement, SLA risk, capacity planning',
+    output: 'Bottleneck · Cycle-time · Capacity risk · Fix',
+  },
 ];
 
-const PRESET_PIPELINES = [
-  { name: 'Deep Diagnosis', agents: ['intent', 'sql', 'anomaly', 'context', 'strategy', 'report'], desc: 'Full 6-agent root cause analysis' },
-  { name: 'Quick Insight', agents: ['intent', 'sql', 'context'], desc: 'Fast 3-agent answer for simple questions' },
-  { name: 'Executive Brief', agents: ['sql', 'strategy', 'report'], desc: 'Data → recommendations → narrative' },
-  { name: 'Anomaly Hunt', agents: ['sql', 'anomaly', 'strategy'], desc: 'Find problems and prescribe fixes' },
-];
-
-function AgentNode({ agent, index, total, completed, active }) {
-  const Icon = agent.icon;
-  const isLast = index === total - 1;
+function PipelineNode({ label, index, status }) {
+  const statusColors = { idle: 'bg-white/8 text-white/35', running: 'bg-cyan-400/15 text-cyan-400', done: 'bg-green-400/15 text-green-400' };
   return (
-    <div className="flex items-center gap-2">
-      <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: index * 0.08 }}
-        className={`flex flex-col items-center p-3 rounded-2xl border transition-all min-w-[90px] ${
-          completed ? 'border-green-400/25 bg-green-400/8' :
-          active ? 'border-opacity-50 shadow-lg' :
-          'border-white/8 bg-white/3'
-        }`}
-        style={active ? { borderColor: `${agent.color}50`, background: `${agent.color}12`, boxShadow: `0 0 20px ${agent.color}20` } : {}}>
-        <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-2"
-          style={{ background: `${agent.color}20`, border: `1px solid ${agent.color}30` }}>
-          {completed ? <CheckCircle2 className="w-4 h-4 text-green-400" /> :
-           active ? <Loader2 className="w-4 h-4 animate-spin" style={{ color: agent.color }} /> :
-           <Icon className="w-4 h-4" style={{ color: agent.color }} />}
-        </div>
-        <div className="text-xs font-semibold text-center leading-tight">{agent.label}</div>
-        <div className="text-xs text-white/30 text-center mt-0.5 leading-tight">{agent.output}</div>
-      </motion.div>
-      {!isLast && <ArrowRight className="w-4 h-4 text-white/20 flex-shrink-0" />}
+    <div className="flex items-center gap-1">
+      <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium transition-all ${statusColors[status] || statusColors.idle}`}>
+        {status === 'running' && <Loader2 className="w-3 h-3 animate-spin" />}
+        {status === 'done' && <CheckCircle2 className="w-3 h-3" />}
+        {status === 'idle' && <span className="w-3 h-3 rounded-full bg-white/20 inline-block" />}
+        {label}
+      </div>
+      {index !== undefined && <ChevronRight className="w-3 h-3 text-white/15 flex-shrink-0" />}
     </div>
   );
 }
 
 export default function AgentPipelineBuilder({ activeTable, activePersona }) {
-  const [selectedAgents, setSelectedAgents] = useState(['intent', 'sql', 'context', 'strategy']);
+  const [selectedPreset, setSelectedPreset] = useState(PIPELINE_PRESETS[0]);
   const [question, setQuestion] = useState('');
   const [running, setRunning] = useState(false);
-  const [currentAgent, setCurrentAgent] = useState(-1);
-  const [completedAgents, setCompletedAgents] = useState([]);
+  const [nodeStatuses, setNodeStatuses] = useState({});
   const [result, setResult] = useState(null);
-  const [selectedPreset, setSelectedPreset] = useState(null);
-
-  const loadPreset = (preset) => {
-    setSelectedAgents(preset.agents);
-    setSelectedPreset(preset.name);
-    setResult(null);
-    setCompletedAgents([]);
-  };
-
-  const toggleAgent = (id) => {
-    setSelectedAgents(prev =>
-      prev.includes(id) ? (prev.length > 1 ? prev.filter(a => a !== id) : prev) : [...prev, id]
-    );
-    setSelectedPreset(null);
-  };
+  const [error, setError] = useState('');
 
   const runPipeline = async () => {
-    if (!question.trim()) return;
+    if (!question.trim() || running) return;
     setRunning(true);
     setResult(null);
-    setCompletedAgents([]);
+    setError('');
 
-    // Animate through each agent
-    for (let i = 0; i < selectedAgents.length; i++) {
-      setCurrentAgent(i);
-      await new Promise(r => setTimeout(r, 900 + Math.random() * 400));
-      setCompletedAgents(prev => [...prev, selectedAgents[i]]);
+    // Animate through nodes
+    const nodes = selectedPreset.nodes;
+    for (let i = 0; i < nodes.length; i++) {
+      setNodeStatuses(prev => ({ ...prev, [nodes[i]]: 'running' }));
+      await new Promise(r => setTimeout(r, 300 + i * 200));
+      setNodeStatuses(prev => ({ ...prev, [nodes[i]]: 'done' }));
     }
-    setCurrentAgent(-1);
 
-    // Run the actual multi-agent analysis
     try {
-      const res = await base44.functions.invoke('runMultiAgentAnalysis', {
+      const res = await base44.functions.invoke('runAgentOrchestrator', {
         question,
         persona: activePersona,
+        pipelinePreset: selectedPreset.id,
+        sessionId: `pipeline_${Date.now()}`,
         tableContext: activeTable ? {
           name: activeTable.name,
-          rowCount: activeTable.rowCount,
-          columns: activeTable.columns?.slice(0, 20),
-          rows: activeTable.rows?.slice(0, 30),
+          rowCount: activeTable.rowCount || activeTable.rows?.length,
+          columns: activeTable.columns?.slice(0, 25),
+          rows: activeTable.rows?.slice(0, 25),
         } : null,
       });
       setResult(res.data);
     } catch (e) {
-      setResult({ synthesis: 'Pipeline error: ' + e.message, agents: {} });
+      setError(e.message);
     }
+
     setRunning(false);
   };
 
-  const orderedNodes = selectedAgents.map(id => AGENT_NODES.find(a => a.id === id)).filter(Boolean);
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      {/* Preset selector */}
       <div>
-        <h2 className="text-lg font-black mb-1">Multi-Agent Pipeline Builder</h2>
-        <p className="text-sm text-muted-foreground">Design custom agent workflows. Each agent hands off its output to the next, collaborating on complex problems.</p>
-      </div>
-
-      {/* Preset Pipelines */}
-      <div>
-        <div className="text-xs text-white/30 uppercase tracking-widest mb-2">Presets</div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          {PRESET_PIPELINES.map(p => (
-            <button key={p.name} onClick={() => loadPreset(p)}
-              className={`text-left p-3 rounded-xl border transition-all ${selectedPreset === p.name ? 'bg-pink-400/10 border-pink-400/25' : 'bg-white/3 border-white/8 hover:border-white/15'}`}>
-              <div className="text-xs font-bold">{p.name}</div>
-              <div className="text-xs text-white/35 mt-0.5">{p.agents.length} agents · {p.desc}</div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Agent Node Selector */}
-      <div>
-        <div className="text-xs text-white/30 uppercase tracking-widest mb-2">Pipeline Agents (click to add/remove)</div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
-          {AGENT_NODES.map(a => {
-            const selected = selectedAgents.includes(a.id);
-            const Icon = a.icon;
+        <div className="text-xs text-white/30 uppercase tracking-widest mb-2">Select Pipeline Preset</div>
+        <div className="grid grid-cols-2 gap-2">
+          {PIPELINE_PRESETS.map(p => {
+            const Icon = p.icon;
+            const isSelected = selectedPreset.id === p.id;
             return (
-              <button key={a.id} onClick={() => toggleAgent(a.id)}
-                className={`flex items-center gap-2.5 p-3 rounded-xl border transition-all text-left ${selected ? 'border-opacity-40' : 'bg-white/3 border-white/8 hover:border-white/15'}`}
-                style={selected ? { borderColor: `${a.color}40`, background: `${a.color}10` } : {}}>
-                <Icon className="w-4 h-4 flex-shrink-0" style={{ color: selected ? a.color : 'rgba(255,255,255,0.2)' }} />
-                <div>
-                  <div className="text-xs font-semibold">{a.label}</div>
-                  <div className="text-xs text-white/30">{a.desc}</div>
+              <button key={p.id} onClick={() => { setSelectedPreset(p); setResult(null); setNodeStatuses({}); }}
+                className={`flex items-start gap-2.5 p-3 rounded-xl border text-left transition-all ${isSelected ? '' : 'border-white/8 bg-white/2 hover:border-white/15 hover:bg-white/4'}`}
+                style={isSelected ? { borderColor: `${p.color}35`, background: `${p.color}0d` } : {}}>
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
+                  style={{ background: `${p.color}18`, border: `1px solid ${p.color}28` }}>
+                  <Icon className="w-3.5 h-3.5" style={{ color: isSelected ? p.color : 'rgba(255,255,255,0.35)' }} />
                 </div>
-                {selected && <CheckCircle2 className="w-3.5 h-3.5 ml-auto flex-shrink-0" style={{ color: a.color }} />}
+                <div className="min-w-0">
+                  <div className="text-xs font-bold" style={{ color: isSelected ? p.color : 'rgba(255,255,255,0.6)' }}>{p.label}</div>
+                  <div className="text-xs text-white/25 leading-tight mt-0.5 line-clamp-2">{p.desc}</div>
+                </div>
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Pipeline Visualizer */}
-      <div className="glass-card rounded-2xl p-5 border border-white/8 overflow-x-auto">
-        <div className="text-xs text-white/30 uppercase tracking-widest mb-4">Pipeline ({orderedNodes.length} agents)</div>
-        <div className="flex items-center gap-2 min-w-max pb-2">
-          {orderedNodes.map((agent, i) => (
-            <AgentNode key={agent.id} agent={agent} index={i} total={orderedNodes.length}
-              completed={completedAgents.includes(agent.id)}
-              active={running && currentAgent === i} />
+      {/* Selected preset details */}
+      <div className="px-4 py-3 rounded-xl border" style={{ background: `${selectedPreset.color}08`, borderColor: `${selectedPreset.color}25` }}>
+        <div className="text-xs text-white/30 mb-1">Use when: <span className="text-white/55">{selectedPreset.useWhen}</span></div>
+        <div className="text-xs text-white/30">Output: <span className="text-white/55">{selectedPreset.output}</span></div>
+
+        {/* Node flow */}
+        <div className="flex flex-wrap items-center gap-0.5 mt-3">
+          {selectedPreset.nodes.map((node, i) => (
+            <PipelineNode key={node} label={node} index={i < selectedPreset.nodes.length - 1 ? i : undefined} status={nodeStatuses[node] || 'idle'} />
           ))}
         </div>
       </div>
 
-      {/* Question Input */}
-      <div className="space-y-2">
-        <div className="text-xs text-white/30 uppercase tracking-widest">Question for Pipeline</div>
-        <div className="flex gap-2">
-          <input value={question} onChange={e => setQuestion(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && runPipeline()}
-            placeholder="e.g. What are the top opportunities to grow revenue next quarter?"
-            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-pink-400/30 transition-all" />
-          <button onClick={runPipeline} disabled={!question.trim() || running}
-            className="flex items-center gap-2 px-5 py-3 bg-pink-400 text-xs font-bold rounded-xl hover:bg-pink-300 transition-all disabled:opacity-40"
-            style={{ color: 'hsl(222,47%,6%)' }}>
-            {running ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-            {running ? `Agent ${currentAgent + 1}/${orderedNodes.length}` : 'Run Pipeline'}
-          </button>
-        </div>
+      {/* Input + Run */}
+      <div className="flex gap-2">
+        <input value={question} onChange={e => setQuestion(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && runPipeline()}
+          placeholder={`Enter question for ${selectedPreset.label} pipeline…`}
+          className="flex-1 px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-cyan-400/30 text-foreground placeholder:text-white/25" />
+        <button onClick={runPipeline} disabled={running || !question.trim()}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all disabled:opacity-40"
+          style={{ background: selectedPreset.color, color: 'hsl(222,47%,6%)' }}>
+          {running ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+          {running ? 'Running…' : 'Run Pipeline'}
+        </button>
       </div>
 
-      {/* Pipeline Results */}
-      <AnimatePresence>
-        {result && (
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-            className="space-y-3">
-            <div className="glass-card rounded-2xl border border-white/8 overflow-hidden">
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-white/8 bg-white/2">
-                <Sparkles className="w-4 h-4 text-pink-400" />
-                <span className="text-xs font-semibold text-pink-400">Pipeline Synthesis — {orderedNodes.length} Agents</span>
-                <CheckCircle2 className="w-3.5 h-3.5 text-green-400 ml-auto" />
-              </div>
-              <div className="p-4 text-sm text-white/75 leading-relaxed">
-                <ReactMarkdown components={{ p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p> }}>
-                  {result.synthesis || result.answer || 'Analysis complete.'}
-                </ReactMarkdown>
-              </div>
-            </div>
+      {/* Running progress */}
+      {running && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+          className="flex flex-wrap items-center gap-1 p-3 rounded-xl bg-white/3 border border-white/8">
+          {selectedPreset.nodes.map((node, i) => (
+            <PipelineNode key={node} label={node} index={i < selectedPreset.nodes.length - 1 ? i : undefined} status={nodeStatuses[node] || 'idle'} />
+          ))}
+        </motion.div>
+      )}
 
-            {/* Individual agent outputs */}
-            {result.agents && (
-              <details className="glass-card rounded-2xl border border-white/8 overflow-hidden">
-                <summary className="flex items-center gap-2 px-4 py-3 cursor-pointer text-xs text-white/40 hover:text-white/60 select-none">
-                  <ChevronDown className="w-3.5 h-3.5" /> View individual agent outputs
-                </summary>
-                <div className="p-4 pt-0 space-y-2">
-                  {Object.entries(result.agents).map(([key, agent]) => {
-                    if (!agent) return null;
-                    const labels = { sqlAgent: { label: 'SQL Agent', icon: Search }, contextAgent: { label: 'Business Context', icon: BarChart2 }, recAgent: { label: 'Strategy Agent', icon: Target } };
-                    const meta = labels[key];
-                    if (!meta) return null;
-                    const Icon = meta.icon;
-                    return (
-                      <div key={key} className="p-3 rounded-xl bg-white/3 border border-white/8">
-                        <div className="flex items-center gap-2 mb-2 text-xs font-semibold text-white/60">
-                          <Icon className="w-3.5 h-3.5 text-pink-400" /> {meta.label}
-                        </div>
-                        <div className="text-xs text-white/45 leading-relaxed">
-                          {key === 'sqlAgent' ? (agent.explanation || agent.sql) :
-                           key === 'contextAgent' ? agent.businessContext :
-                           agent.recommendations?.[0]?.action || JSON.stringify(agent).slice(0, 200)}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </details>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Error */}
+      {error && <div className="text-xs text-red-400 p-3 rounded-xl bg-red-400/8 border border-red-400/20">{error}</div>}
+
+      {/* Result */}
+      {result && !running && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+          <div className="text-xs font-bold text-white/40 uppercase tracking-widest mb-2 flex items-center gap-2">
+            <CheckCircle2 className="w-3.5 h-3.5 text-green-400" /> Pipeline Complete · {result.duration_ms}ms
+          </div>
+          <AgentStructuredAnswer result={result} persona={activePersona} onFollowUp={q => { setQuestion(q); setResult(null); setNodeStatuses({}); }} sessionId={result.session_id} />
+        </motion.div>
+      )}
     </div>
   );
 }

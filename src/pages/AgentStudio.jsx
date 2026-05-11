@@ -5,12 +5,20 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useWorkspaceStore } from '@/lib/store';
-import { Bot, Plus, Sparkles, Play, Brain, Zap, Users, ChevronRight, Loader2, Send, Trash2, Star, Settings, GitMerge, ClipboardList } from 'lucide-react';
+import { Bot, Plus, Sparkles, Brain, Users, Loader2, Send, Trash2, GitMerge, ClipboardList, UserCircle2 } from 'lucide-react';
+
+const TABS = [
+  { id: 'chat', label: 'Chat', icon: Brain },
+  { id: 'pipeline', label: 'Pipeline', icon: GitMerge },
+  { id: 'tasks', label: 'Tasks', icon: ClipboardList },
+  { id: 'profile', label: 'Profile', icon: UserCircle2 },
+];
 import PersonaCard from '@/components/agents/PersonaCard';
 import PersonaForm from '@/components/agents/PersonaForm';
 import AgentPipelineBuilder from '@/components/agents/AgentPipelineBuilder';
 import TaskBoard from '@/components/agents/TaskBoard';
-import ReactMarkdown from 'react-markdown';
+import AgentStructuredAnswer from '@/components/agents/AgentStructuredAnswer';
+import AgentProfileCard from '@/components/agents/AgentProfileCard';
 
 const DEFAULT_PERSONAS = [
   { id: 'cfo', name: 'CFO Analyst', department: 'Finance', role: 'Chief Financial Officer', personality: 'Conservative, data-driven, ROI-focused', systemInstructions: 'Focus on financial metrics, cost efficiency, revenue, margins, and budget impact.', focusMetrics: ['revenue', 'margin', 'cost', 'budget', 'ROI'], defaultMode: 'diagnostic', avatarColor: '#00e5ff', usageCount: 0 },
@@ -42,26 +50,30 @@ export default function AgentStudio() {
     setChatHistory(prev => [...prev, { role: 'user', content: q }]);
     setLoading(true);
     try {
-      const res = await base44.functions.invoke('runMultiAgentAnalysis', {
+      const res = await base44.functions.invoke('runAgentOrchestrator', {
         question: q,
         persona: activePersona,
+        sessionId: `studio_${Date.now()}`,
         tableContext: activeTable ? {
           name: activeTable.name,
           rowCount: activeTable.rowCount,
-          columns: activeTable.columns?.slice(0, 20),
-          rows: activeTable.rows?.slice(0, 30),
+          columns: activeTable.columns?.slice(0, 25),
+          rows: activeTable.rows?.slice(0, 25),
         } : null,
       });
-      const result = res.data;
       setChatHistory(prev => [...prev, {
         role: 'assistant',
         persona: activePersona.name,
-        content: result?.synthesis || 'Analysis complete.',
-        agents: result?.agents,
+        result: res.data,
         timestamp: new Date().toLocaleTimeString(),
       }]);
     } catch (e) {
-      setChatHistory(prev => [...prev, { role: 'assistant', content: 'Error: ' + e.message, persona: activePersona.name }]);
+      setChatHistory(prev => [...prev, {
+        role: 'assistant',
+        persona: activePersona.name,
+        result: { direct_answer: 'Error: ' + e.message, evidence: [], recommendations: [], confidence: 0 },
+        timestamp: new Date().toLocaleTimeString(),
+      }]);
     }
     setLoading(false);
   };
@@ -91,18 +103,12 @@ export default function AgentStudio() {
         </div>
         <div className="flex items-center gap-2">
           <div className="flex gap-0.5 p-1 bg-white/5 rounded-xl border border-white/8">
-            <button onClick={() => setStudioTab('chat')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${studioTab === 'chat' ? 'bg-pink-400/20 text-pink-400' : 'text-white/40 hover:text-white/70'}`}>
-              <Brain className="w-3.5 h-3.5" /> Chat
-            </button>
-            <button onClick={() => setStudioTab('pipeline')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${studioTab === 'pipeline' ? 'bg-pink-400/20 text-pink-400' : 'text-white/40 hover:text-white/70'}`}>
-              <GitMerge className="w-3.5 h-3.5" /> Pipeline
-            </button>
-            <button onClick={() => setStudioTab('tasks')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${studioTab === 'tasks' ? 'bg-pink-400/20 text-pink-400' : 'text-white/40 hover:text-white/70'}`}>
-              <ClipboardList className="w-3.5 h-3.5" /> Tasks
-            </button>
+            {TABS.map(t => (
+              <button key={t.id} onClick={() => setStudioTab(t.id)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${studioTab === t.id ? 'bg-pink-400/20 text-pink-400' : 'text-white/40 hover:text-white/70'}`}>
+                <t.icon className="w-3.5 h-3.5" /> {t.label}
+              </button>
+            ))}
           </div>
           <button onClick={() => setShowForm(true)}
             className="flex items-center gap-2 px-4 py-2 bg-pink-400/10 border border-pink-400/20 text-pink-400 text-xs font-semibold rounded-xl hover:bg-pink-400/15 transition-all">
@@ -135,18 +141,25 @@ export default function AgentStudio() {
           </div>
         )}
 
+        {/* Profile Tab */}
+        {studioTab === 'profile' && (
+          <div className="flex-1 overflow-y-auto p-6 max-w-xl">
+            <AgentProfileCard persona={activePersona} compact={false} />
+          </div>
+        )}
+
         {/* Chat Area */}
-        {studioTab === 'chat' && <div className="flex-1 flex flex-col overflow-hidden" key="chat-area">
-          {/* Active Persona Banner */}
+        {studioTab === 'chat' && <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Persona Banner */}
           <div className="px-5 py-3 border-b border-white/5 flex items-center gap-3 flex-shrink-0"
             style={{ background: `${activePersona.avatarColor}10`, borderColor: `${activePersona.avatarColor}20` }}>
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center text-lg font-bold"
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center font-bold"
               style={{ background: `${activePersona.avatarColor}20`, border: `1px solid ${activePersona.avatarColor}30`, color: activePersona.avatarColor }}>
               {activePersona.name[0]}
             </div>
             <div>
               <div className="text-sm font-bold" style={{ color: activePersona.avatarColor }}>{activePersona.name}</div>
-              <div className="text-xs text-white/40">{activePersona.role} · {activePersona.department} · Focuses on: {activePersona.focusMetrics?.slice(0, 3).join(', ')}</div>
+              <div className="text-xs text-white/35">F-D-E-A-R reasoning · {activePersona.role} · {activePersona.department}</div>
             </div>
             {chatHistory.length > 0 && (
               <button onClick={() => setChatHistory([])} className="ml-auto text-xs text-white/30 hover:text-white/60">
@@ -158,16 +171,17 @@ export default function AgentStudio() {
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-5 space-y-4">
             {chatHistory.length === 0 && (
-              <div className="space-y-6">
-                <div className="text-center py-10">
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3 text-2xl"
-                    style={{ background: `${activePersona.avatarColor}15`, border: `1px solid ${activePersona.avatarColor}25` }}>
-                    🤖
+              <div className="space-y-5 text-center py-8">
+                <div>
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3 font-black text-xl"
+                    style={{ background: `${activePersona.avatarColor}15`, border: `1px solid ${activePersona.avatarColor}25`, color: activePersona.avatarColor }}>
+                    {activePersona.name[0]}
                   </div>
-                  <h3 className="font-semibold mb-1">Hi! I'm {activePersona.name}</h3>
-                  <p className="text-sm text-muted-foreground max-w-sm mx-auto">{activePersona.systemInstructions || `Ask me anything about your data from a ${activePersona.role} perspective.`}</p>
+                  <h3 className="font-semibold mb-1">I'm {activePersona.name}</h3>
+                  <p className="text-sm text-muted-foreground max-w-sm mx-auto">{activePersona.systemInstructions}</p>
+                  <p className="text-xs text-white/20 mt-1">Uses F-D-E-A-R: Frame → Diagnose → Explain → Act → Review</p>
                 </div>
-                <div className="grid grid-cols-1 gap-2 max-w-lg mx-auto">
+                <div className="grid grid-cols-1 gap-2 max-w-md mx-auto">
                   {STARTER_QUESTIONS.map(q => (
                     <button key={q} onClick={() => handleSend(q)}
                       className="text-left text-xs p-3 rounded-xl bg-white/3 border border-white/7 hover:border-white/15 hover:bg-white/5 transition-all text-white/55 hover:text-white/80">
@@ -181,43 +195,30 @@ export default function AgentStudio() {
             <AnimatePresence>
               {chatHistory.map((msg, i) => (
                 <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} gap-3`}>
+                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} gap-2.5`}>
                   {msg.role === 'assistant' && (
-                    <div className="w-7 h-7 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5"
+                    <div className="w-7 h-7 rounded-xl flex items-center justify-center font-bold flex-shrink-0 mt-0.5 text-sm"
                       style={{ background: `${activePersona.avatarColor}20`, color: activePersona.avatarColor }}>
                       {(msg.persona || 'A')[0]}
                     </div>
                   )}
-                  <div className={`max-w-[75%] ${msg.role === 'user' ? 'bg-white/8 border border-white/10' : 'glass-card border border-white/8'} rounded-2xl px-4 py-3`}>
-                    {msg.role === 'assistant' && (
-                      <div className="text-xs font-semibold mb-2 flex items-center gap-2" style={{ color: activePersona.avatarColor }}>
-                        <Sparkles className="w-3 h-3" /> {msg.persona} · 4-Agent Synthesis
-                        <span className="text-white/25 font-normal">{msg.timestamp}</span>
-                      </div>
-                    )}
-                    <div className="text-sm text-white/80 leading-relaxed">
-                      <ReactMarkdown components={{ p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p> }}>
-                        {msg.content}
-                      </ReactMarkdown>
-                    </div>
-                    {/* Agent breakdown */}
-                    {msg.agents && (
-                      <details className="mt-3">
-                        <summary className="text-xs text-white/30 cursor-pointer hover:text-white/50 select-none">View agent outputs ↓</summary>
-                        <div className="mt-2 space-y-2 pt-2 border-t border-white/5">
-                          {['sqlAgent', 'contextAgent', 'recAgent'].map(key => {
-                            const agent = msg.agents[key];
-                            if (!agent) return null;
-                            const labels = { sqlAgent: '🔍 SQL Agent', contextAgent: '💼 Context Agent', recAgent: '🎯 Strategy Agent' };
-                            return (
-                              <div key={key} className="text-xs text-white/40 p-2 rounded-lg bg-white/3 border border-white/5">
-                                <div className="font-semibold mb-1 text-white/60">{labels[key]}</div>
-                                <div>{key === 'sqlAgent' ? agent.explanation : key === 'contextAgent' ? agent.businessContext : agent.recommendations?.[0]?.action}</div>
-                              </div>
-                            );
-                          })}
+                  <div className="max-w-[80%]">
+                    {msg.role === 'user' ? (
+                      <div className="px-4 py-3 rounded-2xl bg-white/8 border border-white/10 text-sm text-white/80">{msg.content}</div>
+                    ) : (
+                      <div>
+                        <div className="text-xs mb-1.5 flex items-center gap-1.5" style={{ color: activePersona.avatarColor }}>
+                          <Sparkles className="w-3 h-3" /> {msg.persona}
+                          {msg.result?.intent && <span className="text-white/25">· {msg.result.intent}</span>}
+                          <span className="text-white/20">{msg.timestamp}</span>
                         </div>
-                      </details>
+                        <AgentStructuredAnswer
+                          result={msg.result}
+                          persona={activePersona}
+                          onFollowUp={q => handleSend(q)}
+                          sessionId={`studio_${i}`}
+                        />
+                      </div>
                     )}
                   </div>
                 </motion.div>
@@ -225,14 +226,14 @@ export default function AgentStudio() {
             </AnimatePresence>
 
             {loading && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3">
-                <div className="w-7 h-7 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0"
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-2.5">
+                <div className="w-7 h-7 rounded-xl flex items-center justify-center font-bold flex-shrink-0 text-sm"
                   style={{ background: `${activePersona.avatarColor}20`, color: activePersona.avatarColor }}>
                   {activePersona.name[0]}
                 </div>
                 <div className="glass-card rounded-2xl px-4 py-3 border border-white/8 text-xs text-white/40 flex items-center gap-2">
                   <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: activePersona.avatarColor }} />
-                  Running 4 specialized agents in parallel…
+                  Running F-D-E-A-R reasoning pipeline…
                 </div>
               </motion.div>
             )}

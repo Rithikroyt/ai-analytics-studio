@@ -1,0 +1,73 @@
+{
+  "name": "AgentPipelineRun",
+  "type": "object",
+  "properties": {
+    "pipelineName": {
+      "type": "string",
+      "title": "Pipeline Name"
+    },
+    "presetId": {
+      "type": "string",
+      "title": "Preset ID"
+    },
+    "userQuestion": {
+      "type": "string",
+      "title": "User Question"
+    },
+    "intentClassified": {
+      "type": "string",
+      "title": "Classified Intent"
+    },
+    "agentsInvolved": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Agents Involved"
+    },
+    "toolsUsed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Tools Used"
+    },
+    "kpisAnalyzed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "KPIs Analyzed"
+    },
+    "finalOutput": {
+      "type": "object",
+      "title": "Final Output",
+      "additionalProperties": true
+    },
+    "confidenceScore": {
+      "type": "number",
+      "title": "Overall Confidence"
+    },
+    "durationMs": {
+      "type": "number",
+      "title": "Duration (ms)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "running",
+        "complete",
+        "failed"
+      ],
+      "default": "running"
+    },
+    "tableName": {
+      "type": "string",
+      "title": "Dataset Used"
+    }
+  },
+  "required": [
+    "pipelineName",
+    "userQuestion"
+  ]
+}

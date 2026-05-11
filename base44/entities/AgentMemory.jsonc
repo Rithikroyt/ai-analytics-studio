@@ -1,0 +1,54 @@
+{
+  "name": "AgentMemory",
+  "type": "object",
+  "properties": {
+    "agentName": {
+      "type": "string",
+      "title": "Agent Name"
+    },
+    "userEmail": {
+      "type": "string",
+      "title": "User Email"
+    },
+    "preferredKPIs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Preferred KPIs"
+    },
+    "preferredChartTypes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Preferred Chart Types"
+    },
+    "commonQuestions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Common Questions"
+    },
+    "successfulAnswers": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "title": "Successful Answers"
+    },
+    "datasetContext": {
+      "type": "string",
+      "title": "Dataset Context"
+    },
+    "sessionCount": {
+      "type": "number",
+      "default": 0,
+      "title": "Session Count"
+    }
+  },
+  "required": [
+    "agentName"
+  ]
+}
