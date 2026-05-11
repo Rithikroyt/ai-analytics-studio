@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
-import { Play, Loader2, CheckCircle2, Circle, ChevronRight, Zap, Brain, Search, FileText, AlertTriangle, TrendingUp, Users, Target } from 'lucide-react';
+import { Play, Loader2, CheckCircle2, ChevronRight, Zap, Brain, FileText, AlertTriangle, TrendingUp, Users, Target, BarChart2 } from 'lucide-react';
 
 const PIPELINE_PRESETS = [
   {
@@ -108,8 +108,7 @@ const PIPELINE_PRESETS = [
   },
 ];
 
-// quick import for BarChart2 which is needed in executive_brief
-import { BarChart2 } from 'lucide-react';
+
 
 function PipelineNode({ node, index, total, status }) {
   const Icon = node.icon;
