@@ -1,28 +1,28 @@
 /**
- * VisualBuilder — Tableau-inspired BI chart builder
- * Left: Show Me Gallery | Center: Marks + Shelves + Tooltip | Right: Preview | Bottom: Explain/SQL/Data
+ * VisualBuilder — AI-first chart builder
+ * No Shelves / Marks / Tooltip panels. Just AI prompt + chart type selector + preview.
  */
 import { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWorkspaceStore } from '@/lib/store';
 import { base44 } from '@/api/base44Client';
-import { Sparkles, Save, CheckCircle2, Loader2, Database, ArrowRight, Wand2, LayoutPanelLeft } from 'lucide-react';
+import {
+  Sparkles, Save, CheckCircle2, Loader2, Database, ArrowRight,
+  Wand2, LayoutPanelLeft, RefreshCw, ChevronRight
+} from 'lucide-react';
 
 import VBShowMeGallery, { recommendChartType } from '@/components/visualbuilder/VBShowMeGallery.jsx';
-import VBFieldShelves from '@/components/visualbuilder/VBFieldShelves.jsx';
-import VBMarksCard from '@/components/visualbuilder/VBMarksCard.jsx';
-import VBTooltipBuilder from '@/components/visualbuilder/VBTooltipBuilder.jsx';
 import VBChartPreview, { buildChartData, fmtV } from '@/components/visualbuilder/VBChartPreview.jsx';
 import VBBottomPanel from '@/components/visualbuilder/VBBottomPanel.jsx';
 
-const CENTER_TABS = [
-  { id: 'shelves', label: 'Shelves' },
-  { id: 'marks', label: 'Marks' },
-  { id: 'tooltip', label: 'Tooltip' },
-];
+const DEFAULT_MARKS = { color: '#00e5ff', opacity: 85, strokeWidth: 2, borderRadius: 4, sort: 'Desc', showGrid: true };
 
-const DEFAULT_MARKS = { markType: 'Automatic', color: '#00e5ff', size: 4, opacity: 85, showLabel: false, stacked: false, sort: 'Desc', shape: '●' };
-const DEFAULT_TOOLTIP = { enabled: true, template: '', fields: [], show_ai_insight: false, show_anomaly_flag: false, show_sql_source: false };
+const GEO_KEYWORDS = ['country', 'countries', 'nation', 'state', 'region', 'city', 'location', 'place', 'geo', 'lat', 'lon', 'latitude', 'longitude', 'zip', 'continent', 'province', 'territory'];
+
+function isGeoColumn(name) {
+  const lower = (name || '').toLowerCase();
+  return GEO_KEYWORDS.some(kw => lower.includes(kw));
+}
 
 function buildColumnsArray(table) {
   if (!table?.columns) return [];
@@ -35,6 +35,17 @@ function buildColumnsArray(table) {
   }));
 }
 
+const QUICK_PROMPTS = [
+  'Show top 10 by value as bar chart',
+  'Trend over time as line chart',
+  'Revenue by country on a map',
+  'Distribution as histogram',
+  'Part-to-whole as donut chart',
+  'Forecast next periods',
+  'Scatter plot to find correlations',
+  'Stacked area chart by category',
+];
+
 export default function VisualBuilder() {
   const { getActiveTable, saveToDashboard, setActiveSection } = useWorkspaceStore();
   const table = getActiveTable();
@@ -43,43 +54,25 @@ export default function VisualBuilder() {
   const [chartType, setChartType] = useState('bar');
   const [shelves, setShelves] = useState({ x: [], y: [], color: [], size: [], detail: [], filter: [], date: [], group: [] });
   const [aggFn, setAggFn] = useState('SUM');
-  const [marks, setMarks] = useState(DEFAULT_MARKS);
-  const [tooltip, setTooltip] = useState(DEFAULT_TOOLTIP);
+  const [marks] = useState(DEFAULT_MARKS);
   const [chartTitle, setChartTitle] = useState('');
   const [nlPrompt, setNlPrompt] = useState('');
   const [generating, setGenerating] = useState(false);
   const [saved, setSaved] = useState(false);
   const [aiInsight, setAiInsight] = useState('');
-  const [centerTab, setCenterTab] = useState('shelves');
+  const [showGallery, setShowGallery] = useState(false);
 
   const chartData = useMemo(() => {
     if (!table?.rows) return [];
     return buildChartData(table.rows, shelves, aggFn, chartType, marks);
   }, [table, shelves, aggFn, chartType, marks]);
 
-  const addToShelf = useCallback((shelfId, colName, cols) => {
-    const col = cols.find(c => c.name === colName);
-    if (!col) return;
-    const isNumeric = col.type === 'numeric' || col.isKpiCandidate;
-    const entry = { name: col.name, agg: isNumeric ? aggFn : 'ATTR', type: col.type };
-    setShelves(prev => ({ ...prev, [shelfId]: [...(prev[shelfId] || []), entry] }));
-    if (shelfId === 'y' && !chartTitle) setChartTitle(col.name.replace(/_/g, ' '));
-  }, [aggFn, chartTitle]);
-
-  const removeFromShelf = useCallback((shelfId, colName) => {
-    setShelves(prev => ({ ...prev, [shelfId]: (prev[shelfId] || []).filter(f => f.name !== colName) }));
-  }, []);
-
-  const updateShelfAgg = useCallback((shelfId, colName, agg) => {
-    setShelves(prev => ({ ...prev, [shelfId]: (prev[shelfId] || []).map(f => f.name === colName ? { ...f, agg } : f) }));
-  }, []);
-
-  const handleNLGenerate = async () => {
-    if (!nlPrompt.trim() || !table) return;
+  const handleNLGenerate = useCallback(async (promptOverride) => {
+    const prompt = (promptOverride || nlPrompt).trim();
+    if (!prompt || !table) return;
     setGenerating(true);
     setAiInsight('');
     try {
-      // Build rich column context with sample values
       const colContext = columns.slice(0, 40).map(c => {
         const vals = table.rows?.slice(0, 5).map(r => r[c.name]).filter(v => v != null).slice(0, 3);
         return `${c.name} [${c.type}] (e.g. ${vals?.join(', ') || 'N/A'})`;
@@ -87,43 +80,51 @@ export default function VisualBuilder() {
 
       const sampleRows = JSON.stringify(table.rows?.slice(0, 3) || [], null, 0).slice(0, 600);
 
+      // Detect geo columns for smarter map routing
+      const geoCols = columns.filter(c => isGeoColumn(c.name));
+      const numCols = columns.filter(c => c.type === 'numeric' || c.isKpiCandidate);
+      const dateCols = columns.filter(c => c.type === 'date' || c.isDateCandidate);
+
       const result = await base44.integrations.Core.InvokeLLM({
         model: 'claude_sonnet_4_6',
-        prompt: `You are a Senior Data Analyst at a top MNC. Your job is to configure the PERFECT chart for a user's request by analyzing their dataset deeply.
+        prompt: `You are a world-class Senior Data Analyst. Your job: pick the PERFECT chart configuration for this request.
 
-USER REQUEST: "${nlPrompt}"
+USER REQUEST: "${prompt}"
 
-DATASET: "${table.name}" (${table.rowCount} rows)
+DATASET: "${table.name}" (${table.rowCount || table.rows?.length} rows)
 
 COLUMNS (name [type] sample values):
 ${colContext}
 
 SAMPLE ROWS: ${sampleRows}
 
-INSTRUCTIONS:
-1. Analyze what the user wants to see — trend, comparison, distribution, part-to-whole, correlation, geographic, or KPI
-2. Pick the BEST chart type for their intent
-3. Choose the most meaningful X and Y fields from the EXACT column names above
-4. Select optimal aggregation (SUM for revenue/sales, AVG for rates/scores, COUNT for records)
-5. Pick a color that fits the data's nature (cyan for neutral, green for positive/growth, red for risk, purple for segments)
-6. Write a sharp 1-sentence insight about what this chart will reveal
+GEOGRAPHIC COLUMNS DETECTED: ${geoCols.map(c => c.name).join(', ') || 'none'}
+DATE COLUMNS DETECTED: ${dateCols.map(c => c.name).join(', ') || 'none'}
+NUMERIC COLUMNS DETECTED: ${numCols.map(c => c.name).join(', ') || 'none'}
 
-CHART TYPE OPTIONS (pick exactly one):
-bar, bar_horizontal, bar_stacked, bar_grouped, line, area, area_stacked, scatter, bubble, histogram, donut, pie, treemap, box_plot, waterfall, heatmap, highlight_table, text_table, funnel, metric_card, gauge, radar, forecast_line, dual_axis, candlestick, sankey, packed_bubble, sunburst, choropleth_map, symbol_map, gantt
+CHART SELECTION RULES:
+- Time-series / trend → line, area, forecast_line
+- Comparison by category → bar, bar_horizontal
+- Part-to-whole → donut, treemap, pie
+- Geographic / location / country / state / city → choropleth_map or symbol_map (MUST use geo column for x_field)
+- Correlation → scatter, bubble
+- Distribution → histogram, box_plot
+- KPI single number → metric_card
+- Flow/stages → funnel, sankey
+- Multi-metric profile → radar
+- Two measures → dual_axis
 
-RULES:
-- For time-series data → line or area or forecast_line
-- For geographic/location data → symbol_map or choropleth_map
-- For category comparisons → bar or bar_horizontal
-- For distributions → histogram or box_plot
-- For part-to-whole → donut or treemap
-- For correlations → scatter or bubble
-- For KPIs → metric_card or gauge
-- For funnels/stages → funnel
-- x_field and y_field MUST be exact column names from the list above
-- If user wants a map, use the column with country/state/city names for x_field
+CRITICAL RULES:
+1. x_field and y_field MUST be exact column names from the list above
+2. For map charts: x_field MUST be the geographic column (country/state/city name column), NOT a numeric column
+3. For map charts: y_field MUST be the numeric measure to plot
+4. Choose the most meaningful columns — do NOT pick ID columns for y_field
+5. If user mentions "map", "geography", "country", "state", "region" → use choropleth_map or symbol_map
+6. aggregation: SUM for totals/revenue, AVG for rates/scores, COUNT for records, MAX for peaks
 
-Respond with valid JSON only:`,
+AVAILABLE CHART TYPES: bar, bar_horizontal, bar_stacked, bar_grouped, line, area, area_stacked, scatter, bubble, histogram, donut, pie, treemap, box_plot, waterfall, heatmap, highlight_table, text_table, funnel, metric_card, gauge, radar, forecast_line, dual_axis, candlestick, sankey, packed_bubble, sunburst, choropleth_map, symbol_map, heat_map_geo, gantt, step_line
+
+Respond ONLY with valid JSON, no other text:`,
         response_json_schema: {
           type: 'object',
           properties: {
@@ -136,8 +137,7 @@ Respond with valid JSON only:`,
             color: { type: 'string' },
             insight: { type: 'string' },
             sort: { type: 'string' },
-            show_trend: { type: 'boolean' },
-            show_labels: { type: 'boolean' },
+            reasoning: { type: 'string' },
           },
           required: ['chart_type', 'y_field', 'aggregation', 'title', 'insight'],
         },
@@ -148,7 +148,6 @@ Respond with valid JSON only:`,
       if (result?.title) setChartTitle(result.title);
       if (result?.insight) setAiInsight(result.insight);
 
-      // Smart field mapping
       if (result?.y_field) {
         const xCol = columns.find(c => c.name === result.x_field);
         const yCol = columns.find(c => c.name === result.y_field);
@@ -160,33 +159,34 @@ Respond with valid JSON only:`,
         if (y2Col) newShelves.y = [...newShelves.y, { name: y2Col.name, agg: result.aggregation || 'SUM', type: y2Col.type }];
         setShelves(newShelves);
       }
-
-      // Apply marks from AI suggestion
-      setMarks(m => ({
-        ...m,
-        ...(result?.color && { color: result.color }),
-        ...(result?.sort && { sort: result.sort }),
-        ...(result?.show_trend !== undefined && { showTrendLine: result.show_trend }),
-        ...(result?.show_labels !== undefined && { showLabel: result.show_labels }),
-      }));
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+      setAiInsight('Could not generate chart. Try rephrasing your request.');
+    }
     setGenerating(false);
-  };
+  }, [nlPrompt, table, columns, shelves]);
 
-  const handleAutoRecommend = () => {
+  const handleAutoRecommend = useCallback(() => {
     const rec = recommendChartType(columns);
     setChartType(rec);
     const numCols = columns.filter(c => c.type === 'numeric' || c.isKpiCandidate);
     const catCols = columns.filter(c => c.type === 'category' || c.isSegmentCandidate);
     const dateCols = columns.filter(c => c.type === 'date' || c.isDateCandidate);
+    const geoCols = columns.filter(c => isGeoColumn(c.name));
     const newShelves = { ...shelves };
-    if (dateCols.length) newShelves.x = [{ name: dateCols[0].name, agg: 'ATTR', type: 'date' }];
-    else if (catCols.length) newShelves.x = [{ name: catCols[0].name, agg: 'ATTR', type: 'category' }];
+    if (geoCols.length && (rec === 'choropleth_map' || rec === 'symbol_map')) {
+      newShelves.x = [{ name: geoCols[0].name, agg: 'ATTR', type: geoCols[0].type }];
+    } else if (dateCols.length) {
+      newShelves.x = [{ name: dateCols[0].name, agg: 'ATTR', type: 'date' }];
+    } else if (catCols.length) {
+      newShelves.x = [{ name: catCols[0].name, agg: 'ATTR', type: 'category' }];
+    }
     if (numCols.length) newShelves.y = [{ name: numCols[0].name, agg: 'SUM', type: 'numeric' }];
     setShelves(newShelves);
-  };
+    setChartTitle('Auto-recommended chart');
+  }, [columns, shelves]);
 
-  const handleSave = () => {
+  const handleSave = useCallback(() => {
     if (!chartData.length) return;
     const title = chartTitle || (shelves.y[0]?.name?.replace(/_/g, ' ') || 'Chart');
     saveToDashboard({
@@ -204,7 +204,7 @@ Respond with valid JSON only:`,
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
-  };
+  }, [chartData, chartTitle, shelves, table, chartType, marks, aiInsight, saveToDashboard]);
 
   if (!table) {
     return (
@@ -220,6 +220,9 @@ Respond with valid JSON only:`,
     );
   }
 
+  const xField = shelves.x[0]?.name;
+  const yField = shelves.y[0]?.name;
+
   return (
     <div className="flex h-full flex-col overflow-hidden">
       {/* Top bar */}
@@ -227,7 +230,7 @@ Respond with valid JSON only:`,
         <div className="flex items-center gap-2">
           <LayoutPanelLeft className="w-4 h-4 text-cyan-400" />
           <span className="font-bold text-sm">Visual Builder</span>
-          <span className="text-xs text-white/30 ml-1">· {table.name} · {table.rowCount?.toLocaleString()} rows</span>
+          <span className="text-xs text-white/30 ml-1">· {table.name} · {(table.rowCount || table.rows?.length)?.toLocaleString()} rows</span>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={handleAutoRecommend}
@@ -244,33 +247,31 @@ Respond with valid JSON only:`,
         </div>
       </div>
 
-      {/* AI Chart Generator bar */}
-      <div className="border-b border-white/5 flex-shrink-0" style={{ background: 'rgba(168,85,247,0.04)' }}>
-        <div className="px-5 py-2.5 flex items-center gap-2">
-          <Sparkles className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />
-          <input value={nlPrompt} onChange={e => setNlPrompt(e.target.value)}
+      {/* AI Generator — hero bar */}
+      <div className="border-b border-white/5 flex-shrink-0" style={{ background: 'rgba(168,85,247,0.06)' }}>
+        <div className="px-5 py-3 flex items-center gap-3">
+          <Sparkles className="w-4 h-4 text-purple-400 flex-shrink-0" />
+          <input
+            value={nlPrompt}
+            onChange={e => setNlPrompt(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleNLGenerate()}
-            placeholder='Ask AI — e.g. "Show revenue by country on a map" or "Top 10 products by sales as bar chart"'
-            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-white/25 focus:outline-none" />
-          <button onClick={handleNLGenerate} disabled={generating || !nlPrompt.trim()}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-400/15 border border-purple-400/25 text-purple-400 rounded-xl text-xs font-semibold hover:bg-purple-400/20 transition-all disabled:opacity-40">
-            {generating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-            {generating ? 'Analyzing…' : 'Generate'}
+            placeholder='Describe what you want to see — e.g. "Revenue by country on a map" or "Top 10 products by sales"'
+            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-white/30 focus:outline-none"
+          />
+          <button onClick={() => handleNLGenerate()} disabled={generating || !nlPrompt.trim()}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-400/20 border border-purple-400/30 text-purple-300 rounded-xl text-sm font-bold hover:bg-purple-400/30 transition-all disabled:opacity-40">
+            {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+            {generating ? 'Generating…' : 'Generate Chart'}
           </button>
         </div>
+
         {/* Quick prompts */}
-        {!generating && !nlPrompt && columns.length > 0 && (
-          <div className="flex gap-1.5 px-5 pb-2 overflow-x-auto">
-            {[
-              'Show top 10 by value as bar chart',
-              'Trend over time as line chart',
-              'Distribution as histogram',
-              'Geographic map view',
-              'Part-to-whole as donut chart',
-              'Forecast next periods',
-            ].map(q => (
-              <button key={q} onClick={() => { setNlPrompt(q); }}
-                className="flex-shrink-0 text-xs px-2.5 py-1 rounded-full bg-white/4 border border-white/8 text-white/40 hover:text-purple-400 hover:border-purple-400/30 hover:bg-purple-400/5 transition-all">
+        {!generating && (
+          <div className="flex gap-1.5 px-5 pb-2.5 overflow-x-auto">
+            {QUICK_PROMPTS.map(q => (
+              <button key={q}
+                onClick={() => { setNlPrompt(q); handleNLGenerate(q); }}
+                className="flex-shrink-0 text-xs px-2.5 py-1 rounded-full bg-white/4 border border-white/8 text-white/40 hover:text-purple-400 hover:border-purple-400/30 hover:bg-purple-400/5 transition-all whitespace-nowrap">
                 {q}
               </button>
             ))}
@@ -278,63 +279,63 @@ Respond with valid JSON only:`,
         )}
       </div>
 
-      {/* Main 3-panel layout */}
+      {/* Main layout: Gallery LEFT + Chart RIGHT */}
       <div className="flex flex-1 overflow-hidden min-h-0">
-        {/* LEFT: Show Me Gallery */}
-        <div className="w-44 flex-shrink-0 border-r border-white/8 overflow-y-auto">
+        {/* Chart Type Gallery — compact left panel */}
+        <div className="w-40 flex-shrink-0 border-r border-white/8 overflow-y-auto">
           <VBShowMeGallery selected={chartType} onChange={setChartType} />
         </div>
 
-        {/* CENTER: Marks / Shelves / Tooltip */}
-        <div className="w-56 flex-shrink-0 border-r border-white/8 flex flex-col overflow-hidden">
-          <div className="flex border-b border-white/8 flex-shrink-0">
-            {CENTER_TABS.map(t => (
-              <button key={t.id} onClick={() => setCenterTab(t.id)}
-                className={`flex-1 py-2 text-xs font-medium transition-all border-b-2 ${centerTab === t.id ? 'text-cyan-400 border-cyan-400' : 'text-white/30 border-transparent hover:text-white/60'}`}>
-                {t.label}
-              </button>
-            ))}
-          </div>
-          <div className="flex-1 overflow-y-auto">
-            {centerTab === 'marks' && <VBMarksCard marks={marks} onChange={setMarks} />}
-            {centerTab === 'shelves' && (
-              <VBFieldShelves shelves={shelves} columns={columns}
-                onAdd={addToShelf} onRemove={removeFromShelf} onAggChange={updateShelfAgg}
-                aggregation={aggFn} onAggFnChange={setAggFn} />
-            )}
-            {centerTab === 'tooltip' && <VBTooltipBuilder tooltip={tooltip} columns={columns} onChange={setTooltip} />}
-          </div>
-        </div>
-
-        {/* RIGHT: Chart Preview */}
+        {/* Chart Preview — takes all remaining space */}
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           <div className="flex-1 overflow-y-auto p-5 space-y-4">
+            {/* Chart header */}
             <div className="flex items-start justify-between gap-2">
               <div>
-                <div className="font-semibold text-sm">{chartTitle || shelves.y[0]?.name?.replace(/_/g, ' ') || 'Chart Preview'}</div>
+                <div className="font-semibold text-sm">{chartTitle || yField?.replace(/_/g, ' ') || 'Chart Preview'}</div>
                 <div className="text-xs text-white/25 mt-0.5">
-                  {chartType.replace(/_/g, ' ')} · {chartData.length} points · {aggFn}
-                  {shelves.x[0] && ` · X: ${shelves.x[0].name}`}
-                  {shelves.y[0] && ` · Y: ${shelves.y[0].name}`}
+                  {chartType.replace(/_/g, ' ')}
+                  {xField && ` · X: ${xField}`}
+                  {yField && ` · Y: ${yField} (${aggFn})`}
+                  {chartData.length > 0 && ` · ${chartData.length} points`}
                 </div>
               </div>
+              {chartData.length > 0 && (
+                <button onClick={handleAutoRecommend}
+                  className="flex items-center gap-1 text-xs text-white/25 hover:text-white/60 px-2 py-1 rounded-lg hover:bg-white/5 transition-all">
+                  <RefreshCw className="w-3 h-3" /> Re-recommend
+                </button>
+              )}
             </div>
 
+            {/* Chart */}
             <div className="glass-card rounded-2xl p-4 border border-white/8">
-              <VBChartPreview chartType={chartType} data={chartData} marks={marks} shelves={shelves} />
+              {!xField && !yField ? (
+                <div className="flex flex-col items-center justify-center h-52 gap-3 text-white/20">
+                  <Sparkles className="w-8 h-8 text-purple-400/40" />
+                  <div className="text-sm text-center leading-relaxed">
+                    Use the AI generator above to create your chart<br />
+                    <span className="text-purple-400/60">Try: "Show top 10 products by revenue as bar chart"</span>
+                  </div>
+                </div>
+              ) : (
+                <VBChartPreview chartType={chartType} data={chartData} marks={marks} shelves={shelves} />
+              )}
             </div>
 
+            {/* AI Insight */}
             <AnimatePresence>
               {aiInsight && (
                 <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                   className="flex items-start gap-2.5 p-3 rounded-xl bg-purple-400/5 border border-purple-400/15">
                   <Sparkles className="w-3.5 h-3.5 text-purple-400 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-white/60 leading-relaxed italic">{aiInsight}</p>
+                  <p className="text-xs text-white/65 leading-relaxed italic">{aiInsight}</p>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {chartData.length > 0 && !['scatter', 'box_plot', 'text_table', 'pivot', 'metric_card', 'gauge'].includes(chartType) && (
+            {/* Top values summary */}
+            {chartData.length > 0 && !['scatter', 'box_plot', 'text_table', 'pivot', 'metric_card', 'gauge', 'choropleth_map', 'symbol_map', 'heat_map_geo'].includes(chartType) && (
               <div className="glass-card rounded-xl p-3 border border-white/6">
                 <div className="text-xs font-semibold text-white/30 uppercase tracking-widest mb-2">Top Values</div>
                 <div className="space-y-1.5">
@@ -345,7 +346,7 @@ Respond with valid JSON only:`,
                         <span className="w-3 text-white/20 font-mono">{i + 1}</span>
                         <span className="flex-1 text-white/55 truncate">{d.name}</span>
                         <div className="w-16 h-1 bg-white/5 rounded-full overflow-hidden">
-                          <div className="h-full rounded-full" style={{ width: `${(d.value / max) * 100}%`, background: marks.color || '#00e5ff', opacity: 0.6 }} />
+                          <div className="h-full rounded-full" style={{ width: `${(d.value / max) * 100}%`, background: marks.color, opacity: 0.6 }} />
                         </div>
                         <span className="font-mono text-white/45 w-14 text-right">{fmtV(d.value)}</span>
                       </div>
@@ -354,8 +355,24 @@ Respond with valid JSON only:`,
                 </div>
               </div>
             )}
+
+            {/* Dataset columns preview */}
+            {columns.length > 0 && (
+              <div className="glass-card rounded-xl p-3 border border-white/6">
+                <div className="text-xs font-semibold text-white/25 uppercase tracking-widest mb-2">Available Columns</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {columns.map(c => (
+                    <span key={c.name} className="text-xs px-2 py-0.5 rounded-full border border-white/8 text-white/35"
+                      style={{ borderColor: c.type === 'numeric' || c.isKpiCandidate ? 'rgba(0,229,255,0.2)' : c.type === 'date' ? 'rgba(74,222,128,0.2)' : 'rgba(255,255,255,0.08)' }}>
+                      {c.name.replace(/_/g, ' ')}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
+          {/* Bottom analysis panel */}
           <VBBottomPanel
             chartType={chartType}
             shelves={shelves}
