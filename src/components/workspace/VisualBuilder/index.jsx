@@ -9,12 +9,13 @@ import { base44 } from '@/api/base44Client';
 import {
   Sparkles, Save, CheckCircle2, Loader2, Database, ArrowRight,
   Wand2, RefreshCw, TrendingUp, BarChart2, Map, Zap, ChevronDown,
-  ChevronUp, Brain
+  ChevronUp, Brain, X
 } from 'lucide-react';
 
 import VBChartPreview, { buildChartData, fmtV } from '@/components/visualbuilder/VBChartPreview.jsx';
 import VBBottomPanel from '@/components/visualbuilder/VBBottomPanel.jsx';
 import { recommendChartType } from '@/components/visualbuilder/VBShowMeGallery.jsx';
+import VBMapTemplates, { autoMatchMapTemplate, resolveTemplateColumns } from '@/components/visualbuilder/VBMapTemplates.jsx';
 
 // ── constants ──────────────────────────────────────────────────────────────────
 const DEFAULT_MARKS = { color: '#00e5ff', opacity: 85, strokeWidth: 2, borderRadius: 4, sort: 'Desc', showGrid: true };
@@ -165,6 +166,7 @@ export default function VisualBuilder() {
   const [generating, setGenerating] = useState(false);
   const [saved, setSaved] = useState(false);
   const [aiSummary, setAiSummary] = useState('');
+  const [showMapTemplates, setShowMapTemplates] = useState(false);
 
   const chartData = useMemo(() => {
     if (!table?.rows) return [];
@@ -186,43 +188,66 @@ export default function VisualBuilder() {
       const numCols = columns.filter(c => c.type === 'numeric' || c.isKpiCandidate);
       const dateCols = columns.filter(c => c.type === 'date' || c.isDateCandidate);
 
+      // Infer business domain from dataset name + column names
+      const allColNames = columns.map(c => c.name.toLowerCase()).join(' ');
+      const domainHints = [
+        allColNames.match(/revenue|sales|gmv|arr|mrr|deal|pipeline/) ? 'SALES/REVENUE dataset' : null,
+        allColNames.match(/churn|retention|ltv|clv|nps|satisfaction/) ? 'CUSTOMER SUCCESS dataset' : null,
+        allColNames.match(/session|pageview|bounce|ctr|conversion|funnel/) ? 'MARKETING/WEB ANALYTICS dataset' : null,
+        allColNames.match(/open|high|low|close|volume|price/) ? 'FINANCIAL/STOCK dataset' : null,
+        allColNames.match(/defect|yield|throughput|cycle|sla|uptime/) ? 'OPERATIONS dataset' : null,
+        allColNames.match(/country|state|region|city|latitude|longitude/) ? 'GEO/REGIONAL dataset' : null,
+      ].filter(Boolean).join(', ') || 'general business dataset';
+
+      // KPI-aware aggregation hints
+      const kpiHints = numCols.slice(0, 6).map(c => {
+        const n = c.name.toLowerCase();
+        const agg = n.match(/rate|pct|percent|ratio|avg|score|nps/) ? 'AVG'
+          : n.match(/count|num_|number|qty|quantity/) ? 'COUNT'
+          : 'SUM';
+        return `${c.name} → ${agg}`;
+      }).join(', ');
+
       const result = await base44.integrations.Core.InvokeLLM({
         model: 'claude_sonnet_4_6',
-        prompt: `You are a Senior Data Analyst. Choose the BEST chart for this request.
+        prompt: `You are a world-class Senior BI Analyst. Choose the BEST chart configuration.
 
 USER REQUEST: "${prompt}"
 
-DATASET: "${table.name}" (${table.rowCount || table.rows?.length} rows)
+DATASET: "${table.name}" — detected as: ${domainHints}
+ROWS: ${table.rowCount || table.rows?.length}
 
-COLUMNS:
+COLUMNS (name [type] sample values):
 ${colContext}
 
-DETECTED GEOGRAPHIC COLUMNS: ${geoCols.map(c => c.name).join(', ') || 'none'}
-DETECTED DATE COLUMNS: ${dateCols.map(c => c.name).join(', ') || 'none'}
-DETECTED NUMERIC COLUMNS: ${numCols.map(c => c.name).join(', ') || 'none'}
+KPI AGGREGATION HINTS: ${kpiHints || 'none'}
+GEOGRAPHIC COLUMNS: ${geoCols.map(c => c.name).join(', ') || 'none'}
+DATE COLUMNS: ${dateCols.map(c => c.name).join(', ') || 'none'}
+NUMERIC KPI COLUMNS: ${numCols.map(c => c.name).join(', ') || 'none'}
 
-CHART SELECTION RULES:
-- trend / time / over time → line, area, forecast_line
-- compare / rank / top N → bar, bar_horizontal
-- part-of-whole / share / percentage → donut, treemap, pie
-- map / geography / country / state / region / city / location → choropleth_map or symbol_map
-- correlation / relationship → scatter, bubble
-- distribution / spread / histogram → histogram, box_plot
-- single KPI / total / summary → metric_card
-- stages / funnel / conversion → funnel
-- two measures / dual → dual_axis
-- forecast / predict / next → forecast_line
+SMART CHART SELECTION (business domain aware):
+SALES/REVENUE: revenue trends → line/area | by region → choropleth_map | top products → bar_horizontal | breakdown → donut
+CUSTOMER: churn/retention → line | segments → bar/treemap | NPS scores → gauge/radar | cohorts → heatmap
+MARKETING: funnel/conversion → funnel | CTR/bounce → dual_axis | traffic over time → area_stacked
+FINANCIAL: stock prices → candlestick | P&L variance → waterfall | portfolio → treemap
+OPERATIONS: SLA/uptime → line | process steps → gantt | throughput → histogram
+GEO/REGIONAL: by country/state → choropleth_map or symbol_map | city density → heat_map_geo
 
-CRITICAL RULES FOR MAPS:
-- If request mentions map, region, country, state, city, geography → chart_type MUST be choropleth_map or symbol_map
-- x_field MUST be the column containing location names (NOT a numeric column)
-- y_field MUST be the numeric measure
-- If no clear geo column exists, use the most categorical column as x_field
+UNIVERSAL RULES (highest priority):
+1. MAPS: any mention of "map/region/country/state/city/geography" → choropleth_map; x_field=geo column, y_field=numeric KPI
+2. TIME: "trend/over time/monthly/quarterly" → line or area; x_field=date column
+3. RANKING: "top N/best/worst/rank" → bar_horizontal (sorted)
+4. SINGLE NUMBER: "total/KPI/summary/how much" → metric_card
+5. TWO MEASURES: "vs/compare X and Y" → dual_axis
+6. FORECAST: "predict/forecast/next" → forecast_line
+7. x_field MUST be categorical/date/geo — NEVER a pure numeric ID
+8. y_field MUST be the numeric measure matching the request intent
+9. Pick aggregation from KPI hints above — rates/scores → AVG, counts → COUNT, sums → SUM
 
-AVAILABLE CHART TYPES: bar, bar_horizontal, bar_stacked, bar_grouped, line, area, area_stacked,
-scatter, bubble, histogram, donut, pie, treemap, box_plot, waterfall, heatmap, highlight_table,
-text_table, funnel, metric_card, gauge, radar, forecast_line, dual_axis, candlestick, sankey,
-packed_bubble, sunburst, choropleth_map, symbol_map, heat_map_geo, gantt, step_line
+AVAILABLE: bar, bar_horizontal, bar_stacked, bar_grouped, line, area, area_stacked, scatter, bubble,
+histogram, donut, pie, treemap, box_plot, waterfall, heatmap, highlight_table, text_table, funnel,
+metric_card, gauge, radar, forecast_line, dual_axis, sankey, packed_bubble, sunburst,
+choropleth_map, symbol_map, heat_map_geo, gantt, step_line, candlestick
 
 RESPOND ONLY with JSON:`,
         response_json_schema: {
@@ -273,6 +298,22 @@ RESPOND ONLY with JSON:`,
     }
     setGenerating(false);
   }, [nlPrompt, table, columns]);
+
+  // Apply a map template one-click
+  const handleApplyMapTemplate = useCallback((template) => {
+    const { geoCol, kpiCol } = resolveTemplateColumns(template, columns);
+    if (!geoCol || !kpiCol) return;
+    setChartType(template.chartType);
+    setAggFn(template.aggFn);
+    setChartTitle(template.label);
+    setAiSummary(template.desc);
+    setShelves({
+      x: [{ name: geoCol.name, agg: 'ATTR', type: geoCol.type }],
+      y: [{ name: kpiCol.name, agg: template.aggFn, type: kpiCol.type }],
+      color: [], size: [], detail: [], filter: [],
+    });
+    setShowMapTemplates(false);
+  }, [columns]);
 
   const handleAutoRecommend = useCallback(() => {
     const rec = recommendChartType(columns);
@@ -341,6 +382,10 @@ RESPOND ONLY with JSON:`,
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-xl bg-white/5 border border-white/10 text-white/40 hover:text-white/70 hover:border-white/20 transition-all">
             <Wand2 className="w-3.5 h-3.5" /> Auto Recommend
           </button>
+          <button onClick={() => setShowMapTemplates(v => !v)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-xl border transition-all ${showMapTemplates ? 'bg-yellow-400/10 border-yellow-400/25 text-yellow-400' : 'bg-white/5 border-white/10 text-white/40 hover:text-yellow-400 hover:border-yellow-400/25'}`}>
+            <Map className="w-3.5 h-3.5" /> Map Templates
+          </button>
           <input value={chartTitle} onChange={e => setChartTitle(e.target.value)} placeholder="Chart title…"
             className="w-40 px-3 py-1.5 bg-white/5 border border-white/10 rounded-xl text-xs focus:outline-none focus:border-cyan-400/30 text-foreground" />
           <button onClick={handleSave} disabled={!hasChart}
@@ -387,6 +432,28 @@ RESPOND ONLY with JSON:`,
           ))}
         </div>
       </div>
+
+      {/* ── Map Templates Panel ── */}
+      <AnimatePresence>
+        {showMapTemplates && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden border-b border-white/8 flex-shrink-0" style={{ background: 'rgba(255,204,2,0.04)' }}>
+            <div className="px-5 py-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Map className="w-4 h-4 text-yellow-400" />
+                  <span className="text-sm font-bold text-yellow-400">Geographic Map Templates</span>
+                  <span className="text-xs text-white/30">— one-click regional visualizations</span>
+                </div>
+                <button onClick={() => setShowMapTemplates(false)} className="p-1 text-white/30 hover:text-white/60 transition-colors">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <VBMapTemplates columns={columns} onApply={handleApplyMapTemplate} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Main content: Chart + Insights side by side ── */}
       <div className="flex flex-1 overflow-hidden min-h-0">
