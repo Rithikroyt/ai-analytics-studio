@@ -1,26 +1,76 @@
 /**
- * AgentStructuredAnswer — Renders the full 10-field executive answer format.
- * CFO / Growth / Operations specific styling and field labels.
+ * AgentStructuredAnswer — Renders the full executive answer format.
+ * Sections: Key Takeaways → Direct Answer → Deep Analysis → Evidence →
+ *           Driver → Risk → Recommendations → Impact → Confidence →
+ *           Thought Process (collapsible) → Reasoning Trace (collapsible)
  */
 import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import ReactMarkdown from 'react-markdown';
 import AgentReasoningTrace from './AgentReasoningTrace.jsx';
-import { ThumbsUp, ThumbsDown, MessageSquare, CheckCircle2, AlertTriangle, TrendingUp, Zap, Target, BarChart2, ChevronRight } from 'lucide-react';
-import { motion } from 'framer-motion';
+import {
+  ThumbsUp, ThumbsDown, MessageSquare, CheckCircle2, AlertTriangle,
+  TrendingUp, Zap, Target, BarChart2, ChevronRight, ChevronDown, ChevronUp,
+  Brain, Lightbulb, BookOpen,
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-const FIELD_CONFIG = {
-  direct_answer:     { label: 'Direct Answer',     icon: CheckCircle2, color: '#00e5ff', bg: 'rgba(0,229,255,0.06)', border: 'rgba(0,229,255,0.2)', prominent: true },
-  kpi_impact:        { label: 'KPI Impact',         icon: BarChart2,    color: '#a855f7', bg: 'rgba(168,85,247,0.05)', border: 'rgba(168,85,247,0.15)' },
-  evidence:          { label: 'Evidence',           icon: Target,       color: '#60a5fa', bg: 'rgba(96,165,250,0.05)', border: 'rgba(96,165,250,0.15)' },
-  driver_root_cause: { label: 'Driver / Root Cause',icon: TrendingUp,   color: '#ffcc02', bg: 'rgba(255,204,2,0.05)',  border: 'rgba(255,204,2,0.15)' },
-  risk:              { label: 'Risk',               icon: AlertTriangle,color: '#ef4444', bg: 'rgba(239,68,68,0.05)',  border: 'rgba(239,68,68,0.15)' },
-  recommendation:    { label: 'Recommended Action', icon: Zap,          color: '#4caf50', bg: 'rgba(76,175,80,0.06)', border: 'rgba(76,175,80,0.2)',  prominent: true },
-  expected_impact:   { label: 'Expected Impact',    icon: TrendingUp,   color: '#00bfa5', bg: 'rgba(0,191,165,0.05)', border: 'rgba(0,191,165,0.15)' },
-  follow_up_metric:  { label: 'Follow-up Metric',   icon: Target,       color: '#fb923c', bg: 'rgba(251,146,60,0.05)', border: 'rgba(251,146,60,0.15)' },
-  suggested_next_question: { label: 'Suggested Next Question', icon: MessageSquare, color: '#a855f7', bg: 'rgba(168,85,247,0.04)', border: 'rgba(168,85,247,0.12)' },
-};
+// ── Key Takeaways Box ──────────────────────────────────────────────────────────
+function KeyTakeaways({ items, agentColor }) {
+  if (!items?.length) return null;
+  return (
+    <div className="rounded-xl border p-4 space-y-2.5"
+      style={{ background: `${agentColor}0a`, borderColor: `${agentColor}30` }}>
+      <div className="flex items-center gap-2">
+        <Lightbulb className="w-4 h-4 flex-shrink-0" style={{ color: agentColor }} />
+        <span className="text-xs font-black uppercase tracking-widest" style={{ color: agentColor }}>Key Takeaways</span>
+      </div>
+      <ul className="space-y-2">
+        {items.map((item, i) => (
+          <li key={i} className="flex items-start gap-2.5">
+            <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 mt-0.5"
+              style={{ background: `${agentColor}20`, color: agentColor }}>{i + 1}</span>
+            <p className="text-sm text-white/85 leading-relaxed">{item}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
+// ── Thought Process Log ────────────────────────────────────────────────────────
+function ThoughtProcessLog({ steps, agentColor }) {
+  const [open, setOpen] = useState(false);
+  if (!steps?.length) return null;
+  return (
+    <div className="rounded-xl border border-white/8 overflow-hidden">
+      <button onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-white/3 transition-colors">
+        <div className="flex items-center gap-2">
+          <Brain className="w-3.5 h-3.5 text-purple-400" />
+          <span className="text-xs font-semibold text-white/50">Thought Process</span>
+          <span className="text-xs text-white/25">({steps.length} steps)</span>
+        </div>
+        {open ? <ChevronUp className="w-3.5 h-3.5 text-white/25" /> : <ChevronDown className="w-3.5 h-3.5 text-white/25" />}
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
+            <div className="px-4 pb-3 space-y-1.5 border-t border-white/5">
+              {steps.map((step, i) => (
+                <div key={i} className="flex items-start gap-2.5 py-1">
+                  <div className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ background: 'rgba(168,85,247,0.6)' }} />
+                  <p className="text-xs text-white/55 leading-relaxed">{step}</p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ── Confidence Bar ─────────────────────────────────────────────────────────────
 function ConfidenceBar({ score, explanation }) {
   const color = score >= 80 ? '#4caf50' : score >= 60 ? '#ffcc02' : '#ef4444';
   return (
@@ -38,6 +88,7 @@ function ConfidenceBar({ score, explanation }) {
   );
 }
 
+// ── Feedback Bar ───────────────────────────────────────────────────────────────
 function FeedbackBar({ sessionId, agentName, question, agentColor }) {
   const [submitted, setSubmitted] = useState(false);
   const [showIssue, setShowIssue] = useState(false);
@@ -87,44 +138,66 @@ function FeedbackBar({ sessionId, agentName, question, agentColor }) {
   );
 }
 
+// ── Main Component ─────────────────────────────────────────────────────────────
 export default function AgentStructuredAnswer({ result, agentColor, agentName }) {
   if (!result) return null;
 
+  const color = agentColor || '#00e5ff';
   const isInsufficient = result.data_sufficiency?.status === 'insufficient';
+  const isDomainWeak = result.domain_fit === 'weak';
 
   return (
     <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="space-y-2.5">
 
-      {/* Data insufficiency banner */}
+      {/* ── 1. Key Takeaways — always at top ── */}
+      <KeyTakeaways items={result.key_takeaways} agentColor={color} />
+
+      {/* ── 2. Domain / Data insufficiency banners ── */}
       {isInsufficient && (
         <div className="p-3 rounded-xl border border-amber-400/30 bg-amber-400/8 flex items-start gap-2.5">
           <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
           <div className="space-y-1">
             <div className="text-xs font-bold text-amber-400">Dataset Insufficient for This Question</div>
             <div className="text-xs text-white/60 leading-relaxed">
-              Required fields missing: <span className="text-amber-300 font-mono">{result.data_sufficiency.missingFields?.slice(0,4).join(', ')}</span>
+              Required fields missing: <span className="text-amber-300 font-mono">{result.data_sufficiency.missingFields?.slice(0,5).join(', ')}</span>
             </div>
             {result.data_sufficiency.availableFields?.length > 0 && (
-              <div className="text-xs text-white/40">
-                Dataset has: {result.data_sufficiency.availableFields.slice(0,6).join(', ')}
-              </div>
+              <div className="text-xs text-white/40">Dataset has: {result.data_sufficiency.availableFields.slice(0,6).join(', ')}</div>
             )}
           </div>
         </div>
       )}
 
-      {/* Direct answer — prominent */}
-      {result.direct_answer && (
-        <div className="p-3.5 rounded-xl border" style={{ background: FIELD_CONFIG.direct_answer.bg, borderColor: FIELD_CONFIG.direct_answer.border }}>
-          <div className="flex items-center gap-1.5 mb-2">
-            <CheckCircle2 className="w-3.5 h-3.5" style={{ color: agentColor }} />
-            <span className="text-xs font-bold uppercase tracking-wide" style={{ color: agentColor }}>Direct Answer</span>
-          </div>
-          <p className="text-sm text-white/85 leading-relaxed font-medium">{result.direct_answer}</p>
+      {isDomainWeak && !isInsufficient && (
+        <div className="px-3 py-2 rounded-lg border border-blue-400/20 bg-blue-400/5 flex items-center gap-2">
+          <BookOpen className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
+          <span className="text-xs text-blue-300">Domain fit is partial — analysis uses best available fields for this persona.</span>
         </div>
       )}
 
-      {/* KPI Impact */}
+      {/* ── 3. Direct Answer ── */}
+      {result.direct_answer && (
+        <div className="p-3.5 rounded-xl border" style={{ background: 'rgba(0,229,255,0.06)', borderColor: 'rgba(0,229,255,0.2)' }}>
+          <div className="flex items-center gap-1.5 mb-2">
+            <CheckCircle2 className="w-3.5 h-3.5" style={{ color }} />
+            <span className="text-xs font-bold uppercase tracking-wide" style={{ color }}>Direct Answer</span>
+          </div>
+          <p className="text-sm text-white/85 leading-relaxed">{result.direct_answer}</p>
+        </div>
+      )}
+
+      {/* ── 4. Deep Analysis ── */}
+      {result.deep_analysis && (
+        <div className="p-3.5 rounded-xl border border-indigo-400/20 bg-indigo-400/5">
+          <div className="flex items-center gap-1.5 mb-2">
+            <Brain className="w-3.5 h-3.5 text-indigo-400" />
+            <span className="text-xs font-bold text-indigo-400 uppercase tracking-wide">Deep Analysis</span>
+          </div>
+          <p className="text-sm text-white/70 leading-relaxed">{result.deep_analysis}</p>
+        </div>
+      )}
+
+      {/* ── 5. KPI Impact ── */}
       {result.kpi_impact && (
         <div className="px-3 py-2 rounded-lg border border-white/8 bg-white/2 flex items-center gap-2">
           <BarChart2 className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />
@@ -133,9 +206,9 @@ export default function AgentStructuredAnswer({ result, agentColor, agentName })
         </div>
       )}
 
-      {/* Evidence */}
+      {/* ── 6. Evidence ── */}
       {result.evidence?.length > 0 && (
-        <div className="p-3 rounded-xl border" style={{ background: FIELD_CONFIG.evidence.bg, borderColor: FIELD_CONFIG.evidence.border }}>
+        <div className="p-3 rounded-xl border border-blue-400/15 bg-blue-400/5">
           <div className="flex items-center gap-1.5 mb-2">
             <Target className="w-3.5 h-3.5 text-blue-400" />
             <span className="text-xs font-bold text-blue-400 uppercase tracking-wide">Evidence</span>
@@ -150,9 +223,9 @@ export default function AgentStructuredAnswer({ result, agentColor, agentName })
         </div>
       )}
 
-      {/* Driver / Root Cause */}
+      {/* ── 7. Driver / Root Cause ── */}
       {result.driver_root_cause && (
-        <div className="p-3 rounded-xl border" style={{ background: FIELD_CONFIG.driver_root_cause.bg, borderColor: FIELD_CONFIG.driver_root_cause.border }}>
+        <div className="p-3 rounded-xl border border-yellow-400/15 bg-yellow-400/5">
           <div className="flex items-center gap-1.5 mb-1.5">
             <TrendingUp className="w-3.5 h-3.5 text-yellow-400" />
             <span className="text-xs font-bold text-yellow-400 uppercase tracking-wide">Driver / Root Cause</span>
@@ -161,9 +234,9 @@ export default function AgentStructuredAnswer({ result, agentColor, agentName })
         </div>
       )}
 
-      {/* Risk */}
+      {/* ── 8. Risk ── */}
       {result.risk && (
-        <div className="p-3 rounded-xl border" style={{ background: FIELD_CONFIG.risk.bg, borderColor: FIELD_CONFIG.risk.border }}>
+        <div className="p-3 rounded-xl border border-red-400/15 bg-red-400/5">
           <div className="flex items-center gap-1.5 mb-1.5">
             <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
             <span className="text-xs font-bold text-red-400 uppercase tracking-wide">Risk</span>
@@ -172,9 +245,9 @@ export default function AgentStructuredAnswer({ result, agentColor, agentName })
         </div>
       )}
 
-      {/* Recommendations */}
+      {/* ── 9. Recommendations ── */}
       {result.recommendation?.length > 0 && (
-        <div className="p-3.5 rounded-xl border" style={{ background: FIELD_CONFIG.recommendation.bg, borderColor: FIELD_CONFIG.recommendation.border }}>
+        <div className="p-3.5 rounded-xl border border-green-400/20 bg-green-400/6">
           <div className="flex items-center gap-1.5 mb-2">
             <Zap className="w-3.5 h-3.5 text-green-400" />
             <span className="text-xs font-bold text-green-400 uppercase tracking-wide">Recommended Actions</span>
@@ -190,7 +263,7 @@ export default function AgentStructuredAnswer({ result, agentColor, agentName })
         </div>
       )}
 
-      {/* Expected Impact + Follow-up in grid */}
+      {/* ── 10. Expected Impact + Follow-up ── */}
       <div className="grid grid-cols-2 gap-2">
         {result.expected_impact && (
           <div className="p-2.5 rounded-lg border border-teal-400/15 bg-teal-400/5">
@@ -206,10 +279,10 @@ export default function AgentStructuredAnswer({ result, agentColor, agentName })
         )}
       </div>
 
-      {/* Confidence */}
+      {/* ── 11. Confidence ── */}
       <ConfidenceBar score={result.confidence_score || 0} explanation={result.confidence_explanation} />
 
-      {/* Suggested next question */}
+      {/* ── 12. Suggested next question ── */}
       {result.suggested_next_question && (
         <div className="px-3 py-2.5 rounded-xl border border-purple-400/12 bg-purple-400/4 flex items-center gap-2">
           <MessageSquare className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />
@@ -220,17 +293,20 @@ export default function AgentStructuredAnswer({ result, agentColor, agentName })
         </div>
       )}
 
-      {/* Reasoning Trace */}
+      {/* ── 13. Thought Process (collapsible) ── */}
+      <ThoughtProcessLog steps={result.thought_process} agentColor={color} />
+
+      {/* ── 14. Reasoning Trace (collapsible) ── */}
       {result.reasoning_trace && (
-        <AgentReasoningTrace trace={result.reasoning_trace} agentColor={agentColor} />
+        <AgentReasoningTrace trace={result.reasoning_trace} agentColor={color} />
       )}
 
-      {/* Feedback */}
+      {/* ── 15. Feedback ── */}
       <FeedbackBar
         sessionId={result.session_id}
         agentName={agentName}
         question={result.userQuestion}
-        agentColor={agentColor}
+        agentColor={color}
       />
     </motion.div>
   );

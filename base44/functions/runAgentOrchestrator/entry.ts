@@ -435,13 +435,32 @@ SQL STATUS: ${generatedSQL ? 'Generated:\n' + generatedSQL : 'Not generated — 
 
 Now answer using the F-D-E-A-R loop. Return a complete structured JSON answer. The direct_answer must be at least 2-3 meaningful sentences.`;
 
-    // ── Step 8: LLM Specialist Agent ──────────────────────────────────────────
+    // ── Step 8: LLM Specialist Agent — Deep Analysis ──────────────────────────
     const agentResult = await base44.asServiceRole.integrations.Core.InvokeLLM({
       model: 'claude_sonnet_4_6',
-      prompt: `${systemPrompt}\n\n${userPrompt}`,
+      prompt: `${systemPrompt}\n\n${userPrompt}
+
+MANDATORY OUTPUT REQUIREMENTS — you MUST populate ALL of these fields:
+
+key_takeaways: Array of exactly 3 plain-language bullet points summarising the answer for a business executive. Each must be 1 sentence, concrete, and specific. No vague statements. Example: "Payroll cost rose 18% in Q3 due to a 12% headcount increase in Engineering."
+
+thought_process: Array of exactly 5 steps showing how you reasoned through this answer. Each step is a short sentence. Format: ["1. Identified the question domain as finance/payroll", "2. Checked dataset for payroll-related fields...", ...]. This is the visible reasoning log.
+
+deep_analysis: A 3-5 sentence paragraph performing a deeper investigation — root cause check, comparison against typical benchmarks or industry norms, and any patterns in the available data. This section must go beyond the direct answer.
+
+direct_answer: 3-5 sentences. The main answer in plain business language. Must contain specific findings or a clear data-gap explanation. NEVER "Analysis complete."
+
+evidence: At least 3 specific data points, column names, or observations from the dataset.
+
+recommendation: At least 3 specific, actionable recommendations. Start each with a verb.
+
+validation_passed: Boolean. Set to true only if the response contains actual data findings (not just generic statements). If the dataset is insufficient for the question, still set to true but explain the insufficiency clearly.`,
       response_json_schema: {
         type: 'object',
         properties: {
+          key_takeaways: { type: 'array', items: { type: 'string' } },
+          thought_process: { type: 'array', items: { type: 'string' } },
+          deep_analysis: { type: 'string' },
           direct_answer: { type: 'string' },
           kpi_impact: { type: 'string' },
           evidence: { type: 'array', items: { type: 'string' } },
@@ -453,13 +472,14 @@ Now answer using the F-D-E-A-R loop. Return a complete structured JSON answer. T
           confidence_explanation: { type: 'string' },
           follow_up_metric: { type: 'string' },
           suggested_next_question: { type: 'string' },
+          validation_passed: { type: 'boolean' },
           frame_step: { type: 'string' },
           diagnose_step: { type: 'string' },
           explain_step: { type: 'string' },
           act_step: { type: 'string' },
           review_step: { type: 'string' },
         },
-        required: ['direct_answer','evidence','recommendation','confidence_score'],
+        required: ['key_takeaways','thought_process','direct_answer','evidence','recommendation','confidence_score'],
       },
     });
 
@@ -502,6 +522,22 @@ Now answer using the F-D-E-A-R loop. Return a complete structured JSON answer. T
       agent_role: agentConfig.role,
       intent: intent.category,
       intent_confidence: intent.confidence,
+
+      // Key takeaways — mandatory top summary
+      key_takeaways: agentResult?.key_takeaways?.length > 0
+        ? agentResult.key_takeaways
+        : [`${agentConfig.name} reviewed ${tableContext?.name || 'the dataset'} (${rows.length} rows).`, `Domain fit: ${domainFit.domainFit} — ${domainFit.matchedSignals.length} matching signals found.`, `Confidence in analysis: ${rawConfidence}%.`],
+
+      // Thought process log
+      thought_process: agentResult?.thought_process?.length > 0
+        ? agentResult.thought_process
+        : [`1. Received question: "${question}"`, `2. Selected agent: ${agentConfig.name}`, `3. Assessed domain fit: ${domainFit.domainFit} (${domainFit.score}% match)`, `4. Checked data sufficiency: ${sufficiency.status}`, `5. Generated final answer with available evidence.`],
+
+      // Deep analysis paragraph
+      deep_analysis: agentResult?.deep_analysis || '',
+
+      // Validation flag
+      validation_passed: agentResult?.validation_passed !== false,
 
       // 10-field structured answer
       direct_answer: finalDirectAnswer,
