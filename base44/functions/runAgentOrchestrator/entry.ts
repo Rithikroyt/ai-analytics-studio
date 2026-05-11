@@ -233,6 +233,23 @@ function generateSafeSQL(question, columns, rows, tableName) {
   }
 }
 
+// ── Domain-Fit Assessor ────────────────────────────────────────────────────────
+// Determines how well the active dataset matches the selected persona
+const PERSONA_DOMAIN_SIGNALS = {
+  cfo: ['revenue','sales','cost','payroll','salary','wage','budget','margin','profit','expense','invoice','payment','price','headcount','department','fee','billing','tax','cash','burn'],
+  growth: ['user','customer','signup','conversion','campaign','churn','retention','order','session','acquisition','engagement','funnel','cohort','ltv','cac','click','impression'],
+  operations: ['appointment','task','status','duration','cycle','queue','backlog','completion','provider','sla','defect','throughput','utilization','workflow','process','incident','ticket'],
+};
+
+function assessDomainFit(columns, personaKey) {
+  const normalized = columns.map(c => (c.name || c).toLowerCase());
+  const signals = PERSONA_DOMAIN_SIGNALS[personaKey] || PERSONA_DOMAIN_SIGNALS.cfo;
+  const matched = signals.filter(sig => normalized.some(col => col.includes(sig)));
+  const score = matched.length / signals.length;
+  const domainFit = score >= 0.20 ? 'full' : score >= 0.08 ? 'partial' : 'weak';
+  return { domainFit, matchedSignals: matched, score: Math.round(score * 100) };
+}
+
 // ── Intent Classifier ──────────────────────────────────────────────────────────
 function classifyIntent(question) {
   const q = question.toLowerCase();
@@ -294,7 +311,8 @@ Deno.serve(async (req) => {
     const columns = tableContext?.columns || [];
     const dataContext = buildDataContextSummary(rows, columns);
 
-    // ── Step 3: DATA SUFFICIENCY CHECK (new) ──────────────────────────────────
+    // ── Step 3: Domain Fit + Data Sufficiency Check ───────────────────────────
+    const domainFit = assessDomainFit(columns, activeAgentKey);
     const sufficiency = checkDataSufficiency(question, columns, rows);
 
     // ── Step 4: Safe SQL Generator (new) ──────────────────────────────────────
@@ -356,25 +374,48 @@ YOU MUST:
 6. Do NOT generate meaningless evidence from unrelated fields
 ` : '';
 
+    // Domain-fit lens instructions for the prompt
+    const domainFitInstructions = domainFit.domainFit === 'weak' ? `
+⚠️ DOMAIN FIT: WEAK (${domainFit.score}% match with ${agentConfig.name} domain)
+The active dataset does NOT strongly match your domain. You must still answer professionally.
+
+PERSONA-LENS ADAPTER — follow this approach:
+1. Acknowledge the dataset type honestly (e.g. "This appears to be an appointments/operations dataset")
+2. Explain what ${agentConfig.name} CAN analyze from this data (financial proxies, cost drivers, readiness)
+3. Explain what ${agentConfig.name} CANNOT analyze without additional fields
+4. List the specific finance/domain fields needed to unlock full ${agentConfig.name} analysis
+5. Suggest which persona would be a better fit for the current dataset
+6. Give at least 2-3 actionable next steps
+
+MATCHED DOMAIN SIGNALS: ${domainFit.matchedSignals.join(', ') || 'none'}
+DO NOT say "Analysis complete" or "incomplete response" — give a full professional assessment.
+` : domainFit.domainFit === 'partial' ? `
+ℹ️ DOMAIN FIT: PARTIAL (${domainFit.score}% match with ${agentConfig.name} domain)
+The dataset partially matches your domain. Analyze what is available and clearly note limitations.
+MATCHED SIGNALS: ${domainFit.matchedSignals.join(', ')}
+` : `✅ DOMAIN FIT: STRONG — run full ${agentConfig.name} analysis.`;
+
     const systemPrompt = `You are the ${agentConfig.name}: ${agentConfig.role}.
 
 REASONING FRAMEWORK — F-D-E-A-R Loop:
-1. FRAME: Identify the exact business question being asked
-2. DIAGNOSE: What KPI is affected? What data supports it?
-3. EXPLAIN: What is driving this? What is the root cause?
+1. FRAME: Identify the exact business question and dataset type
+2. DIAGNOSE: What KPI or signal is available? What does the data show?
+3. EXPLAIN: What is driving this? What is the root cause or data gap?
 4. ACT: What specific action should leadership take?
-5. REVIEW: What follow-up metric should be tracked?
+5. REVIEW: What follow-up metric or dataset is needed?
 
 YOUR FOCUS AREAS: ${agentConfig.focus.join(', ')}
 YOUR KPI OWNERSHIP: ${agentConfig.kpis.join(', ')}
 YOUR DECISION FRAMEWORK: ${agentConfig.decisionFramework}
 
-CRITICAL RULES:
-- NEVER return "Analysis complete" as the direct_answer — it is meaningless
-- ALWAYS write at least 2-3 sentences in direct_answer with specific findings or clear data gap explanation
-- If data is insufficient, explain EXACTLY what is missing and what dataset is needed
-- If data IS available, use the statistical evidence below with specific numbers
-- Always be specific: use column names, numbers, and business context`;
+${domainFitInstructions}
+
+ABSOLUTE RULES:
+- NEVER output "Analysis complete", "Done", "Incomplete response", or any internal system message
+- ALWAYS write at least 3 full sentences in direct_answer — be specific and professional
+- If domain fit is weak, explain what the dataset IS and what the persona CAN still offer
+- Use actual column names and statistics in your evidence
+- KPI impact must reflect the actual dataset, not assumed finance fields that don't exist`;
 
     const userPrompt = `USER QUESTION: "${question}"
 
@@ -422,14 +463,34 @@ Now answer using the F-D-E-A-R loop. Return a complete structured JSON answer. T
       },
     });
 
-    // ── Step 9: Final Answer Validation & Fallback ─────────────────────────────
+    // ── Step 9: Final Answer Validation & Professional Fallback ───────────────
     let finalDirectAnswer = agentResult?.direct_answer || '';
     if (isWeakAnswer(finalDirectAnswer)) {
+      const datasetName = tableContext?.name || 'the active dataset';
+      const rowCount = tableContext?.rowCount || rows.length;
+      const availableCols = columns.map(c => c.name || c).slice(0, 8).join(', ');
+
       if (sufficiency.status === 'insufficient') {
-        finalDirectAnswer = `I cannot accurately answer "${question}" from the current dataset "${tableContext?.name || 'unknown'}" because the required ${sufficiency.domain}-related fields are missing. The dataset appears to contain ${sufficiency.availableFields.slice(0,5).join(', ')} — which are not sufficient for ${sufficiency.analysisType?.replace(/_/g,' ')}. To properly analyze this, please upload a dataset containing: ${sufficiency.missingFields.slice(0,5).join(', ')}.`;
+        // Specific domain question but wrong dataset
+        finalDirectAnswer = `I cannot accurately answer this question from ${datasetName} because it does not contain the required ${sufficiency.domain}-related fields. The dataset (${rowCount} rows) appears to contain fields such as ${availableCols}, which are not sufficient for ${sufficiency.analysisType?.replace(/_/g,' ')}. To perform this analysis, please upload a dataset that includes: ${sufficiency.missingFields.slice(0,5).join(', ')}.`;
+      } else if (domainFit.domainFit === 'weak') {
+        // Broad question or persona-dataset mismatch — give CFO-readiness / domain-readiness answer
+        const personaName = agentConfig.name;
+        const betterPersona = activeAgentKey === 'cfo' ? 'Operations Analyst' : activeAgentKey === 'growth' ? 'Operations Analyst' : 'Growth Analyst';
+        finalDirectAnswer = `${datasetName} (${rowCount} rows) appears to be an ${domainFit.matchedSignals.length > 0 ? domainFit.matchedSignals.slice(0,3).join('/') + '-oriented' : 'operational'} dataset rather than a ${activeAgentKey === 'cfo' ? 'financial' : activeAgentKey === 'growth' ? 'customer/marketing' : 'operations'} dataset. As ${personaName}, I can provide a domain-readiness assessment: the data can support ${activeAgentKey === 'cfo' ? 'cost-proxy analysis, workload-to-staffing cost reasoning, and financial readiness scoring' : activeAgentKey === 'growth' ? 'behavioral segmentation, engagement pattern analysis, and conversion proxy analysis' : 'process efficiency, bottleneck detection, and capacity analysis'}, but a complete ${personaName} analysis requires fields such as ${agentConfig.kpis.slice(0,4).join(', ')}. Consider switching to ${betterPersona} for this dataset, or enrich the dataset with the missing financial fields for full ${personaName} coverage.`;
       } else {
-        finalDirectAnswer = `The analysis ran but the answer synthesizer returned an incomplete response. Please rephrase the question or ensure the active dataset contains the relevant fields for this question.`;
+        // Sufficient data but LLM returned weak answer — give a data-grounded fallback
+        const topStats = Object.entries(stats).slice(0, 2).map(([k, v]) => `${k}: total ${v.sum}, avg ${v.mean}`).join('; ');
+        finalDirectAnswer = `Based on ${datasetName} (${rowCount} rows), the available data shows: ${topStats || `columns: ${availableCols}`}. As ${agentConfig.name}, the primary analysis opportunity lies in examining patterns across these fields. Please refine your question to focus on a specific KPI, time period, or segment for a more targeted executive response.`;
       }
+    }
+
+    // Also fix KPI impact — don't show a KPI that doesn't exist in the dataset
+    let finalKpiImpact = agentResult?.kpi_impact || '';
+    if (!finalKpiImpact || (domainFit.domainFit === 'weak' && finalKpiImpact === agentConfig.kpis[0])) {
+      finalKpiImpact = domainFit.domainFit === 'weak'
+        ? `Dataset readiness / ${domainFit.matchedSignals[0] || 'operational'} volume`
+        : agentConfig.kpis[0];
     }
 
     // ── Step 10: Assemble final output ────────────────────────────────────────
@@ -444,7 +505,7 @@ Now answer using the F-D-E-A-R loop. Return a complete structured JSON answer. T
 
       // 10-field structured answer
       direct_answer: finalDirectAnswer,
-      kpi_impact: agentResult?.kpi_impact || (sufficiency.status === 'insufficient' ? `${sufficiency.domain} KPI — cannot compute` : agentConfig.kpis[0]),
+      kpi_impact: finalKpiImpact,
       evidence: agentResult?.evidence?.length > 0 ? agentResult.evidence : (sufficiency.status === 'insufficient' ? [`Dataset: ${tableContext?.name}`, `Missing required fields: ${sufficiency.missingFields?.slice(0,4).join(', ')}`, `Available fields: ${sufficiency.availableFields?.slice(0,5).join(', ')}`] : []),
       driver_root_cause: agentResult?.driver_root_cause || '',
       risk: agentResult?.risk || '',
@@ -462,6 +523,8 @@ Now answer using the F-D-E-A-R loop. Return a complete structured JSON answer. T
         missingFields: sufficiency.missingFields || [],
         availableFields: sufficiency.availableFields || [],
       },
+      domain_fit: domainFit.domainFit,
+      domain_fit_score: domainFit.score,
 
       // Reasoning trace (F-D-E-A-R)
       reasoning_trace: {
