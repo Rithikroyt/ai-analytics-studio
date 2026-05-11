@@ -16,6 +16,7 @@ import VBChartPreview, { buildChartData, fmtV } from '@/components/visualbuilder
 import VBBottomPanel from '@/components/visualbuilder/VBBottomPanel.jsx';
 import { recommendChartType } from '@/components/visualbuilder/VBShowMeGallery.jsx';
 import VBMapTemplates, { autoMatchMapTemplate, resolveTemplateColumns } from '@/components/visualbuilder/VBMapTemplates.jsx';
+import VBNarrativePanel from '@/components/visualbuilder/VBNarrativePanel.jsx';
 
 // ── constants ──────────────────────────────────────────────────────────────────
 const DEFAULT_MARKS = { color: '#00e5ff', opacity: 85, strokeWidth: 2, borderRadius: 4, sort: 'Desc', showGrid: true };
@@ -521,6 +522,17 @@ RESPOND ONLY with JSON:`,
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* Executive Narrative */}
+            <VBNarrativePanel
+              chartData={chartData}
+              chartType={chartType}
+              chartTitle={chartTitle}
+              xField={xField}
+              yField={yField}
+              aggFn={aggFn}
+              tableName={table?.name}
+            />
 
             {/* Insights Panel */}
             <InsightsPanel

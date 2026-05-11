@@ -33,6 +33,7 @@ import DecisionReports from '@/pages/DecisionReports';
 import MLWorkbench from '@/pages/MLWorkbench';
 import PolicyCenter from '@/pages/PolicyCenter';
 import AgentStudio from '@/pages/AgentStudio';
+import ExecutiveDashboard from '@/pages/ExecutiveDashboard';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -87,6 +88,7 @@ const AuthenticatedApp = () => {
         <Route path="/ml-workbench" element={<MLWorkbench />} />
         <Route path="/policy-center" element={<PolicyCenter />} />
         <Route path="/agent-studio" element={<AgentStudio />} />
+        <Route path="/executive-dashboard" element={<ExecutiveDashboard />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </>

@@ -32,6 +32,7 @@ const sections = [
   { id: 'docs',          label: 'Docs & Evidence',    icon: FileText },
   { id: 'observability', label: 'Observability',      icon: Activity },
   { id: 'agentStudio',   label: 'Agent Studio',       icon: Bot },
+  { id: 'connectors',   label: 'Data Connectors',    icon: Link2 },
 ];
 
 export default function WorkspaceSidebar({ collapsed, onToggle }) {
@@ -85,6 +86,7 @@ export default function WorkspaceSidebar({ collapsed, onToggle }) {
         {/* External links */}
         <div className="pt-2 mt-2 border-t border-white/5 space-y-0.5">
           {[
+            { to: '/executive-dashboard', icon: Target, label: 'Exec Dashboard', color: 'text-cyan-400' },
             { to: '/dashboards',   icon: PieChart,    label: 'Dashboards',    color: 'text-cyan-400' },
             { to: '/alerts',       icon: Bell,        label: 'Alerts',        color: 'text-amber-400' },
             { to: '/collaboration',icon: Users,       label: 'Collaborate',   color: 'text-teal-400' },
