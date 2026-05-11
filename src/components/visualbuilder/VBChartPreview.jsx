@@ -3,6 +3,7 @@
  * All chart types: bars, lines, scatter, pie, maps, radar, gauge, candlestick, bubble, forecast, etc.
  */
 import { useMemo } from 'react';
+import VBMapChart from './VBMapChart.jsx';
 import {
   BarChart, Bar, AreaChart, Area, LineChart, Line, ComposedChart,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
@@ -206,8 +207,8 @@ function GaugeChart({value, max, color}) {
   );
 }
 
-// World map regions data for choropleth — SVG paths for major continents/regions
-const GEO_BLOBS = {
+// (Geo rendering moved to VBMapChart.jsx with real Leaflet)
+const _GEO_PLACEHOLDER = { // kept to avoid removing the block below accidentally
   'USA':         { cx:140, cy:120, label:'US' },
   'United States':{ cx:140, cy:120, label:'US' },
   'US':          { cx:140, cy:120, label:'US' },
@@ -258,10 +259,11 @@ const GEO_BLOBS = {
   'Iraq':        { cx:340, cy:110, label:'IQ' },
 };
 
-function WorldMapChart({ data, color, chartType }) {
+function _WorldMapChartUnused({ data, color, chartType }) {
   if (!data?.length) return <EmptyState msg="Add a country/region column to X and a numeric measure to Y"/>;
   const max = Math.max(...data.map(d=>d.value),1);
   const total = data.reduce((s,d)=>s+d.value,0);
+  const GEO_BLOBS = {};
 
   // Try to match data to known geo blobs
   const mapped = data.map(d=>{
@@ -962,7 +964,7 @@ export default function VBChartPreview({chartType, data, marks, shelves}) {
 
   // ── MAP CHARTS ──
   if (chartType==='choropleth_map'||chartType==='symbol_map'||chartType==='heat_map_geo') {
-    return <WorldMapChart data={data} color={color} chartType={chartType}/>;
+    return <VBMapChart data={data} color={color} chartType={chartType}/>;
   }
 
   // ── CANDLESTICK ──

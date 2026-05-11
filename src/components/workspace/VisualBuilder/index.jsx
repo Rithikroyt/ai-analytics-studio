@@ -77,48 +77,98 @@ export default function VisualBuilder() {
   const handleNLGenerate = async () => {
     if (!nlPrompt.trim() || !table) return;
     setGenerating(true);
+    setAiInsight('');
     try {
+      // Build rich column context with sample values
+      const colContext = columns.slice(0, 40).map(c => {
+        const vals = table.rows?.slice(0, 5).map(r => r[c.name]).filter(v => v != null).slice(0, 3);
+        return `${c.name} [${c.type}] (e.g. ${vals?.join(', ') || 'N/A'})`;
+      }).join('\n');
+
+      const sampleRows = JSON.stringify(table.rows?.slice(0, 3) || [], null, 0).slice(0, 600);
+
       const result = await base44.integrations.Core.InvokeLLM({
-        prompt: `You are a chart builder AI. Given a dataset and user request, configure the chart.
+        model: 'claude_sonnet_4_6',
+        prompt: `You are a Senior Data Analyst at a top MNC. Your job is to configure the PERFECT chart for a user's request by analyzing their dataset deeply.
 
-User request: "${nlPrompt}"
-Dataset: ${table.name}
-Columns: ${columns.slice(0, 30).map(c => `${c.name}(${c.type})`).join(', ')}
+USER REQUEST: "${nlPrompt}"
 
-Return JSON only:
-{
-  "chart_type": "bar|bar_horizontal|bar_stacked|line|area|scatter|histogram|donut|pie|treemap|box_plot|waterfall|heatmap|highlight_table|text_table|funnel|metric_card",
-  "x_field": "column name or null",
-  "y_field": "column name",
-  "aggregation": "SUM|AVG|COUNT|MIN|MAX",
-  "title": "short chart title",
-  "color": "#hexcolor",
-  "insight": "one sentence insight"
-}`,
+DATASET: "${table.name}" (${table.rowCount} rows)
+
+COLUMNS (name [type] sample values):
+${colContext}
+
+SAMPLE ROWS: ${sampleRows}
+
+INSTRUCTIONS:
+1. Analyze what the user wants to see — trend, comparison, distribution, part-to-whole, correlation, geographic, or KPI
+2. Pick the BEST chart type for their intent
+3. Choose the most meaningful X and Y fields from the EXACT column names above
+4. Select optimal aggregation (SUM for revenue/sales, AVG for rates/scores, COUNT for records)
+5. Pick a color that fits the data's nature (cyan for neutral, green for positive/growth, red for risk, purple for segments)
+6. Write a sharp 1-sentence insight about what this chart will reveal
+
+CHART TYPE OPTIONS (pick exactly one):
+bar, bar_horizontal, bar_stacked, bar_grouped, line, area, area_stacked, scatter, bubble, histogram, donut, pie, treemap, box_plot, waterfall, heatmap, highlight_table, text_table, funnel, metric_card, gauge, radar, forecast_line, dual_axis, candlestick, sankey, packed_bubble, sunburst, choropleth_map, symbol_map, gantt
+
+RULES:
+- For time-series data → line or area or forecast_line
+- For geographic/location data → symbol_map or choropleth_map
+- For category comparisons → bar or bar_horizontal
+- For distributions → histogram or box_plot
+- For part-to-whole → donut or treemap
+- For correlations → scatter or bubble
+- For KPIs → metric_card or gauge
+- For funnels/stages → funnel
+- x_field and y_field MUST be exact column names from the list above
+- If user wants a map, use the column with country/state/city names for x_field
+
+Respond with valid JSON only:`,
         response_json_schema: {
           type: 'object',
           properties: {
             chart_type: { type: 'string' },
-            x_field: { type: ['string', 'null'] },
+            x_field: { type: 'string' },
             y_field: { type: 'string' },
+            y2_field: { type: 'string' },
             aggregation: { type: 'string' },
             title: { type: 'string' },
             color: { type: 'string' },
             insight: { type: 'string' },
+            sort: { type: 'string' },
+            show_trend: { type: 'boolean' },
+            show_labels: { type: 'boolean' },
           },
+          required: ['chart_type', 'y_field', 'aggregation', 'title', 'insight'],
         },
       });
+
       if (result?.chart_type) setChartType(result.chart_type);
-      if (result?.y_field) {
-        const newShelves = { ...shelves };
-        if (result.x_field) newShelves.x = [{ name: result.x_field, agg: 'ATTR', type: 'category' }];
-        newShelves.y = [{ name: result.y_field, agg: result.aggregation || 'SUM', type: 'numeric' }];
-        setShelves(newShelves);
-      }
       if (result?.aggregation) setAggFn(result.aggregation);
       if (result?.title) setChartTitle(result.title);
-      if (result?.color) setMarks(m => ({ ...m, color: result.color }));
       if (result?.insight) setAiInsight(result.insight);
+
+      // Smart field mapping
+      if (result?.y_field) {
+        const xCol = columns.find(c => c.name === result.x_field);
+        const yCol = columns.find(c => c.name === result.y_field);
+        const y2Col = result.y2_field ? columns.find(c => c.name === result.y2_field) : null;
+
+        const newShelves = { ...shelves, x: [], y: [], color: [] };
+        if (xCol) newShelves.x = [{ name: xCol.name, agg: 'ATTR', type: xCol.type }];
+        if (yCol) newShelves.y = [{ name: yCol.name, agg: result.aggregation || 'SUM', type: yCol.type }];
+        if (y2Col) newShelves.y = [...newShelves.y, { name: y2Col.name, agg: result.aggregation || 'SUM', type: y2Col.type }];
+        setShelves(newShelves);
+      }
+
+      // Apply marks from AI suggestion
+      setMarks(m => ({
+        ...m,
+        ...(result?.color && { color: result.color }),
+        ...(result?.sort && { sort: result.sort }),
+        ...(result?.show_trend !== undefined && { showTrendLine: result.show_trend }),
+        ...(result?.show_labels !== undefined && { showLabel: result.show_labels }),
+      }));
     } catch (e) { console.error(e); }
     setGenerating(false);
   };
@@ -195,19 +245,37 @@ Return JSON only:
       </div>
 
       {/* AI Chart Generator bar */}
-      <div className="px-5 py-2.5 border-b border-white/5 flex-shrink-0 bg-purple-400/3">
-        <div className="flex items-center gap-2">
+      <div className="border-b border-white/5 flex-shrink-0" style={{ background: 'rgba(168,85,247,0.04)' }}>
+        <div className="px-5 py-2.5 flex items-center gap-2">
           <Sparkles className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />
           <input value={nlPrompt} onChange={e => setNlPrompt(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleNLGenerate()}
-            placeholder='AI Chart Generator — e.g. "Show monthly revenue trend by region"'
+            placeholder='Ask AI — e.g. "Show revenue by country on a map" or "Top 10 products by sales as bar chart"'
             className="flex-1 bg-transparent text-sm text-foreground placeholder:text-white/25 focus:outline-none" />
           <button onClick={handleNLGenerate} disabled={generating || !nlPrompt.trim()}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-400/15 border border-purple-400/25 text-purple-400 rounded-xl text-xs font-semibold hover:bg-purple-400/20 transition-all disabled:opacity-40">
             {generating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-            {generating ? 'Building…' : 'Build'}
+            {generating ? 'Analyzing…' : 'Generate'}
           </button>
         </div>
+        {/* Quick prompts */}
+        {!generating && !nlPrompt && columns.length > 0 && (
+          <div className="flex gap-1.5 px-5 pb-2 overflow-x-auto">
+            {[
+              'Show top 10 by value as bar chart',
+              'Trend over time as line chart',
+              'Distribution as histogram',
+              'Geographic map view',
+              'Part-to-whole as donut chart',
+              'Forecast next periods',
+            ].map(q => (
+              <button key={q} onClick={() => { setNlPrompt(q); }}
+                className="flex-shrink-0 text-xs px-2.5 py-1 rounded-full bg-white/4 border border-white/8 text-white/40 hover:text-purple-400 hover:border-purple-400/30 hover:bg-purple-400/5 transition-all">
+                {q}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Main 3-panel layout */}
