@@ -13,6 +13,7 @@ import {
   Brain, Lightbulb, BookOpen,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import EvidenceDrilldown from './EvidenceDrilldown.jsx';
 
 // ── Key Takeaways Box ──────────────────────────────────────────────────────────
 function KeyTakeaways({ items, agentColor }) {
@@ -139,7 +140,7 @@ function FeedbackBar({ sessionId, agentName, question, agentColor }) {
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────────
-export default function AgentStructuredAnswer({ result, agentColor, agentName }) {
+export default function AgentStructuredAnswer({ result, agentColor, agentName, rows, columns }) {
   if (!result) return null;
 
   const color = agentColor || '#00e5ff';
@@ -215,8 +216,12 @@ export default function AgentStructuredAnswer({ result, agentColor, agentName })
           </div>
           <ul className="space-y-1">
             {result.evidence.map((e, i) => (
-              <li key={i} className="flex items-start gap-2 text-xs text-white/65">
-                <ChevronRight className="w-3 h-3 text-blue-400/60 flex-shrink-0 mt-0.5" />{e}
+              <li key={i} className="flex items-start gap-2 text-xs text-white/65 group">
+                <ChevronRight className="w-3 h-3 text-blue-400/60 flex-shrink-0 mt-0.5" />
+                <span>{e}</span>
+                {rows?.length > 0 && (
+                  <EvidenceDrilldown evidenceText={e} rows={rows} columns={columns} color={color} />
+                )}
               </li>
             ))}
           </ul>

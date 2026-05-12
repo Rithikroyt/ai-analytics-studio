@@ -6,11 +6,12 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useWorkspaceStore } from '@/lib/store';
-import { Sparkles, Loader2, Send, Trash2, GitMerge, ClipboardList, Brain, Plus, ChevronDown } from 'lucide-react';
+import { Sparkles, Loader2, Send, Trash2, GitMerge, ClipboardList, Brain, LayoutDashboard } from 'lucide-react';
 import AgentProfileCard from '@/components/agents/AgentProfileCard.jsx';
 import AgentStructuredAnswer from '@/components/agents/AgentStructuredAnswer.jsx';
 import AgentPipelineBuilderV2 from '@/components/agents/AgentPipelineBuilderV2.jsx';
 import AgentTaskBoardV2 from '@/components/agents/AgentTaskBoardV2.jsx';
+import ExecutiveSummaryTab from '@/components/agents/ExecutiveSummaryTab.jsx';
 
 const DEFAULT_PERSONAS = [
   { id: 'cfo',       name: 'CFO Analyst',        department: 'Finance',     role: 'Chief Financial Officer',       avatarColor: '#00e5ff', usageCount: 0 },
@@ -25,9 +26,10 @@ const STARTER_QUESTIONS = {
 };
 
 const TABS = [
-  { id: 'chat',     label: 'War Room',   icon: Brain },
-  { id: 'tasks',    label: 'Tasks',      icon: ClipboardList },
-  { id: 'pipeline', label: 'Pipeline',   icon: GitMerge },
+  { id: 'chat',      label: 'War Room',    icon: Brain },
+  { id: 'executive', label: 'Exec Summary',icon: LayoutDashboard },
+  { id: 'tasks',     label: 'Tasks',       icon: ClipboardList },
+  { id: 'pipeline',  label: 'Pipeline',    icon: GitMerge },
 ];
 
 export default function AgentStudioSection() {
@@ -58,34 +60,51 @@ export default function AgentStudioSection() {
     setChatHistory(prev => [...prev, { role: 'user', content: q }]);
     setLoading(true);
 
-    try {
-      const res = await base44.functions.invoke('runAgentOrchestrator', {
-        question: q,
-        persona: activePersona,
-        tableContext: activeTable ? {
-          name: activeTable.name,
-          rowCount: activeTable.rowCount || activeTable.rows?.length,
-          columns: activeTable.columns?.slice(0, 25),
-          rows: activeTable.rows?.slice(0, 50),
-        } : null,
-        pipelinePreset: 'quick_insight',
-      });
+    const tableContext = activeTable ? {
+      name: activeTable.name,
+      rowCount: activeTable.rowCount || activeTable.rows?.length,
+      columns: activeTable.columns?.slice(0, 25),
+      rows: activeTable.rows?.slice(0, 50),
+    } : null;
 
-      const result = res.data;
-      setChatHistory(prev => [...prev, {
-        role: 'assistant',
-        persona: activePersona,
-        result,
-        timestamp: new Date().toLocaleTimeString(),
-      }]);
-    } catch (e) {
-      setChatHistory(prev => [...prev, {
-        role: 'assistant',
-        persona: activePersona,
-        result: { direct_answer: 'Error: ' + e.message, confidence_score: 0, evidence: [], recommendation: [] },
-        timestamp: new Date().toLocaleTimeString(),
-      }]);
+    let result = null;
+    let attempts = 0;
+
+    while (attempts < 2) {
+      try {
+        const res = await base44.functions.invoke('runAgentOrchestrator', {
+          question: q,
+          persona: activePersona,
+          tableContext,
+          pipelinePreset: 'deep_diagnosis',
+        });
+        result = res.data;
+        // Validate the result has substance
+        const hasAnswer = result?.direct_answer && result.direct_answer.length > 30 &&
+          !['analysis complete','done','completed'].includes(result.direct_answer.toLowerCase().trim());
+        if (hasAnswer) break;
+        attempts++;
+      } catch (e) {
+        attempts++;
+        if (attempts >= 2) {
+          result = {
+            direct_answer: `${activePersona.name} encountered an issue processing this request. Please try rephrasing your question or ensure a dataset is loaded for analysis.`,
+            key_takeaways: ['Analysis could not complete — the system encountered a temporary error.', 'Try rephrasing your question with more specific terms.', 'Ensure your dataset is loaded in the Workspace.'],
+            confidence_score: 0,
+            evidence: [],
+            recommendation: ['Reload the dataset and try again', 'Rephrase the question with specific field names', 'Check that the dataset contains relevant fields for this question type'],
+            thought_process: ['1. Received the question', '2. Attempted to invoke analysis pipeline', `3. Error encountered: ${e.message?.slice(0, 80) || 'Unknown error'}`, '4. Graceful fallback activated', '5. Suggested remediation steps generated'],
+          };
+        }
+      }
     }
+
+    setChatHistory(prev => [...prev, {
+      role: 'assistant',
+      persona: activePersona,
+      result,
+      timestamp: new Date().toLocaleTimeString(),
+    }]);
     setLoading(false);
   };
 
@@ -141,6 +160,11 @@ export default function AgentStudioSection() {
           <div className="flex-1 overflow-y-auto p-5">
             <AgentPipelineBuilderV2 activeTable={activeTable} activePersona={activePersona} />
           </div>
+        )}
+
+        {/* ── Executive Summary tab ── */}
+        {tab === 'executive' && (
+          <ExecutiveSummaryTab activeTable={activeTable} />
         )}
 
         {/* ── Tasks tab ── */}
@@ -221,6 +245,8 @@ export default function AgentStudioSection() {
                             result={msg.result}
                             agentColor={msg.persona?.avatarColor || color}
                             agentName={msg.persona?.name || 'Agent'}
+                            rows={activeTable?.rows}
+                            columns={activeTable?.columns}
                           />
                         </div>
                       )}
