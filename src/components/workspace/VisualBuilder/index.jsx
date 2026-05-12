@@ -1,66 +1,241 @@
 /**
- * VisualBuilder — AI-first, distraction-free chart builder
- * Clean: AI prompt hero + live chart preview + auto Insights Panel
+ * VisualBuilder — AI-first chart builder with manual controls
+ * Fixed: column type inference, AI field matching, chart type selector, field assignment
  */
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWorkspaceStore } from '@/lib/store';
 import { base44 } from '@/api/base44Client';
 import {
-  Sparkles, Save, CheckCircle2, Loader2, Database, ArrowRight,
-  Wand2, RefreshCw, TrendingUp, BarChart2, Map, Zap, ChevronDown,
-  ChevronUp, Brain, X
+  Sparkles, CheckCircle2, Loader2, Database, ArrowRight,
+  Wand2, RefreshCw, TrendingUp, BarChart2, ChevronDown, ChevronUp,
+  Brain, Settings2, X, Map, Zap, PieChart, Activity,
+  Layers, GitBranch, Grid, Target, Circle,
 } from 'lucide-react';
 
 import VBChartPreview, { buildChartData, fmtV } from '@/components/visualbuilder/VBChartPreview.jsx';
 import VBBottomPanel from '@/components/visualbuilder/VBBottomPanel.jsx';
-import { recommendChartType } from '@/components/visualbuilder/VBShowMeGallery.jsx';
-import VBMapTemplates, { autoMatchMapTemplate, resolveTemplateColumns } from '@/components/visualbuilder/VBMapTemplates.jsx';
-import VBNarrativePanel from '@/components/visualbuilder/VBNarrativePanel.jsx';
 
-// ── constants ──────────────────────────────────────────────────────────────────
-const DEFAULT_MARKS = { color: '#00e5ff', opacity: 85, strokeWidth: 2, borderRadius: 4, sort: 'Desc', showGrid: true };
-
-const GEO_KEYWORDS = ['country', 'countries', 'nation', 'state', 'region', 'city', 'location', 'place',
-  'geo', 'lat', 'lon', 'latitude', 'longitude', 'zip', 'continent', 'province', 'territory', 'market'];
-
-const QUICK_PROMPTS = [
-  { label: 'Top 10 by value', icon: BarChart2, prompt: 'Show the top 10 categories by value as a bar chart' },
-  { label: 'Trend over time', icon: TrendingUp, prompt: 'Show the trend over time as a line chart' },
-  { label: 'By region on map', icon: Map, prompt: 'Show metrics by region or country on a map' },
-  { label: 'Part-to-whole', icon: Zap, prompt: 'Show how each category contributes as a donut chart' },
+// ── Chart catalog ──────────────────────────────────────────────────────────────
+const CHART_GROUPS = [
+  {
+    label: 'Bar & Compare', color: '#00e5ff',
+    charts: [
+      { id: 'bar', label: 'Bar', icon: BarChart2 },
+      { id: 'bar_horizontal', label: 'Horiz. Bar', icon: BarChart2 },
+      { id: 'bar_stacked', label: 'Stacked', icon: Layers },
+      { id: 'bar_grouped', label: 'Grouped', icon: Layers },
+      { id: 'waterfall', label: 'Waterfall', icon: BarChart2 },
+    ],
+  },
+  {
+    label: 'Line & Area', color: '#a855f7',
+    charts: [
+      { id: 'line', label: 'Line', icon: TrendingUp },
+      { id: 'area', label: 'Area', icon: TrendingUp },
+      { id: 'area_stacked', label: 'Stacked Area', icon: Layers },
+      { id: 'step_line', label: 'Step', icon: Activity },
+      { id: 'forecast_line', label: 'Forecast', icon: TrendingUp },
+      { id: 'dual_axis', label: 'Dual Axis', icon: Activity },
+    ],
+  },
+  {
+    label: 'Part-to-Whole', color: '#ff6b35',
+    charts: [
+      { id: 'donut', label: 'Donut', icon: PieChart },
+      { id: 'pie', label: 'Pie', icon: PieChart },
+      { id: 'treemap', label: 'Treemap', icon: Layers },
+      { id: 'sunburst', label: 'Sunburst', icon: Circle },
+      { id: 'packed_bubble', label: 'Bubbles', icon: Circle },
+    ],
+  },
+  {
+    label: 'Distribution', color: '#4caf50',
+    charts: [
+      { id: 'scatter', label: 'Scatter', icon: Activity },
+      { id: 'bubble', label: 'Bubble', icon: Circle },
+      { id: 'histogram', label: 'Histogram', icon: BarChart2 },
+      { id: 'box_plot', label: 'Box Plot', icon: Layers },
+    ],
+  },
+  {
+    label: 'Table & Grid', color: '#00bfa5',
+    charts: [
+      { id: 'heatmap', label: 'Heatmap', icon: Grid },
+      { id: 'text_table', label: 'Table', icon: Grid },
+      { id: 'highlight_table', label: 'Highlight', icon: Grid },
+    ],
+  },
+  {
+    label: 'Special', color: '#ffcc02',
+    charts: [
+      { id: 'funnel', label: 'Funnel', icon: GitBranch },
+      { id: 'radar', label: 'Radar', icon: Activity },
+      { id: 'gauge', label: 'Gauge', icon: Target },
+      { id: 'metric_card', label: 'KPI Card', icon: Zap },
+      { id: 'sankey', label: 'Sankey', icon: GitBranch },
+      { id: 'choropleth_map', label: 'Map', icon: Map },
+    ],
+  },
 ];
 
-const CHART_TYPE_LABELS = {
-  bar: 'Bar', bar_horizontal: 'Horizontal Bar', bar_stacked: 'Stacked Bar', bar_grouped: 'Grouped Bar',
-  line: 'Line', area: 'Area', area_stacked: 'Stacked Area', forecast_line: 'Forecast',
-  scatter: 'Scatter', bubble: 'Bubble', histogram: 'Histogram', box_plot: 'Box Plot',
-  donut: 'Donut', pie: 'Pie', treemap: 'Treemap', packed_bubble: 'Bubbles', sunburst: 'Sunburst',
-  choropleth_map: 'Filled Map', symbol_map: 'Symbol Map', heat_map_geo: 'Density Map',
-  heatmap: 'Heatmap', highlight_table: 'Highlight Table', text_table: 'Table', pivot: 'Pivot',
-  funnel: 'Funnel', sankey: 'Sankey', radar: 'Radar', gauge: 'Gauge', metric_card: 'KPI Card',
-  candlestick: 'Candlestick', gantt: 'Gantt', waterfall: 'Waterfall', dual_axis: 'Dual Axis', step_line: 'Step Line',
-};
+const CHART_TYPE_LABELS = {};
+CHART_GROUPS.forEach(g => g.charts.forEach(c => { CHART_TYPE_LABELS[c.id] = c.label; }));
 
-// ── helpers ────────────────────────────────────────────────────────────────────
-function isGeoColumn(name) {
-  const lower = (name || '').toLowerCase();
-  return GEO_KEYWORDS.some(kw => lower.includes(kw));
+const AGG_OPTIONS = ['SUM', 'AVG', 'COUNT', 'MIN', 'MAX'];
+
+const DEFAULT_MARKS = { color: '#00e5ff', opacity: 85, strokeWidth: 2, borderRadius: 4, sort: 'Desc', showGrid: true };
+
+const QUICK_PROMPTS = [
+  { label: 'Top 10 by value', prompt: 'Show the top 10 categories sorted by total value' },
+  { label: 'Trend over time', prompt: 'Show the trend over time as a line chart' },
+  { label: 'Part-to-whole', prompt: 'Show how each category contributes as a donut chart' },
+  { label: 'Distribution', prompt: 'Show the distribution of values as a histogram' },
+];
+
+// ── Robust column type inference ───────────────────────────────────────────────
+function inferColumnType(col, rows) {
+  const name = (col.name || col).toLowerCase();
+
+  // If already classified correctly, use it
+  const existing = col.inferredType || col.type || '';
+  if (['numeric', 'number', 'integer', 'float', 'double', 'decimal'].includes(existing)) return 'numeric';
+  if (['date', 'datetime', 'timestamp'].includes(existing)) return 'date';
+  if (['category', 'string', 'categorical'].includes(existing)) return 'category';
+
+  // Name-based inference
+  const dateKeywords = ['date', 'month', 'year', 'quarter', 'week', 'period', 'time', 'created', 'updated', 'timestamp', 'day'];
+  const numericKeywords = ['revenue', 'cost', 'salary', 'wage', 'payroll', 'price', 'amount', 'value', 'fee', 'charge', 'spend',
+    'budget', 'expense', 'income', 'profit', 'margin', 'payment', 'total', 'sum', 'count', 'num', 'qty', 'quantity',
+    'rate', 'ratio', 'pct', 'percent', 'score', 'age', 'duration', 'hours', 'size', 'weight', 'height', 'length'];
+  const idKeywords = ['_id', 'uuid', 'guid', 'pk_', 'fk_', 'key'];
+  const geoKeywords = ['country', 'state', 'region', 'city', 'location', 'geo', 'lat', 'lon', 'latitude', 'longitude', 'zip', 'continent', 'nation', 'province', 'territory'];
+
+  if (idKeywords.some(k => name.includes(k)) && !numericKeywords.some(k => name.includes(k))) return 'id';
+  if (dateKeywords.some(k => name.includes(k))) return 'date';
+  if (geoKeywords.some(k => name.includes(k))) return 'geo';
+  if (numericKeywords.some(k => name.includes(k))) return 'numeric';
+
+  // Sample value-based inference
+  if (rows?.length > 0) {
+    const colName = col.name || col;
+    const samples = rows.slice(0, 20).map(r => r[colName]).filter(v => v != null && v !== '');
+    if (samples.length === 0) return 'category';
+
+    const numericCount = samples.filter(v => {
+      const n = parseFloat(String(v).replace(/[$,€£%]/g, ''));
+      return !isNaN(n) && isFinite(n);
+    }).length;
+
+    if (numericCount / samples.length >= 0.75) return 'numeric';
+
+    const dateCount = samples.filter(v => {
+      const d = new Date(v);
+      return !isNaN(d.getTime()) && String(v).length > 4;
+    }).length;
+    if (dateCount / samples.length >= 0.5) return 'date';
+  }
+
+  return 'category';
 }
 
 function buildColumnsArray(table) {
   if (!table?.columns) return [];
-  return table.columns.map(c => ({
-    name: c.name || c,
-    type: c.inferredType || c.type || 'text',
-    isKpiCandidate: c.isKpiCandidate,
-    isDateCandidate: c.isDateCandidate,
-    isSegmentCandidate: c.isSegmentCandidate,
-  }));
+  return table.columns.map(c => {
+    const type = inferColumnType(c, table.rows);
+    return {
+      name: c.name || c,
+      type,
+      isKpiCandidate: type === 'numeric',
+      isDateCandidate: type === 'date',
+      isSegmentCandidate: type === 'category' || type === 'geo',
+    };
+  });
 }
 
-// ── InsightsPanel ──────────────────────────────────────────────────────────────
-function InsightsPanel({ chartData, chartType, xField, yField, tableName, columns }) {
+function isGeoColumn(name) {
+  return ['country', 'countries', 'state', 'region', 'city', 'geo', 'lat', 'lon', 'latitude', 'longitude', 'zip', 'continent', 'province', 'territory', 'location', 'market']
+    .some(kw => (name || '').toLowerCase().includes(kw));
+}
+
+// ── Chart Type Selector Panel ──────────────────────────────────────────────────
+function ChartTypeSelector({ selected, onChange, onClose }) {
+  return (
+    <div className="absolute top-full left-0 z-50 mt-1 w-80 glass-card rounded-2xl border border-white/12 shadow-2xl overflow-hidden"
+      style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/8">
+        <span className="text-xs font-bold text-white/60">Chart Type</span>
+        <button onClick={onClose} className="p-1 text-white/30 hover:text-white/60"><X className="w-3.5 h-3.5" /></button>
+      </div>
+      <div className="overflow-y-auto max-h-96 p-3 space-y-3">
+        {CHART_GROUPS.map(group => (
+          <div key={group.label}>
+            <div className="text-xs font-semibold mb-1.5 px-1" style={{ color: group.color + 'aa' }}>{group.label}</div>
+            <div className="grid grid-cols-3 gap-1">
+              {group.charts.map(chart => {
+                const Icon = chart.icon;
+                const isSelected = selected === chart.id;
+                return (
+                  <button key={chart.id} onClick={() => { onChange(chart.id); onClose(); }}
+                    className={`flex flex-col items-center gap-1 p-2 rounded-xl border text-center transition-all ${isSelected ? 'border-opacity-50' : 'border-white/5 text-white/35 hover:text-white/70 hover:border-white/15 hover:bg-white/4'}`}
+                    style={isSelected ? { borderColor: group.color + '60', background: group.color + '15', color: group.color } : {}}>
+                    <Icon className="w-4 h-4" />
+                    <span className="text-xs leading-tight">{chart.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Field Row with column picker ───────────────────────────────────────────────
+function FieldRow({ label, color, field, columns, filterFn, onChange, onClear }) {
+  const [open, setOpen] = useState(false);
+  const filtered = filterFn ? columns.filter(filterFn) : columns;
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-white/30 w-6 font-bold flex-shrink-0">{label}</span>
+      <div className="flex-1 relative">
+        <button onClick={() => setOpen(v => !v)}
+          className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg border text-xs transition-all"
+          style={field
+            ? { borderColor: color + '40', background: color + '10', color }
+            : { borderColor: 'rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)', color: 'rgba(255,255,255,0.3)' }}>
+          <span className="truncate">{field || `Select ${label} field…`}</span>
+          <ChevronDown className="w-3 h-3 flex-shrink-0 ml-1" />
+        </button>
+        {open && (
+          <div className="absolute top-full left-0 z-50 mt-1 w-full rounded-xl border border-white/12 overflow-hidden shadow-xl"
+            style={{ background: 'hsl(222,44%,9%)' }}>
+            <div className="max-h-44 overflow-y-auto">
+              {filtered.map(c => (
+                <button key={c.name} onClick={() => { onChange(c); setOpen(false); }}
+                  className={`w-full text-left px-3 py-2 text-xs hover:bg-white/5 transition-colors flex items-center justify-between ${field === c.name ? 'text-white/80' : 'text-white/50'}`}>
+                  <span>{c.name}</span>
+                  <span className="text-white/25 ml-2">{c.type}</span>
+                </button>
+              ))}
+              {filtered.length === 0 && <div className="px-3 py-2 text-xs text-white/25">No matching columns</div>}
+            </div>
+          </div>
+        )}
+      </div>
+      {field && (
+        <button onClick={onClear} className="text-white/20 hover:text-white/50 flex-shrink-0">
+          <X className="w-3 h-3" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ── AI Insights Panel ──────────────────────────────────────────────────────────
+function InsightsPanel({ chartData, chartType, xField, yField, tableName }) {
   const [bullets, setBullets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(true);
@@ -71,41 +246,30 @@ function InsightsPanel({ chartData, chartType, xField, yField, tableName, column
   useEffect(() => {
     if (!chartData.length || !yField || genKey === lastKey.current) return;
     lastKey.current = genKey;
-
+    setLoading(true);
+    setBullets([]);
     const run = async () => {
-      setLoading(true);
-      setBullets([]);
       try {
         const top5 = chartData.slice(0, 5).map(d => `${d.name}: ${fmtV(d.value)}`).join(', ');
         const total = chartData.reduce((s, d) => s + (d.value || 0), 0);
-        const min = chartData[chartData.length - 1]?.value;
-        const max = chartData[0]?.value;
         const result = await base44.integrations.Core.InvokeLLM({
           model: 'gemini_3_flash',
-          prompt: `You are a concise data analyst. Analyze this chart and write EXACTLY 3 short bullet points.
+          prompt: `Analyze this chart and write EXACTLY 3 bullet points for a business executive.
 
 Chart: ${CHART_TYPE_LABELS[chartType] || chartType} of ${yField} by ${xField}
-Dataset: ${tableName}
+Dataset: ${tableName} | Points: ${chartData.length} | Total: ${fmtV(total)}
 Top values: ${top5}
-Total: ${fmtV(total)} | Max: ${fmtV(max)} | Min: ${fmtV(min)} | Points: ${chartData.length}
 
-Rules:
-- Each bullet must be ONE sentence, max 18 words
-- Focus on: #1 the dominant pattern, #2 a notable outlier or gap, #3 a business recommendation
-- Start each with an emoji: 📊 🔍 💡
-- Be specific with numbers from the data above
-- No generic observations, no fluff`,
+Rules: ONE sentence each. Start with 📊, 🔍, 💡. Be specific with numbers. No fluff.`,
           response_json_schema: {
             type: 'object',
-            properties: {
-              bullets: { type: 'array', items: { type: 'string' }, minItems: 3, maxItems: 3 }
-            },
+            properties: { bullets: { type: 'array', items: { type: 'string' } } },
             required: ['bullets']
           }
         });
         if (result?.bullets?.length) setBullets(result.bullets);
       } catch {
-        setBullets(['📊 Chart generated from your data.', '🔍 Explore the values using the chart above.', '💡 Try the AI generator for deeper analysis.']);
+        setBullets(['📊 Chart generated from your data.', '🔍 Explore the values using the chart above.', '💡 Use the AI generator for deeper analysis.']);
       }
       setLoading(false);
     };
@@ -125,25 +289,17 @@ Rules:
         </div>
         {open ? <ChevronUp className="w-3.5 h-3.5 text-white/30" /> : <ChevronDown className="w-3.5 h-3.5 text-white/30" />}
       </button>
-
       <AnimatePresence>
         {open && (
-          <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }}
-            className="overflow-hidden">
+          <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
             <div className="px-4 pb-4 space-y-2">
-              {loading ? (
-                <div className="space-y-2">
-                  {[1, 2, 3].map(i => (
-                    <div key={i} className="h-4 rounded-full bg-white/5 shimmer" style={{ width: `${70 + i * 10}%` }} />
-                  ))}
-                </div>
-              ) : bullets.map((b, i) => (
-                <motion.div key={i} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.08 }}
-                  className="flex items-start gap-2 p-2.5 rounded-xl bg-white/3 border border-white/6">
-                  <p className="text-xs text-white/70 leading-relaxed">{b}</p>
-                </motion.div>
-              ))}
+              {loading ? [1, 2, 3].map(i => <div key={i} className="h-4 rounded-full bg-white/5 shimmer" style={{ width: `${70 + i * 10}%` }} />) :
+                bullets.map((b, i) => (
+                  <motion.div key={i} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.08 }}
+                    className="flex items-start gap-2 p-2.5 rounded-xl bg-white/3 border border-white/6">
+                    <p className="text-xs text-white/70 leading-relaxed">{b}</p>
+                  </motion.div>
+                ))}
             </div>
           </motion.div>
         )}
@@ -152,113 +308,113 @@ Rules:
   );
 }
 
-// ── Main ───────────────────────────────────────────────────────────────────────
+// ── Main Component ─────────────────────────────────────────────────────────────
 export default function VisualBuilder() {
   const { getActiveTable, saveToDashboard, setActiveSection } = useWorkspaceStore();
   const table = getActiveTable();
   const columns = useMemo(() => buildColumnsArray(table), [table]);
 
   const [chartType, setChartType] = useState('bar');
-  const [shelves, setShelves] = useState({ x: [], y: [], color: [], size: [], detail: [], filter: [] });
+  const [xField, setXField] = useState(null);
+  const [yField, setYField] = useState(null);
   const [aggFn, setAggFn] = useState('SUM');
-  const marks = DEFAULT_MARKS;
+  const [marks] = useState(DEFAULT_MARKS);
   const [chartTitle, setChartTitle] = useState('');
   const [nlPrompt, setNlPrompt] = useState('');
   const [generating, setGenerating] = useState(false);
   const [saved, setSaved] = useState(false);
   const [aiSummary, setAiSummary] = useState('');
-  const [showMapTemplates, setShowMapTemplates] = useState(false);
+  const [showChartSelector, setShowChartSelector] = useState(false);
+  const [showControls, setShowControls] = useState(true);
+  const [generateError, setGenerateError] = useState('');
+
+  // Build shelves from xField/yField for chart rendering
+  const shelves = useMemo(() => ({
+    x: xField ? [{ name: xField, agg: 'ATTR', type: columns.find(c => c.name === xField)?.type || 'category' }] : [],
+    y: yField ? [{ name: yField, agg: aggFn, type: columns.find(c => c.name === yField)?.type || 'numeric' }] : [],
+    color: [], size: [], detail: [], filter: [],
+  }), [xField, yField, aggFn, columns]);
 
   const chartData = useMemo(() => {
-    if (!table?.rows) return [];
+    if (!table?.rows || !xField || !yField) return [];
     return buildChartData(table.rows, shelves, aggFn, chartType, marks);
-  }, [table, shelves, aggFn, chartType]);
+  }, [table, shelves, aggFn, chartType, xField, yField]);
 
+  const hasChart = chartData.length > 0;
+
+  // Auto-populate fields when table loads
+  useEffect(() => {
+    if (!columns.length || xField || yField) return;
+    const numCols = columns.filter(c => c.type === 'numeric');
+    const catCols = columns.filter(c => c.type === 'category' || c.type === 'geo');
+    const dateCols = columns.filter(c => c.type === 'date');
+
+    if (catCols.length) setXField(catCols[0].name);
+    else if (dateCols.length) setXField(dateCols[0].name);
+
+    if (numCols.length) setYField(numCols[0].name);
+  }, [columns]);
+
+  // ── AI Chart Generator ───────────────────────────────────────────────────────
   const handleNLGenerate = useCallback(async (promptOverride) => {
     const prompt = (promptOverride || nlPrompt).trim();
     if (!prompt || !table) return;
     setGenerating(true);
     setAiSummary('');
+    setGenerateError('');
+
     try {
       const colContext = columns.slice(0, 40).map(c => {
-        const vals = table.rows?.slice(0, 5).map(r => r[c.name]).filter(v => v != null).slice(0, 3);
-        return `${c.name} [${c.type}] e.g. ${vals?.join(', ') || 'N/A'}`;
+        const samples = table.rows?.slice(0, 5).map(r => r[c.name]).filter(v => v != null).slice(0, 3);
+        return `"${c.name}" [${c.type}] e.g. ${samples?.join(', ') || 'N/A'}`;
       }).join('\n');
 
-      const geoCols = columns.filter(c => isGeoColumn(c.name));
-      const numCols = columns.filter(c => c.type === 'numeric' || c.isKpiCandidate);
-      const dateCols = columns.filter(c => c.type === 'date' || c.isDateCandidate);
-
-      // Infer business domain from dataset name + column names
-      const allColNames = columns.map(c => c.name.toLowerCase()).join(' ');
-      const domainHints = [
-        allColNames.match(/revenue|sales|gmv|arr|mrr|deal|pipeline/) ? 'SALES/REVENUE dataset' : null,
-        allColNames.match(/churn|retention|ltv|clv|nps|satisfaction/) ? 'CUSTOMER SUCCESS dataset' : null,
-        allColNames.match(/session|pageview|bounce|ctr|conversion|funnel/) ? 'MARKETING/WEB ANALYTICS dataset' : null,
-        allColNames.match(/open|high|low|close|volume|price/) ? 'FINANCIAL/STOCK dataset' : null,
-        allColNames.match(/defect|yield|throughput|cycle|sla|uptime/) ? 'OPERATIONS dataset' : null,
-        allColNames.match(/country|state|region|city|latitude|longitude/) ? 'GEO/REGIONAL dataset' : null,
-      ].filter(Boolean).join(', ') || 'general business dataset';
-
-      // KPI-aware aggregation hints
-      const kpiHints = numCols.slice(0, 6).map(c => {
-        const n = c.name.toLowerCase();
-        const agg = n.match(/rate|pct|percent|ratio|avg|score|nps/) ? 'AVG'
-          : n.match(/count|num_|number|qty|quantity/) ? 'COUNT'
-          : 'SUM';
-        return `${c.name} → ${agg}`;
-      }).join(', ');
+      const numCols = columns.filter(c => c.type === 'numeric');
+      const catCols = columns.filter(c => c.type === 'category' || c.type === 'geo');
+      const dateCols = columns.filter(c => c.type === 'date');
 
       const result = await base44.integrations.Core.InvokeLLM({
         model: 'claude_sonnet_4_6',
-        prompt: `You are a world-class Senior BI Analyst. Choose the BEST chart configuration.
+        prompt: `You are a BI Analyst. Given the user request and dataset, return the EXACT field names from the dataset.
 
 USER REQUEST: "${prompt}"
 
-DATASET: "${table.name}" — detected as: ${domainHints}
-ROWS: ${table.rowCount || table.rows?.length}
-
-COLUMNS (name [type] sample values):
+DATASET: "${table.name}" — ${table.rowCount || table.rows?.length} rows
+ALL COLUMNS (exact name [inferred type] sample values):
 ${colContext}
 
-KPI AGGREGATION HINTS: ${kpiHints || 'none'}
-GEOGRAPHIC COLUMNS: ${geoCols.map(c => c.name).join(', ') || 'none'}
+NUMERIC COLUMNS: ${numCols.map(c => c.name).join(', ') || 'none'}
+CATEGORY/TEXT COLUMNS: ${catCols.map(c => c.name).join(', ') || 'none'}
 DATE COLUMNS: ${dateCols.map(c => c.name).join(', ') || 'none'}
-NUMERIC KPI COLUMNS: ${numCols.map(c => c.name).join(', ') || 'none'}
 
-SMART CHART SELECTION (business domain aware):
-SALES/REVENUE: revenue trends → line/area | by region → choropleth_map | top products → bar_horizontal | breakdown → donut
-CUSTOMER: churn/retention → line | segments → bar/treemap | NPS scores → gauge/radar | cohorts → heatmap
-MARKETING: funnel/conversion → funnel | CTR/bounce → dual_axis | traffic over time → area_stacked
-FINANCIAL: stock prices → candlestick | P&L variance → waterfall | portfolio → treemap
-OPERATIONS: SLA/uptime → line | process steps → gantt | throughput → histogram
-GEO/REGIONAL: by country/state → choropleth_map or symbol_map | city density → heat_map_geo
+RULES — CRITICAL:
+1. x_field MUST be the EXACT column name from the list above (categorical, date, or geo column)
+2. y_field MUST be the EXACT column name from the list above (numeric column)
+3. NEVER use a field name that is not in the column list above
+4. Pick the most meaningful numeric column for the requested metric
+5. Pick the best grouping column for x_field
 
-UNIVERSAL RULES (highest priority):
-1. MAPS: any mention of "map/region/country/state/city/geography" → choropleth_map; x_field=geo column, y_field=numeric KPI
-2. TIME: "trend/over time/monthly/quarterly" → line or area; x_field=date column
-3. RANKING: "top N/best/worst/rank" → bar_horizontal (sorted)
-4. SINGLE NUMBER: "total/KPI/summary/how much" → metric_card
-5. TWO MEASURES: "vs/compare X and Y" → dual_axis
-6. FORECAST: "predict/forecast/next" → forecast_line
-7. x_field MUST be categorical/date/geo — NEVER a pure numeric ID
-8. y_field MUST be the numeric measure matching the request intent
-9. Pick aggregation from KPI hints above — rates/scores → AVG, counts → COUNT, sums → SUM
+CHART SELECTION GUIDE:
+- "top/best/worst/rank/compare" → bar or bar_horizontal
+- "trend/over time/monthly/by date" → line or area  
+- "distribution/spread/histogram" → histogram
+- "breakdown/share/proportion/percent" → donut or pie
+- "map/region/country/city/geo" → choropleth_map
+- "correlation/relationship" → scatter
+- "forecast/predict/next" → forecast_line
+- "funnel/stages/conversion" → funnel
+- "total/kpi/summary number" → metric_card
 
-AVAILABLE: bar, bar_horizontal, bar_stacked, bar_grouped, line, area, area_stacked, scatter, bubble,
-histogram, donut, pie, treemap, box_plot, waterfall, heatmap, highlight_table, text_table, funnel,
-metric_card, gauge, radar, forecast_line, dual_axis, sankey, packed_bubble, sunburst,
-choropleth_map, symbol_map, heat_map_geo, gantt, step_line, candlestick
+AVAILABLE CHART TYPES: bar, bar_horizontal, bar_stacked, bar_grouped, line, area, area_stacked, scatter, bubble, histogram, donut, pie, treemap, box_plot, waterfall, heatmap, text_table, funnel, metric_card, gauge, radar, forecast_line, dual_axis, sankey, packed_bubble, sunburst, choropleth_map, step_line
 
-RESPOND ONLY with JSON:`,
+Return JSON only:`,
         response_json_schema: {
           type: 'object',
           properties: {
             chart_type: { type: 'string' },
             x_field: { type: 'string' },
             y_field: { type: 'string' },
-            y2_field: { type: 'string' },
-            aggregation: { type: 'string' },
+            aggregation: { type: 'string', enum: ['SUM', 'AVG', 'COUNT', 'MIN', 'MAX'] },
             title: { type: 'string' },
             insight: { type: 'string' },
           },
@@ -266,79 +422,76 @@ RESPOND ONLY with JSON:`,
         },
       });
 
-      if (result?.chart_type) setChartType(result.chart_type);
-      if (result?.aggregation) setAggFn(result.aggregation);
-      if (result?.title) setChartTitle(result.title);
-      if (result?.insight) setAiSummary(result.insight);
+      if (!result) throw new Error('No response from AI');
 
-      // Validate x_field is not a numeric column for maps
-      let xFieldName = result?.x_field;
-      const isMapChart = ['choropleth_map', 'symbol_map', 'heat_map_geo'].includes(result?.chart_type);
-      if (isMapChart) {
-        const xCol = columns.find(c => c.name === xFieldName);
-        if (!xCol || xCol.type === 'numeric') {
-          // Auto-fix: find a geo column or categorical column
-          const fallback = geoCols[0] || columns.find(c => c.type === 'category' || c.type === 'text' || c.isSegmentCandidate);
-          if (fallback) xFieldName = fallback.name;
-        }
+      // ── Validate and fuzzy-match field names ──────────────────────────────────
+      const colNames = columns.map(c => c.name);
+
+      const findBestMatch = (fieldName, preferredType) => {
+        if (!fieldName) return null;
+
+        // Exact match first
+        if (colNames.includes(fieldName)) return fieldName;
+
+        // Case-insensitive match
+        const lower = fieldName.toLowerCase();
+        const caseMatch = colNames.find(n => n.toLowerCase() === lower);
+        if (caseMatch) return caseMatch;
+
+        // Partial match
+        const partialMatch = colNames.find(n =>
+          n.toLowerCase().includes(lower) || lower.includes(n.toLowerCase())
+        );
+        if (partialMatch) return partialMatch;
+
+        // Fallback: pick first column of preferred type
+        const typeFallback = columns.find(c => c.type === preferredType);
+        return typeFallback?.name || null;
+      };
+
+      const resolvedX = findBestMatch(result.x_field, 'category') ||
+        columns.find(c => c.type === 'category' || c.type === 'geo' || c.type === 'date')?.name;
+      const resolvedY = findBestMatch(result.y_field, 'numeric') ||
+        columns.find(c => c.type === 'numeric')?.name;
+
+      if (!resolvedX || !resolvedY) {
+        throw new Error('Could not identify suitable fields. Try rephrasing with column names.');
       }
 
-      const xCol = columns.find(c => c.name === xFieldName);
-      const yCol = columns.find(c => c.name === result?.y_field);
-      const y2Col = result?.y2_field ? columns.find(c => c.name === result.y2_field) : null;
-
-      const newShelves = { x: [], y: [], color: [], size: [], detail: [], filter: [] };
-      if (xCol) newShelves.x = [{ name: xCol.name, agg: 'ATTR', type: xCol.type }];
-      if (yCol) newShelves.y = [{ name: yCol.name, agg: result.aggregation || 'SUM', type: yCol.type }];
-      if (y2Col) newShelves.y = [...newShelves.y, { name: y2Col.name, agg: result.aggregation || 'SUM', type: y2Col.type }];
-      setShelves(newShelves);
+      setChartType(result.chart_type || 'bar');
+      setAggFn(result.aggregation || 'SUM');
+      setChartTitle(result.title || '');
+      setAiSummary(result.insight || '');
+      setXField(resolvedX);
+      setYField(resolvedY);
 
     } catch (e) {
-      console.error(e);
-      setAiSummary('Could not generate chart. Try rephrasing — e.g. "Top 5 sales by category"');
+      setGenerateError(e.message || 'Generation failed. Try a different prompt.');
     }
     setGenerating(false);
   }, [nlPrompt, table, columns]);
 
-  // Apply a map template one-click
-  const handleApplyMapTemplate = useCallback((template) => {
-    const { geoCol, kpiCol } = resolveTemplateColumns(template, columns);
-    if (!geoCol || !kpiCol) return;
-    setChartType(template.chartType);
-    setAggFn(template.aggFn);
-    setChartTitle(template.label);
-    setAiSummary(template.desc);
-    setShelves({
-      x: [{ name: geoCol.name, agg: 'ATTR', type: geoCol.type }],
-      y: [{ name: kpiCol.name, agg: template.aggFn, type: kpiCol.type }],
-      color: [], size: [], detail: [], filter: [],
-    });
-    setShowMapTemplates(false);
-  }, [columns]);
-
   const handleAutoRecommend = useCallback(() => {
-    const rec = recommendChartType(columns);
-    setChartType(rec);
-    const numCols = columns.filter(c => c.type === 'numeric' || c.isKpiCandidate);
-    const catCols = columns.filter(c => c.type === 'category' || c.isSegmentCandidate);
-    const dateCols = columns.filter(c => c.type === 'date' || c.isDateCandidate);
-    const geoCols = columns.filter(c => isGeoColumn(c.name));
-    const newShelves = { x: [], y: [], color: [], size: [], detail: [], filter: [] };
-    if (geoCols.length && (rec === 'choropleth_map' || rec === 'symbol_map')) {
-      newShelves.x = [{ name: geoCols[0].name, agg: 'ATTR', type: geoCols[0].type }];
-    } else if (dateCols.length) {
-      newShelves.x = [{ name: dateCols[0].name, agg: 'ATTR', type: 'date' }];
-    } else if (catCols.length) {
-      newShelves.x = [{ name: catCols[0].name, agg: 'ATTR', type: 'category' }];
+    const numCols = columns.filter(c => c.type === 'numeric');
+    const catCols = columns.filter(c => c.type === 'category');
+    const dateCols = columns.filter(c => c.type === 'date');
+    const geoCols = columns.filter(c => c.type === 'geo');
+
+    if (geoCols.length && numCols.length) {
+      setChartType('choropleth_map'); setXField(geoCols[0].name); setYField(numCols[0].name);
+    } else if (dateCols.length && numCols.length) {
+      setChartType('line'); setXField(dateCols[0].name); setYField(numCols[0].name);
+    } else if (catCols.length && numCols.length) {
+      setChartType('bar'); setXField(catCols[0].name); setYField(numCols[0].name);
+    } else if (numCols.length >= 2) {
+      setChartType('scatter'); setXField(numCols[0].name); setYField(numCols[1].name);
     }
-    if (numCols.length) newShelves.y = [{ name: numCols[0].name, agg: 'SUM', type: 'numeric' }];
-    setShelves(newShelves);
     setChartTitle('Auto-recommended chart');
   }, [columns]);
 
   const handleSave = useCallback(() => {
-    if (!chartData.length) return;
-    const title = chartTitle || shelves.y[0]?.name?.replace(/_/g, ' ') || 'Chart';
+    if (!hasChart) return;
+    const title = chartTitle || `${yField} by ${xField}`;
     saveToDashboard({
       label: title,
       datasetName: table?.name,
@@ -347,15 +500,15 @@ RESPOND ONLY with JSON:`,
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
-  }, [chartData, chartTitle, shelves, table, chartType, marks, aiSummary, saveToDashboard]);
+  }, [chartData, chartTitle, xField, yField, table, chartType, marks, aiSummary, saveToDashboard]);
 
-  // ── empty state ──
+  // ── Empty state ──────────────────────────────────────────────────────────────
   if (!table) {
     return (
       <div className="p-8 flex flex-col items-center justify-center min-h-[500px] text-center">
         <Database className="w-12 h-12 text-white/15 mb-4" />
         <h2 className="text-lg font-semibold mb-2">No Data Loaded</h2>
-        <p className="text-sm text-muted-foreground mb-5">Upload a dataset to start building charts with AI.</p>
+        <p className="text-sm text-muted-foreground mb-5">Upload a dataset to start building charts.</p>
         <button onClick={() => setActiveSection('intake')}
           className="flex items-center gap-2 px-5 py-2.5 bg-cyan-400/10 border border-cyan-400/20 text-cyan-400 rounded-xl text-sm font-semibold hover:bg-cyan-400/15 transition-colors">
           Upload Data <ArrowRight className="w-4 h-4" />
@@ -364,15 +517,11 @@ RESPOND ONLY with JSON:`,
     );
   }
 
-  const xField = shelves.x[0]?.name;
-  const yField = shelves.y[0]?.name;
-  const hasChart = !!(xField || yField) && chartData.length > 0;
-
   return (
     <div className="flex h-full flex-col overflow-hidden">
 
       {/* ── Top bar ── */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-white/8 flex-shrink-0">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/8 flex-shrink-0">
         <div className="flex items-center gap-2 min-w-0">
           <BarChart2 className="w-4 h-4 text-cyan-400 flex-shrink-0" />
           <span className="font-bold text-sm">Visual Builder</span>
@@ -381,129 +530,188 @@ RESPOND ONLY with JSON:`,
         <div className="flex items-center gap-2 flex-shrink-0">
           <button onClick={handleAutoRecommend}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-xl bg-white/5 border border-white/10 text-white/40 hover:text-white/70 hover:border-white/20 transition-all">
-            <Wand2 className="w-3.5 h-3.5" /> Auto Recommend
-          </button>
-          <button onClick={() => setShowMapTemplates(v => !v)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-xl border transition-all ${showMapTemplates ? 'bg-yellow-400/10 border-yellow-400/25 text-yellow-400' : 'bg-white/5 border-white/10 text-white/40 hover:text-yellow-400 hover:border-yellow-400/25'}`}>
-            <Map className="w-3.5 h-3.5" /> Map Templates
+            <Wand2 className="w-3.5 h-3.5" /> Auto
           </button>
           <input value={chartTitle} onChange={e => setChartTitle(e.target.value)} placeholder="Chart title…"
-            className="w-40 px-3 py-1.5 bg-white/5 border border-white/10 rounded-xl text-xs focus:outline-none focus:border-cyan-400/30 text-foreground" />
+            className="w-36 px-3 py-1.5 bg-white/5 border border-white/10 rounded-xl text-xs focus:outline-none focus:border-cyan-400/30 text-foreground" />
           <button onClick={handleSave} disabled={!hasChart}
             className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold transition-all disabled:opacity-40 ${saved ? 'bg-green-400/15 border border-green-400/25 text-green-400' : 'bg-cyan-400 hover:bg-cyan-300'}`}
             style={!saved ? { color: 'hsl(222,47%,6%)' } : {}}>
-            {saved ? <><CheckCircle2 className="w-3 h-3" /> Saved!</> : <><Save className="w-3 h-3" /> Save to Dashboard</>}
+            {saved ? <><CheckCircle2 className="w-3 h-3" /> Saved!</> : <><Save className="w-3 h-3" /> Save</>}
           </button>
         </div>
       </div>
 
-      {/* ── AI Prompt Bar (hero) ── */}
-      <div className="border-b border-white/5 flex-shrink-0" style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.07) 0%, rgba(0,229,255,0.04) 100%)' }}>
-        <div className="px-5 pt-4 pb-2 flex items-center gap-3">
-          <div className="flex items-center gap-2 px-4 py-3 flex-1 rounded-2xl border border-purple-400/20 bg-white/3 focus-within:border-purple-400/40 focus-within:bg-white/5 transition-all">
-            {generating
-              ? <Loader2 className="w-4 h-4 text-purple-400 animate-spin flex-shrink-0" />
-              : <Sparkles className="w-4 h-4 text-purple-400 flex-shrink-0" />}
-            <input
-              value={nlPrompt}
-              onChange={e => setNlPrompt(e.target.value)}
+      {/* ── AI Prompt Bar ── */}
+      <div className="border-b border-white/5 flex-shrink-0 px-4 py-3 space-y-2"
+        style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.07) 0%, rgba(0,229,255,0.04) 100%)' }}>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 px-3 py-2.5 flex-1 rounded-xl border border-purple-400/20 bg-white/3 focus-within:border-purple-400/40 transition-all">
+            {generating ? <Loader2 className="w-3.5 h-3.5 text-purple-400 animate-spin flex-shrink-0" />
+              : <Sparkles className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />}
+            <input value={nlPrompt} onChange={e => setNlPrompt(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !generating && handleNLGenerate()}
-              placeholder='Describe your chart — e.g. "Show sales by country on a map" or "Top 10 products by revenue"'
-              className="flex-1 bg-transparent text-sm text-foreground placeholder:text-white/30 focus:outline-none"
-              disabled={generating}
-            />
+              placeholder={`Describe your chart — e.g. "Top 10 products by revenue" or "Sales trend by month"`}
+              className="flex-1 bg-transparent text-sm text-foreground placeholder:text-white/25 focus:outline-none"
+              disabled={generating} />
           </div>
           <button onClick={() => handleNLGenerate()} disabled={generating || !nlPrompt.trim()}
-            className="flex items-center gap-2 px-5 py-3 bg-purple-500 hover:bg-purple-400 text-white rounded-2xl text-sm font-bold shadow-lg transition-all disabled:opacity-40 flex-shrink-0"
-            style={{ boxShadow: '0 0 20px rgba(168,85,247,0.3)' }}>
+            className="flex items-center gap-2 px-4 py-2.5 bg-purple-500 hover:bg-purple-400 text-white rounded-xl text-sm font-bold transition-all disabled:opacity-40 flex-shrink-0">
             {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
             {generating ? 'Generating…' : 'Generate'}
           </button>
         </div>
-
-        {/* Quick prompt chips */}
-        <div className="flex gap-2 px-5 pb-3 overflow-x-auto">
-          {QUICK_PROMPTS.map(({ label, icon: Icon, prompt }) => (
-            <button key={label}
-              onClick={() => { setNlPrompt(prompt); handleNLGenerate(prompt); }}
+        {/* Quick chips */}
+        <div className="flex gap-2 overflow-x-auto pb-0.5">
+          {QUICK_PROMPTS.map(({ label, prompt }) => (
+            <button key={label} onClick={() => { setNlPrompt(prompt); handleNLGenerate(prompt); }}
               disabled={generating}
-              className="flex-shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-white/4 border border-white/8 text-white/45 hover:text-purple-300 hover:border-purple-400/30 hover:bg-purple-400/8 transition-all disabled:opacity-40">
-              <Icon className="w-3 h-3" /> {label}
+              className="flex-shrink-0 text-xs px-3 py-1.5 rounded-full bg-white/4 border border-white/8 text-white/40 hover:text-purple-300 hover:border-purple-400/30 hover:bg-purple-400/8 transition-all disabled:opacity-40">
+              {label}
             </button>
           ))}
         </div>
+        {generateError && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-400/8 border border-red-400/20 text-xs text-red-400">
+            <X className="w-3 h-3 flex-shrink-0" />{generateError}
+          </div>
+        )}
       </div>
 
-      {/* ── Map Templates Panel ── */}
-      <AnimatePresence>
-        {showMapTemplates && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden border-b border-white/8 flex-shrink-0" style={{ background: 'rgba(255,204,2,0.04)' }}>
-            <div className="px-5 py-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Map className="w-4 h-4 text-yellow-400" />
-                  <span className="text-sm font-bold text-yellow-400">Geographic Map Templates</span>
-                  <span className="text-xs text-white/30">— one-click regional visualizations</span>
-                </div>
-                <button onClick={() => setShowMapTemplates(false)} className="p-1 text-white/30 hover:text-white/60 transition-colors">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-              <VBMapTemplates columns={columns} onApply={handleApplyMapTemplate} />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ── Main content: Chart + Insights side by side ── */}
+      {/* ── Main area: Controls sidebar + Chart ── */}
       <div className="flex flex-1 overflow-hidden min-h-0">
 
-        {/* Chart area */}
-        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-          <div className="flex-1 overflow-y-auto p-5 space-y-4">
-
-            {/* Chart type + meta bar */}
-            {hasChart && (
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <div className="font-semibold text-sm">{chartTitle || yField?.replace(/_/g, ' ') || 'Chart'}</div>
-                  <div className="text-xs text-white/25 mt-0.5 flex items-center gap-1.5">
-                    <span className="px-1.5 py-0.5 rounded-md bg-white/5 border border-white/8">{CHART_TYPE_LABELS[chartType] || chartType}</span>
-                    {xField && <span className="text-white/20">X: {xField}</span>}
-                    {yField && <><span className="text-white/15">·</span><span className="text-white/20">Y: {yField} ({aggFn})</span></>}
-                    <span className="text-white/15">·</span>
-                    <span className="text-white/20">{chartData.length} pts</span>
-                  </div>
-                </div>
-                <button onClick={handleAutoRecommend}
-                  className="flex items-center gap-1 text-xs text-white/20 hover:text-white/55 px-2 py-1 rounded-lg hover:bg-white/5 transition-all">
-                  <RefreshCw className="w-3 h-3" /> Refresh
+        {/* ── Controls Sidebar ── */}
+        <div className={`flex-shrink-0 border-r border-white/8 overflow-y-auto transition-all duration-200 ${showControls ? 'w-56' : 'w-10'}`}>
+          {showControls ? (
+            <div className="p-3 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-white/40 uppercase tracking-widest">Controls</span>
+                <button onClick={() => setShowControls(false)} className="text-white/20 hover:text-white/50">
+                  <ChevronLeft className="w-3.5 h-3.5" />
                 </button>
               </div>
-            )}
 
-            {/* Chart card */}
-            <div className="glass-card rounded-2xl p-4 border border-white/8 min-h-[300px] flex items-center justify-center">
-              {!hasChart ? (
-                <div className="flex flex-col items-center gap-3 text-white/20 py-8">
+              {/* Chart Type selector */}
+              <div className="space-y-1.5">
+                <label className="text-xs text-white/30 font-semibold">Chart Type</label>
+                <div className="relative">
+                  <button onClick={() => setShowChartSelector(v => !v)}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-white/12 bg-white/4 text-xs text-white/70 hover:border-white/20 hover:bg-white/6 transition-all">
+                    <span className="font-semibold">{CHART_TYPE_LABELS[chartType] || chartType}</span>
+                    <ChevronDown className="w-3.5 h-3.5 text-white/30" />
+                  </button>
+                  {showChartSelector && (
+                    <ChartTypeSelector selected={chartType} onChange={(t) => { setChartType(t); }}
+                      onClose={() => setShowChartSelector(false)} />
+                  )}
+                </div>
+              </div>
+
+              {/* Fields */}
+              <div className="space-y-2">
+                <label className="text-xs text-white/30 font-semibold">Fields</label>
+                <FieldRow label="X" color="#00e5ff" field={xField}
+                  columns={columns}
+                  filterFn={c => ['category', 'date', 'geo', 'id'].includes(c.type)}
+                  onChange={c => setXField(c.name)}
+                  onClear={() => setXField(null)} />
+                <FieldRow label="Y" color="#a855f7" field={yField}
+                  columns={columns}
+                  filterFn={c => c.type === 'numeric'}
+                  onChange={c => setYField(c.name)}
+                  onClear={() => setYField(null)} />
+              </div>
+
+              {/* Aggregation */}
+              <div className="space-y-1.5">
+                <label className="text-xs text-white/30 font-semibold">Aggregation</label>
+                <div className="grid grid-cols-3 gap-1">
+                  {AGG_OPTIONS.map(agg => (
+                    <button key={agg} onClick={() => setAggFn(agg)}
+                      className={`px-2 py-1.5 rounded-lg text-xs font-bold transition-all ${aggFn === agg ? 'bg-cyan-400/15 border border-cyan-400/30 text-cyan-400' : 'bg-white/4 border border-white/8 text-white/35 hover:text-white/60 hover:bg-white/7'}`}>
+                      {agg}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Column reference */}
+              <div className="space-y-1.5">
+                <label className="text-xs text-white/30 font-semibold">Columns ({columns.length})</label>
+                <div className="space-y-0.5 max-h-40 overflow-y-auto">
+                  {columns.map(c => (
+                    <div key={c.name}
+                      className="flex items-center justify-between px-2 py-1 rounded-lg hover:bg-white/4 cursor-pointer group"
+                      onClick={() => {
+                        if (c.type === 'numeric') setYField(c.name);
+                        else setXField(c.name);
+                      }}>
+                      <span className="text-xs text-white/50 group-hover:text-white/75 truncate">{c.name}</span>
+                      <span className={`text-xs px-1.5 py-0.5 rounded-full ml-1 flex-shrink-0 ${
+                        c.type === 'numeric' ? 'bg-cyan-400/10 text-cyan-400/70' :
+                        c.type === 'date' ? 'bg-green-400/10 text-green-400/70' :
+                        c.type === 'geo' ? 'bg-yellow-400/10 text-yellow-400/70' :
+                        'bg-white/5 text-white/30'}`}>
+                        {c.type}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => setShowControls(true)}
+              className="w-10 h-full flex items-center justify-center text-white/20 hover:text-white/50 transition-colors">
+              <Settings2 className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        {/* ── Chart Area ── */}
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+
+            {/* Status bar */}
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2 text-xs">
+                <span className="px-2 py-0.5 rounded-lg border border-white/10 bg-white/4 text-white/50 font-semibold">
+                  {CHART_TYPE_LABELS[chartType] || chartType}
+                </span>
+                {xField && <span className="text-white/30">X: <span className="text-white/50">{xField}</span></span>}
+                {yField && <><span className="text-white/20">·</span><span className="text-white/30">Y: <span className="text-white/50">{yField}</span> ({aggFn})</span></>}
+                {hasChart && <span className="text-white/20">· {chartData.length} pts</span>}
+              </div>
+              <button onClick={handleAutoRecommend}
+                className="flex items-center gap-1 text-xs text-white/20 hover:text-white/50 px-2 py-1 rounded-lg hover:bg-white/4 transition-all">
+                <RefreshCw className="w-3 h-3" /> Re-detect
+              </button>
+            </div>
+
+            {/* Chart */}
+            <div className="glass-card rounded-2xl p-4 border border-white/8 min-h-[320px] flex items-center justify-center">
+              {!xField && !yField ? (
+                <div className="flex flex-col items-center gap-3 text-center py-8">
                   <div className="w-16 h-16 rounded-2xl bg-purple-400/8 border border-purple-400/15 flex items-center justify-center">
                     <Sparkles className="w-7 h-7 text-purple-400/50" />
                   </div>
-                  <div className="text-sm text-center leading-relaxed max-w-xs">
-                    <span className="text-white/40 font-medium">Ask AI to build your chart</span><br />
-                    <span className="text-white/25 text-xs">Try: "Show sales by region on a map"</span>
+                  <div>
+                    <p className="text-sm text-white/40 font-semibold">Ask AI or pick fields manually</p>
+                    <p className="text-xs text-white/25 mt-1">Type a prompt above · or select X and Y in the controls panel</p>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 mt-2 w-full max-w-xs">
-                    {QUICK_PROMPTS.map(({ label, icon: Icon, prompt }) => (
-                      <button key={label}
-                        onClick={() => { setNlPrompt(prompt); handleNLGenerate(prompt); }}
-                        className="flex items-center gap-1.5 p-2.5 rounded-xl bg-white/3 border border-white/8 hover:bg-white/6 hover:border-white/15 transition-all text-left">
-                        <Icon className="w-3.5 h-3.5 text-purple-400/60 flex-shrink-0" />
-                        <span className="text-xs text-white/40">{label}</span>
+                  <div className="grid grid-cols-2 gap-2 mt-1 w-full max-w-xs">
+                    {QUICK_PROMPTS.map(({ label, prompt }) => (
+                      <button key={label} onClick={() => { setNlPrompt(prompt); handleNLGenerate(prompt); }}
+                        className="text-left text-xs p-2.5 rounded-xl bg-white/3 border border-white/8 hover:bg-white/5 hover:border-white/15 transition-all text-white/40">
+                        {label}
                       </button>
                     ))}
                   </div>
+                </div>
+              ) : !hasChart ? (
+                <div className="text-center py-8">
+                  <p className="text-sm text-white/30">No data to display.</p>
+                  <p className="text-xs text-white/20 mt-1">Try a different X field — needs a categorical or date column.</p>
                 </div>
               ) : (
                 <div className="w-full">
@@ -512,7 +720,7 @@ RESPOND ONLY with JSON:`,
               )}
             </div>
 
-            {/* AI one-liner summary */}
+            {/* AI summary */}
             <AnimatePresence>
               {aiSummary && (
                 <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
@@ -523,67 +731,33 @@ RESPOND ONLY with JSON:`,
               )}
             </AnimatePresence>
 
-            {/* Executive Narrative */}
-            <VBNarrativePanel
-              chartData={chartData}
-              chartType={chartType}
-              chartTitle={chartTitle}
-              xField={xField}
-              yField={yField}
-              aggFn={aggFn}
-              tableName={table?.name}
-            />
-
-            {/* Insights Panel */}
-            <InsightsPanel
-              chartData={chartData}
-              chartType={chartType}
-              xField={xField}
-              yField={yField}
-              tableName={table?.name}
-              columns={columns}
-            />
-
-            {/* Available columns */}
-            {columns.length > 0 && (
-              <div className="glass-card rounded-xl p-3 border border-white/5">
-                <div className="text-xs text-white/20 uppercase tracking-widest mb-2">Dataset columns</div>
-                <div className="flex flex-wrap gap-1">
-                  {columns.map(c => (
-                    <span key={c.name} title={`${c.name} [${c.type}]`}
-                      className="text-xs px-2 py-0.5 rounded-full border text-white/30 cursor-default"
-                      style={{
-                        borderColor: (c.type === 'numeric' || c.isKpiCandidate) ? 'rgba(0,229,255,0.2)'
-                          : (c.type === 'date' || c.isDateCandidate) ? 'rgba(74,222,128,0.2)'
-                          : isGeoColumn(c.name) ? 'rgba(255,204,2,0.25)'
-                          : 'rgba(255,255,255,0.07)',
-                        background: isGeoColumn(c.name) ? 'rgba(255,204,2,0.04)' : 'transparent',
-                      }}>
-                      {c.name.replace(/_/g, ' ')}
-                    </span>
-                  ))}
-                </div>
-                <div className="flex items-center gap-3 mt-2 text-xs text-white/15">
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full inline-block" style={{ background: 'rgba(0,229,255,0.4)' }} />Numeric</span>
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full inline-block" style={{ background: 'rgba(74,222,128,0.4)' }} />Date</span>
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full inline-block" style={{ background: 'rgba(255,204,2,0.4)' }} />Geographic</span>
-                </div>
-              </div>
-            )}
+            {/* AI Insights */}
+            <InsightsPanel chartData={chartData} chartType={chartType}
+              xField={xField} yField={yField} tableName={table?.name} />
           </div>
 
           {/* Bottom analysis panel */}
-          <VBBottomPanel
-            chartType={chartType}
-            shelves={shelves}
-            marks={marks}
-            data={chartData}
-            aggFn={aggFn}
-            tableName={table?.name}
-            rows={table?.rows}
-          />
+          <VBBottomPanel chartType={chartType} shelves={shelves} marks={marks}
+            data={chartData} aggFn={aggFn} tableName={table?.name} rows={table?.rows} />
         </div>
       </div>
     </div>
+  );
+}
+
+// Missing icon import fix
+function Save(props) {
+  return (
+    <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+    </svg>
+  );
+}
+
+function ChevronLeft(props) {
+  return (
+    <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="15 18 9 12 15 6"/>
+    </svg>
   );
 }
