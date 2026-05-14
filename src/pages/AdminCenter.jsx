@@ -18,6 +18,7 @@ import AdminFeatureUsage from '@/components/admin/AdminFeatureUsage.jsx';
 import AdminAIMonitor from '@/components/admin/AdminAIMonitor.jsx';
 import AdminErrorLogs from '@/components/admin/AdminErrorLogs.jsx';
 import AdminAuditLog from '@/components/admin/AdminAuditLog.jsx';
+import AdminModuleUsage from '@/components/admin/AdminModuleUsage.jsx';
 
 const ADMIN_EMAILS = ['rthati1@asu.edu', 'thatirithikroy@gmail.com'];
 
@@ -33,7 +34,8 @@ const TABS = [
   { id: 'features',  label: 'Feature Usage',   icon: TrendingUp },
   { id: 'ai',        label: 'AI Monitor',      icon: Brain },
   { id: 'errors',    label: 'Error Logs',      icon: AlertTriangle },
-  { id: 'audit',     label: 'Admin Audit',     icon: ClipboardList },
+  { id: 'modules',   label: 'Module Usage',    icon: Activity },
+  { id: 'audit',     label: 'Audit Log',       icon: ClipboardList },
 ];
 
 export default function AdminCenter() {
@@ -130,6 +132,7 @@ export default function AdminCenter() {
             {tab === 'features'  && <AdminFeatureUsage featureUsage={data.featureUsage} recentEvents={data.recentEvents} />}
             {tab === 'ai'        && <AdminAIMonitor recentEvents={data.recentEvents} aiByUser={data.aiByUser} />}
             {tab === 'errors'    && <AdminErrorLogs errors={data.recentErrors} onRefresh={loadData} />}
+            {tab === 'modules'   && <AdminModuleUsage recentEvents={data.recentEvents} recentErrors={data.recentErrors} />}
             {tab === 'audit'     && <AdminAuditLog logs={data.auditLogs} />}
           </motion.div>
         )}

@@ -29,6 +29,7 @@ import CLVSection from '@/components/workspace/CLVSection';
 import CohortSection from '@/components/workspace/CohortSection';
 import AgentStudioSection from '@/components/workspace/AgentStudioSection';
 import DataConnectorSection from '@/components/workspace/DataConnectorSection';
+import DataExplorer from '@/components/workspace/DataExplorer';
 import { useWorkspaceStore } from '@/lib/store';
 
 const sectionComponents = {
@@ -55,6 +56,7 @@ const sectionComponents = {
   cohort: CohortSection,
   agentStudio: AgentStudioSection,
   connectors: DataConnectorSection,
+  explorer: DataExplorer,
 };
 
 export default function Workspace() {

@@ -10,6 +10,7 @@ import {
   RefreshCw, Download, ChevronRight
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
+import { auditSQLRun, auditExport } from '@/lib/auditLogger';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 const PALETTE = ['#00e5ff', '#7b2fff', '#ff6b35', '#4caf50', '#ff2d7a', '#ffcc02', '#00bfa5', '#e91e63'];
@@ -201,9 +202,9 @@ export default function SQLSection() {
       const resp = await base44.functions.invoke('generateSQL', {
         question: question || templateId,
         tableName: table.name,
-        columns: table.columns,
-        templateId,
-        sampleData: table.rows?.slice(0, 3),
+        columns: table.columns?.map(c => ({ name: c.name, type: c.type || 'category' })),
+        templateKey: templateId,
+        rows: table.rows?.slice(0, 5),
       });
       const data = resp.data || {};
       let queryResult = null;
@@ -214,6 +215,7 @@ export default function SQLSection() {
       setResult(r);
       setHistory(h => [r, ...h].slice(0, 8));
       setView('table');
+      auditSQLRun(data.sql, table.name);
     } catch (e) {
       // Fallback to direct LLM
       try {
@@ -249,6 +251,7 @@ export default function SQLSection() {
     const a = document.createElement('a');
     a.href = url; a.download = 'query_result.csv'; a.click();
     URL.revokeObjectURL(url);
+    auditExport('csv', table?.name, result.queryResult.rows?.length);
   };
 
   if (!table) {
