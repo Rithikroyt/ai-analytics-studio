@@ -15,6 +15,8 @@ import {
 
 import VBChartPreview, { buildChartData, fmtV } from '@/components/visualbuilder/VBChartPreview.jsx';
 import VBBottomPanel from '@/components/visualbuilder/VBBottomPanel.jsx';
+import ChartExplainPanel from '@/components/charts/ChartExplainPanel.jsx';
+import { AnimatePresence as ExplainAnimatePresence } from 'framer-motion';
 
 // ── Chart catalog ──────────────────────────────────────────────────────────────
 const CHART_GROUPS = [
@@ -327,6 +329,7 @@ export default function VisualBuilder() {
   const [showChartSelector, setShowChartSelector] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [generateError, setGenerateError] = useState('');
+  const [showExplain, setShowExplain] = useState(false);
 
   // Build shelves from xField/yField for chart rendering
   const shelves = useMemo(() => ({
@@ -534,6 +537,12 @@ Return JSON only:`,
           </button>
           <input value={chartTitle} onChange={e => setChartTitle(e.target.value)} placeholder="Chart title…"
             className="w-36 px-3 py-1.5 bg-white/5 border border-white/10 rounded-xl text-xs focus:outline-none focus:border-cyan-400/30 text-foreground" />
+          {hasChart && (
+            <button onClick={() => setShowExplain(v => !v)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${showExplain ? 'bg-purple-400/15 border-purple-400/25 text-purple-400' : 'border-white/10 text-white/35 hover:text-purple-400 hover:border-purple-400/20 hover:bg-purple-400/8'}`}>
+              <Brain className="w-3 h-3" /> Explain
+            </button>
+          )}
           <button onClick={handleSave} disabled={!hasChart}
             className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold transition-all disabled:opacity-40 ${saved ? 'bg-green-400/15 border border-green-400/25 text-green-400' : 'bg-cyan-400 hover:bg-cyan-300'}`}
             style={!saved ? { color: 'hsl(222,47%,6%)' } : {}}>
@@ -689,7 +698,7 @@ Return JSON only:`,
             </div>
 
             {/* Chart */}
-            <div className="glass-card rounded-2xl p-4 border border-white/8 min-h-[320px] flex items-center justify-center">
+            <div className="glass-card rounded-2xl p-4 border border-white/8 min-h-[320px] flex items-center justify-center relative overflow-hidden">
               {!xField && !yField ? (
                 <div className="flex flex-col items-center gap-3 text-center py-8">
                   <div className="w-16 h-16 rounded-2xl bg-purple-400/8 border border-purple-400/15 flex items-center justify-center">
@@ -714,8 +723,20 @@ Return JSON only:`,
                   <p className="text-xs text-white/20 mt-1">Try a different X field — needs a categorical or date column.</p>
                 </div>
               ) : (
-                <div className="w-full">
+                <div className="w-full relative">
                   <VBChartPreview chartType={chartType} data={chartData} marks={marks} shelves={shelves} />
+                  <ExplainAnimatePresence>
+                    {showExplain && (
+                      <ChartExplainPanel
+                        title={chartTitle || `${yField} by ${xField}`}
+                        type={chartType} data={chartData}
+                        xKey="name" yKey="value"
+                        xLabel={xField} yLabel={yField}
+                        tableName={table?.name}
+                        onClose={() => setShowExplain(false)}
+                      />
+                    )}
+                  </ExplainAnimatePresence>
                 </div>
               )}
             </div>

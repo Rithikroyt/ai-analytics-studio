@@ -162,7 +162,7 @@ Deno.serve(async (req) => {
 
   const content = await base44.integrations.Core.InvokeLLM({
     prompt: promptFn(ctx),
-    model: ['board_memo', 'executive_summary', 'forecast_report', 'insight_digest'].includes(reportType) ? 'claude_sonnet_4_6' : undefined,
+    model: 'claude_sonnet_4_6',
   });
 
   return Response.json({
