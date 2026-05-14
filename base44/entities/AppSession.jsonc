@@ -1,0 +1,79 @@
+{
+  "name": "AppSession",
+  "type": "object",
+  "properties": {
+    "sessionId": {
+      "type": "string",
+      "title": "Session ID"
+    },
+    "userEmail": {
+      "type": "string",
+      "title": "User Email"
+    },
+    "startedAt": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Started At"
+    },
+    "lastSeenAt": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Last Seen"
+    },
+    "endedAt": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Ended At"
+    },
+    "durationSeconds": {
+      "type": "number",
+      "default": 0,
+      "title": "Duration (sec)"
+    },
+    "pageViews": {
+      "type": "number",
+      "default": 0,
+      "title": "Page Views"
+    },
+    "eventsCount": {
+      "type": "number",
+      "default": 0,
+      "title": "Events Count"
+    },
+    "deviceType": {
+      "type": "string",
+      "enum": [
+        "Desktop",
+        "Tablet",
+        "Mobile",
+        "Unknown"
+      ],
+      "default": "Unknown",
+      "title": "Device Type"
+    },
+    "browser": {
+      "type": "string",
+      "title": "Browser"
+    },
+    "operatingSystem": {
+      "type": "string",
+      "title": "OS"
+    },
+    "referrer": {
+      "type": "string",
+      "title": "Referrer"
+    },
+    "entryPage": {
+      "type": "string",
+      "title": "Entry Page"
+    },
+    "exitPage": {
+      "type": "string",
+      "title": "Exit Page"
+    }
+  },
+  "required": [
+    "sessionId",
+    "userEmail"
+  ]
+}

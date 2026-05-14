@@ -1,0 +1,94 @@
+{
+  "name": "UserProfile",
+  "type": "object",
+  "properties": {
+    "email": {
+      "type": "string",
+      "title": "Email"
+    },
+    "fullName": {
+      "type": "string",
+      "title": "Full Name"
+    },
+    "avatarUrl": {
+      "type": "string",
+      "title": "Avatar URL"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "user"
+      ],
+      "default": "user",
+      "title": "Role"
+    },
+    "loginProvider": {
+      "type": "string",
+      "enum": [
+        "Google",
+        "Email",
+        "Unknown"
+      ],
+      "default": "Unknown",
+      "title": "Login Provider"
+    },
+    "firstLoginAt": {
+      "type": "string",
+      "format": "date-time",
+      "title": "First Login"
+    },
+    "lastLoginAt": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Last Login"
+    },
+    "loginCount": {
+      "type": "number",
+      "default": 0,
+      "title": "Login Count"
+    },
+    "sessionCount": {
+      "type": "number",
+      "default": 0,
+      "title": "Session Count"
+    },
+    "visitCount": {
+      "type": "number",
+      "default": 0,
+      "title": "Visit Count"
+    },
+    "totalPageViews": {
+      "type": "number",
+      "default": 0,
+      "title": "Total Page Views"
+    },
+    "totalEvents": {
+      "type": "number",
+      "default": 0,
+      "title": "Total Events"
+    },
+    "lastActivePage": {
+      "type": "string",
+      "title": "Last Active Page"
+    },
+    "lastActiveAt": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Last Active At"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "Active",
+        "Inactive",
+        "Blocked"
+      ],
+      "default": "Active",
+      "title": "Status"
+    }
+  },
+  "required": [
+    "email"
+  ]
+}

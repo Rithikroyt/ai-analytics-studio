@@ -1,0 +1,36 @@
+{
+  "name": "AdminAuditLog",
+  "type": "object",
+  "properties": {
+    "adminEmail": {
+      "type": "string",
+      "title": "Admin Email"
+    },
+    "action": {
+      "type": "string",
+      "title": "Action"
+    },
+    "targetEntity": {
+      "type": "string",
+      "title": "Target Entity"
+    },
+    "targetId": {
+      "type": "string",
+      "title": "Target ID"
+    },
+    "details": {
+      "type": "object",
+      "title": "Details",
+      "additionalProperties": true
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Timestamp"
+    }
+  },
+  "required": [
+    "adminEmail",
+    "action"
+  ]
+}

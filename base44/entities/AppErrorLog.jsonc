@@ -1,0 +1,54 @@
+{
+  "name": "AppErrorLog",
+  "type": "object",
+  "properties": {
+    "userEmail": {
+      "type": "string",
+      "title": "User Email"
+    },
+    "sessionId": {
+      "type": "string",
+      "title": "Session ID"
+    },
+    "page": {
+      "type": "string",
+      "title": "Page"
+    },
+    "feature": {
+      "type": "string",
+      "title": "Feature"
+    },
+    "errorMessage": {
+      "type": "string",
+      "title": "Error Message"
+    },
+    "stackTrace": {
+      "type": "string",
+      "title": "Stack Trace"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "default": "medium",
+      "title": "Severity"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Timestamp"
+    },
+    "resolved": {
+      "type": "boolean",
+      "default": false,
+      "title": "Resolved"
+    }
+  },
+  "required": [
+    "errorMessage"
+  ]
+}

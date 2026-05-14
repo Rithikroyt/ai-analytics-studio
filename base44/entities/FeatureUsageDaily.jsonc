@@ -1,0 +1,44 @@
+{
+  "name": "FeatureUsageDaily",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date",
+      "title": "Date"
+    },
+    "feature": {
+      "type": "string",
+      "title": "Feature"
+    },
+    "activeUsers": {
+      "type": "number",
+      "default": 0,
+      "title": "Active Users"
+    },
+    "eventCount": {
+      "type": "number",
+      "default": 0,
+      "title": "Event Count"
+    },
+    "successCount": {
+      "type": "number",
+      "default": 0,
+      "title": "Success Count"
+    },
+    "errorCount": {
+      "type": "number",
+      "default": 0,
+      "title": "Error Count"
+    },
+    "avgDurationSeconds": {
+      "type": "number",
+      "default": 0,
+      "title": "Avg Duration (sec)"
+    }
+  },
+  "required": [
+    "date",
+    "feature"
+  ]
+}

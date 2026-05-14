@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Zap, ChevronDown } from 'lucide-react';
+import { Menu, X, Zap, Shield } from 'lucide-react';
 import OmniLogo from '@/components/ui/OmniLogo';
+import { useAuth } from '@/lib/AuthContext';
+
+const ADMIN_EMAILS = ['rthati1@asu.edu', 'thatirithikroy@gmail.com'];
 
 const navLinks = [
   { label: 'Platform', path: '/platform' },
@@ -17,8 +20,14 @@ const navLinks = [
 
 export default function Navbar() {
   const location = useLocation();
+  const { user } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+
+  const isAdmin = user && (
+    (user.role || '').toLowerCase() === 'admin' ||
+    ADMIN_EMAILS.includes((user.email || '').toLowerCase())
+  );
 
   // Hide navbar on workspace/app pages
   const appPages = ['/workspace', '/dashboards', '/story-builder', '/alerts', '/integrations', '/data-mapping', '/reports', '/collaboration', '/predictive', '/forecast-hub', '/governance', '/workbench', '/ml-workbench', '/policy-center', '/agent-studio'];
@@ -69,6 +78,12 @@ export default function Navbar() {
 
           {/* CTA */}
           <div className="hidden md:flex items-center gap-3">
+            {isAdmin && (
+              <Link to="/admin"
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${location.pathname === '/admin' ? 'bg-red-400/15 text-red-400 border border-red-400/25' : 'text-white/40 hover:text-red-400 hover:bg-red-400/8 border border-transparent'}`}>
+                <Shield className="w-3.5 h-3.5" /> Admin
+              </Link>
+            )}
             <Link
               to="/workspace"
               className="flex items-center gap-1.5 px-4 py-2 bg-cyan-400 text-xs font-bold rounded-xl hover:bg-cyan-300 transition-all hover:scale-105"

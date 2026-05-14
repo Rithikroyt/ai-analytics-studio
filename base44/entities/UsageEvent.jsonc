@@ -1,0 +1,74 @@
+{
+  "name": "UsageEvent",
+  "type": "object",
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "title": "Event ID"
+    },
+    "sessionId": {
+      "type": "string",
+      "title": "Session ID"
+    },
+    "userEmail": {
+      "type": "string",
+      "title": "User Email"
+    },
+    "eventType": {
+      "type": "string",
+      "enum": [
+        "login",
+        "page_view",
+        "dataset_uploaded",
+        "data_cleaned",
+        "sql_query_run",
+        "chart_created",
+        "ai_question",
+        "agent_pipeline_run",
+        "report_generated",
+        "export_downloaded",
+        "error",
+        "logout"
+      ],
+      "title": "Event Type"
+    },
+    "feature": {
+      "type": "string",
+      "title": "Feature"
+    },
+    "page": {
+      "type": "string",
+      "title": "Page"
+    },
+    "objectType": {
+      "type": "string",
+      "enum": [
+        "dataset",
+        "chart",
+        "report",
+        "query",
+        "agent",
+        "dashboard"
+      ],
+      "title": "Object Type"
+    },
+    "objectId": {
+      "type": "string",
+      "title": "Object ID"
+    },
+    "metadata": {
+      "type": "object",
+      "title": "Metadata",
+      "additionalProperties": true
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Timestamp"
+    }
+  },
+  "required": [
+    "userEmail",
+    "eventType"
+  ]
+}
