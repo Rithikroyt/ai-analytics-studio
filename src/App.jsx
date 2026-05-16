@@ -84,7 +84,7 @@ const AuthenticatedApp = () => {
         <Route path="/forecast-hub" element={<ForecastHub />} />
         <Route path="/workbench" element={<Workbench />} />
         <Route path="/governance" element={<Governance />} />
-        <Route path="/governance" element={<DataGovernance />} />
+        <Route path="/data-governance" element={<DataGovernance />} />
         <Route path="/data-contract" element={<DataContract />} />
         <Route path="/metric-store" element={<MetricStore />} />
         <Route path="/what-if" element={<WhatIfSimulator />} />

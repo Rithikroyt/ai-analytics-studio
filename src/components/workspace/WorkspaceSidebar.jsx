@@ -34,7 +34,7 @@ const sections = [
   { id: 'observability', label: 'Observability',      icon: Activity },
   { id: 'agentStudio',   label: 'Agent Studio',       icon: Bot },
   { id: 'connectors',   label: 'Data Connectors',    icon: Link2 },
-  { id: 'realtime',     label: 'Live Monitor',        icon: Activity },
+  { id: 'realtime',     label: 'Live Monitor',        icon: Cpu },
 ];
 
 export default function WorkspaceSidebar({ collapsed, onToggle }) {
