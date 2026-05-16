@@ -5,7 +5,7 @@ import {
   Layers, Terminal, FileText, MessageSquare, Download,
   ChevronLeft, Database, GitCompare, PieChart, Bell, Link2, FlaskConical,
   Users, Filter, Activity, Scissors, TrendingUp, History, Shield, Paintbrush,
-  Target, RefreshCw, DollarSign, Zap, Bot, Table2,
+  Target, RefreshCw, DollarSign, Zap, Bot, Table2, Brain, GitBranch, Cpu,
 } from 'lucide-react';
 import { useWorkspaceStore } from '@/lib/store';
 
@@ -34,6 +34,7 @@ const sections = [
   { id: 'observability', label: 'Observability',      icon: Activity },
   { id: 'agentStudio',   label: 'Agent Studio',       icon: Bot },
   { id: 'connectors',   label: 'Data Connectors',    icon: Link2 },
+  { id: 'realtime',     label: 'Live Monitor',        icon: Activity },
 ];
 
 export default function WorkspaceSidebar({ collapsed, onToggle }) {
@@ -87,10 +88,14 @@ export default function WorkspaceSidebar({ collapsed, onToggle }) {
         {/* External links */}
         <div className="pt-2 mt-2 border-t border-white/5 space-y-0.5">
           {[
-            { to: '/executive-dashboard', icon: Target, label: 'Exec Dashboard', color: 'text-cyan-400' },
+            { to: '/ai-command-center', icon: Brain,       label: 'AI Command Ctr',  color: 'text-cyan-400' },
+            { to: '/strategic-kpi',     icon: Target,      label: 'Strategic KPIs',  color: 'text-green-400' },
+            { to: '/data-intelligence', icon: GitBranch,   label: 'Data Intelligence', color: 'text-amber-400' },
+            { to: '/ml-intelligence',   icon: Cpu,         label: 'ML Intelligence', color: 'text-purple-400' },
+            { to: '/analytics-lab',     icon: Activity,    label: 'Analytics Lab',   color: 'text-pink-400' },
+            { to: '/executive-dashboard', icon: Target,    label: 'Exec Dashboard',  color: 'text-cyan-400' },
             { to: '/dashboards',   icon: PieChart,    label: 'Dashboards',    color: 'text-cyan-400' },
             { to: '/alerts',       icon: Bell,        label: 'Alerts',        color: 'text-amber-400' },
-            { to: '/collaboration',icon: Users,       label: 'Collaborate',   color: 'text-teal-400' },
             { to: '/predictive',   icon: TrendingUp,  label: 'Predictive AI', color: 'text-purple-400' },
             { to: '/forecast-hub', icon: History,     label: 'Forecast Hub',  color: 'text-teal-400' },
             { to: '/workbench',    icon: Zap,         label: 'Workbench',     color: 'text-cyan-400' },

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useWorkspaceStore } from '@/lib/store';
 import { Search, Database, Activity, RotateCcw, ChevronDown, Zap, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
+import NLQueryBar from '@/components/workspace/NLQueryBar';
 
 const sectionTitles = {
   overview:    { label: 'Overview',                sub: 'Workspace home · quick actions & bundles' },
@@ -73,8 +74,13 @@ export default function WorkspaceTopBar({ onSearch }) {
       {/* Spacer */}
       <div className="flex-1" />
 
+      {/* NL Query Bar */}
+      <div className="flex-shrink-0 hidden lg:block w-64 xl:w-80">
+        <NLQueryBar />
+      </div>
+
       {/* Search */}
-      <div className="relative w-52 flex-shrink-0">
+      <div className="relative w-40 flex-shrink-0 hidden xl:block">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
         <input
           type="text"

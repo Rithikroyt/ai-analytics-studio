@@ -5,6 +5,7 @@ import {
   Zap, BarChart2, Brain, FileText, ArrowRight, CheckCircle2,
   TrendingUp, Database, Shield, Sparkles, Target, Activity
 } from 'lucide-react';
+
 import OmniLogo from '@/components/ui/OmniLogo';
 import InteractiveAudioExplainer from '@/components/home/InteractiveAudioExplainer';
 
@@ -141,33 +142,43 @@ function HeroMockup() {
 const FEATURES = [
   {
     icon: Database, color: 'text-cyan-400', bg: 'bg-cyan-400/10', border: 'border-cyan-400/20',
-    title: 'Universal Data Intake',
-    desc: 'Upload CSV, XLSX, JSON, or TXT files. Auto-detect column types, clean headers, profile quality, and infer schema in seconds.',
+    title: 'Medallion Data Architecture',
+    desc: 'Enterprise Bronze→Silver→Gold pipeline with automatic data quality contracts, schema drift detection, and lineage tracking.',
   },
   {
     icon: Brain, color: 'text-purple-400', bg: 'bg-purple-400/10', border: 'border-purple-400/20',
-    title: 'Grounded AI Analyst',
-    desc: 'Ask anything in plain English. The AI Analyst answers from your actual data — never hallucinated, always grounded with evidence.',
+    title: 'Multi-Agent AI War Room',
+    desc: 'CFO, Growth, and Operations analysts powered by F-D-E-A-R reasoning. Grounded answers, SHAP evidence, and causal inference.',
   },
   {
     icon: BarChart2, color: 'text-teal-400', bg: 'bg-teal-400/10', border: 'border-teal-400/20',
-    title: 'Executive Dashboards',
-    desc: 'Auto-generated storytelling dashboards following a clear hierarchy: what happened, why, where the risk is, what to do next.',
+    title: 'AI Command Center',
+    desc: 'Proactive intelligence feed: real-time anomaly signals, opportunity alerts, risk flags, and CXO-level strategic recommendations.',
   },
   {
     icon: TrendingUp, color: 'text-green-400', bg: 'bg-green-400/10', border: 'border-green-400/20',
-    title: 'Predictive Analytics',
-    desc: 'Time-series forecasting, anomaly detection, correlations, and regression — applied automatically when your data supports it.',
+    title: 'AutoML + XAI Pipeline',
+    desc: 'AutoML with XGBoost, LightGBM, and Prophet. SHAP explainability, causal inference (DiD), and MLOps experiment tracking.',
   },
   {
     icon: FileText, color: 'text-blue-400', bg: 'bg-blue-400/10', border: 'border-blue-400/20',
-    title: 'Board-Ready Reports',
-    desc: 'Generate Executive Summaries, Anomaly Reports, Forecast Reports, and Board Memos with one click. Export as PDF or CSV.',
+    title: 'Balanced Scorecard + OKRs',
+    desc: 'Kaplan-Norton Balanced Scorecard across 4 perspectives with OKR tracking, benchmark analytics, and industry comparisons.',
   },
   {
     icon: Shield, color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/20',
-    title: 'Semantic Model Layer',
-    desc: 'Auto-build a reusable semantic model with KPI definitions, dimensions, measures, and natural language query examples.',
+    title: 'Statistical Analytics Lab',
+    desc: 'Pearson correlation matrix, regression trees, hypothesis testing (t-test), Holt-Winters forecasting, and outlier detection.',
+  },
+  {
+    icon: Activity, color: 'text-pink-400', bg: 'bg-pink-400/10', border: 'border-pink-400/20',
+    title: 'Natural Language Query',
+    desc: 'Ask any business question in plain English. NL→SQL→Chart→Answer in one shot. Powered by a grounded semantic layer.',
+  },
+  {
+    icon: Target, color: 'text-orange-400', bg: 'bg-orange-400/10', border: 'border-orange-400/20',
+    title: 'Real-Time Observability',
+    desc: 'Live data pipeline monitoring, SLA tracking, service health, P50/P99 latency metrics, and anomaly-triggered alerts.',
   },
 ];
 
@@ -186,8 +197,10 @@ const TRUST = [
   { label: 'Sub-3s analysis', emoji: '⚡' },
   { label: 'Grounded AI answers', emoji: '🧠' },
   { label: 'Any data format', emoji: '📂' },
-  { label: 'Statistical rigor', emoji: '📊' },
-  { label: 'No hallucinations', emoji: '✅' },
+  { label: 'Causal Inference (DiD)', emoji: '🔬' },
+  { label: 'AutoML + SHAP XAI', emoji: '🤖' },
+  { label: 'Balanced Scorecard', emoji: '🎯' },
+  { label: 'Medallion Architecture', emoji: '🏅' },
   { label: 'Enterprise-ready', emoji: '🏆' },
 ];
 
@@ -342,6 +355,40 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── Phase Capabilities Highlight ─────────────────────── */}
+      <section className="py-16 px-6">
+        <div className="max-w-7xl mx-auto">
+          <FadeIn className="text-center mb-10">
+            <div className="text-xs text-pink-400 uppercase tracking-widest font-semibold mb-3">Enterprise Upgrade — All Phases Active</div>
+            <h2 className="text-3xl font-black mb-3">MNC-grade capabilities, now live</h2>
+            <p className="text-muted-foreground text-sm">Matching Microsoft Fabric · IBM OpenScale · Amazon QuickSight Q · Adobe Analytics · Tableau Enterprise</p>
+          </FadeIn>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { label: 'AI Command Center', sub: 'Proactive CXO intelligence', to: '/ai-command-center', color: '#00e5ff', emoji: '🧠' },
+              { label: 'Strategic KPI Board', sub: 'Balanced Scorecard + OKRs', to: '/strategic-kpi', color: '#4caf50', emoji: '🎯' },
+              { label: 'Data Intelligence Hub', sub: 'Medallion + Lineage', to: '/data-intelligence', color: '#ffcc02', emoji: '🏅' },
+              { label: 'Analytics Lab', sub: 'Stats · Regression · Causal', to: '/analytics-lab', color: '#a855f7', emoji: '🔬' },
+              { label: 'ML Intelligence', sub: 'AutoML · XAI · SHAP', to: '/ml-intelligence', color: '#ff6b35', emoji: '🤖' },
+              { label: 'Agent War Room', sub: 'CFO · Growth · Ops agents', to: '/agent-studio', color: '#ff2d7a', emoji: '⚔️' },
+              { label: 'Executive Dashboard', sub: 'CXO-level analytics', to: '/executive-dashboard', color: '#60a5fa', emoji: '📊' },
+              { label: 'Decision Reports', sub: '12 AI-generated report types', to: '/decision-reports', color: '#00bfa5', emoji: '📋' },
+            ].map(c => (
+              <FadeIn key={c.label}>
+                <Link to={c.to}
+                  className="glass-card rounded-2xl p-4 border border-white/8 hover:border-white/18 hover:scale-[1.02] transition-all flex items-center gap-3 group">
+                  <span className="text-2xl">{c.emoji}</span>
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold truncate" style={{ color: c.color }}>{c.label}</div>
+                    <div className="text-xs text-white/30 truncate">{c.sub}</div>
+                  </div>
+                </Link>
+              </FadeIn>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── Final CTA ────────────────────────────────────────────── */}
       <section className="py-24 px-6">
         <div className="max-w-3xl mx-auto text-center">
@@ -385,7 +432,7 @@ export default function Home() {
             <Link to="/integrations" className="hover:text-foreground transition-colors">Integrations</Link>
             <Link to="/reports" className="hover:text-foreground transition-colors">Reports</Link>
           </div>
-          <div className="text-xs text-muted-foreground">© 2026 OmniData AI Analytics Studio · Excel + SQL + Tableau + AI — in one platform.</div>
+          <div className="text-xs text-muted-foreground">© 2026 OmniData AI Analytics Studio · AutoML · Causal Inference · Balanced Scorecard · Multi-Agent AI · Enterprise BI</div>
         </div>
       </footer>
     </div>

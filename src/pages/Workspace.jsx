@@ -30,7 +30,19 @@ import CohortSection from '@/components/workspace/CohortSection';
 import AgentStudioSection from '@/components/workspace/AgentStudioSection';
 import DataConnectorSection from '@/components/workspace/DataConnectorSection';
 import DataExplorer from '@/components/workspace/DataExplorer';
+import RealTimeMonitor from '@/components/workspace/RealTimeMonitor';
 import { useWorkspaceStore } from '@/lib/store';
+
+// Wrapper for RealTimeMonitor as a full workspace section
+function RealTimeSection() {
+  return (
+    <div className="p-6 max-w-xl mx-auto space-y-4 pt-8">
+      <h2 className="text-xl font-black mb-2">Live Platform Monitor</h2>
+      <p className="text-sm text-muted-foreground mb-4">Real-time service health, latency, and SLA tracking.</p>
+      <RealTimeMonitor />
+    </div>
+  );
+}
 
 const sectionComponents = {
   overview: OverviewSection,
@@ -57,6 +69,7 @@ const sectionComponents = {
   agentStudio: AgentStudioSection,
   connectors: DataConnectorSection,
   explorer: DataExplorer,
+  realtime: RealTimeSection,
 };
 
 export default function Workspace() {

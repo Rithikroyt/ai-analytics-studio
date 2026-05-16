@@ -35,6 +35,11 @@ import PolicyCenter from '@/pages/PolicyCenter';
 import AgentStudio from '@/pages/AgentStudio';
 import ExecutiveDashboard from '@/pages/ExecutiveDashboard';
 import AdminCenter from '@/pages/AdminCenter';
+import AICommandCenter from '@/pages/AICommandCenter';
+import DataIntelligenceHub from '@/pages/DataIntelligenceHub';
+import MLIntelligence from '@/pages/MLIntelligence';
+import StrategicKPIBoard from '@/pages/StrategicKPIBoard';
+import AdvancedAnalyticsLab from '@/pages/AdvancedAnalyticsLab';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -91,6 +96,11 @@ const AuthenticatedApp = () => {
         <Route path="/agent-studio" element={<AgentStudio />} />
         <Route path="/executive-dashboard" element={<ExecutiveDashboard />} />
         <Route path="/admin" element={<AdminCenter />} />
+        <Route path="/ai-command-center" element={<AICommandCenter />} />
+        <Route path="/data-intelligence" element={<DataIntelligenceHub />} />
+        <Route path="/ml-intelligence" element={<MLIntelligence />} />
+        <Route path="/strategic-kpi" element={<StrategicKPIBoard />} />
+        <Route path="/analytics-lab" element={<AdvancedAnalyticsLab />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </>
