@@ -40,6 +40,9 @@ import DataIntelligenceHub from '@/pages/DataIntelligenceHub';
 import MLIntelligence from '@/pages/MLIntelligence';
 import StrategicKPIBoard from '@/pages/StrategicKPIBoard';
 import AdvancedAnalyticsLab from '@/pages/AdvancedAnalyticsLab';
+import ExecutiveBriefing from '@/pages/ExecutiveBriefing';
+import StrategicOKRBoard from '@/pages/StrategicOKRBoard';
+import DataLineageViewer from '@/pages/DataLineageViewer';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -101,6 +104,9 @@ const AuthenticatedApp = () => {
         <Route path="/ml-intelligence" element={<MLIntelligence />} />
         <Route path="/strategic-kpi" element={<StrategicKPIBoard />} />
         <Route path="/analytics-lab" element={<AdvancedAnalyticsLab />} />
+        <Route path="/executive-briefing" element={<ExecutiveBriefing />} />
+        <Route path="/strategic-okr" element={<StrategicOKRBoard />} />
+        <Route path="/data-lineage" element={<DataLineageViewer />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </>

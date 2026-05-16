@@ -9,6 +9,7 @@ import {
   Database, Loader2, ArrowRight, BarChart2, Table2, Lightbulb,
   RefreshCw, Download, ChevronRight
 } from 'lucide-react';
+
 import { base44 } from '@/api/base44Client';
 import { auditSQLRun, auditExport } from '@/lib/auditLogger';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
@@ -192,6 +193,38 @@ export default function SQLSection() {
   const [view, setView] = useState('table');
   const [history, setHistory] = useState([]);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [validationErrors, setValidationErrors] = useState([]);
+  const [directSQL, setDirectSQL] = useState('');
+  const [directResult, setDirectResult] = useState(null);
+  const [directError, setDirectError] = useState('');
+  const [mode, setMode] = useState('nl'); // 'nl' | 'direct'
+
+  // Real-time SQL validation
+  const validateSQL = (sql) => {
+    const errors = [];
+    if (!sql.trim()) return [];
+    const up = sql.toUpperCase().trim();
+    if (!up.startsWith('SELECT') && !up.startsWith('WITH')) errors.push({ type: 'error', msg: 'Query must start with SELECT or WITH' });
+    if (up.includes('DROP ') || up.includes('DELETE ') || up.includes('TRUNCATE ') || up.includes('INSERT ') || up.includes('UPDATE ')) errors.push({ type: 'error', msg: 'Destructive statements (DROP/DELETE/INSERT/UPDATE) are not allowed in read-only mode' });
+    if ((sql.match(/\(/g) || []).length !== (sql.match(/\)/g) || []).length) errors.push({ type: 'error', msg: 'Unmatched parentheses detected' });
+    if (up.includes('GROUP BY') && !up.includes('SELECT')) errors.push({ type: 'warn', msg: 'GROUP BY without SELECT — check query structure' });
+    const cols = table?.columns?.map(c => c.name.toLowerCase()) || [];
+    const colRefs = sql.match(/\b[a-z_][a-z0-9_]+\b/gi)?.filter(w => !['select','from','where','group','by','order','limit','having','join','on','and','or','not','in','is','null','as','sum','avg','count','max','min','distinct','case','when','then','else','end','asc','desc','inner','left','right','outer','union','all','between','like','with'].includes(w.toLowerCase())) || [];
+    const unknownCols = colRefs.filter(c => !cols.includes(c.toLowerCase()) && c.toLowerCase() !== table?.name?.toLowerCase());
+    if (unknownCols.length > 0 && cols.length > 0) errors.push({ type: 'warn', msg: `Unknown identifiers: ${unknownCols.slice(0, 3).join(', ')} — verify column names above` });
+    return errors;
+  };
+
+  const runDirectSQL = () => {
+    setDirectError('');
+    setDirectResult(null);
+    const errs = validateSQL(directSQL);
+    const hasError = errs.some(e => e.type === 'error');
+    if (hasError) { setDirectError(errs.find(e => e.type === 'error')?.msg || 'Validation failed'); return; }
+    const r = runInMemorySQL(directSQL, table);
+    if (r) { setDirectResult(r); }
+    else { setDirectError('Query could not be executed in-memory. Ensure you use GROUP BY or ORDER BY patterns, or use NL mode to auto-generate.'); }
+  };
 
   const handleGenerate = async (q, templateId = null) => {
     const question = (q || query).trim();
@@ -273,8 +306,20 @@ export default function SQLSection() {
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-5">
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold mb-1">SQL Studio</h1>
-        <p className="text-sm text-muted-foreground">Ask questions in plain English — AI generates SQL and runs it against your data instantly.</p>
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h1 className="text-2xl font-bold mb-1">SQL Studio</h1>
+            <p className="text-sm text-muted-foreground">Ask questions in plain English — AI generates SQL and runs it against your data instantly.</p>
+          </div>
+          <div className="flex items-center gap-1 p-1 bg-white/5 border border-white/8 rounded-xl">
+            <button onClick={() => setMode('nl')} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${mode === 'nl' ? 'bg-cyan-400/15 text-cyan-400 border border-cyan-400/25' : 'text-white/35 hover:text-white/65'}`}>
+              NL → SQL
+            </button>
+            <button onClick={() => setMode('direct')} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${mode === 'direct' ? 'bg-purple-400/15 text-purple-400 border border-purple-400/25' : 'text-white/35 hover:text-white/65'}`}>
+              Direct SQL
+            </button>
+          </div>
+        </div>
       </motion.div>
 
       {/* Schema strip */}
@@ -333,27 +378,103 @@ export default function SQLSection() {
         </div>
       </div>
 
-      {/* Query input */}
-      <div className="space-y-3">
-        <div className="relative">
-          <Terminal className="absolute left-4 top-4 w-4 h-4 text-muted-foreground" />
-          <textarea value={query} onChange={e => setQuery(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleGenerate(); }}
-            placeholder="Ask a question about your data… (Ctrl+Enter to generate SQL)"
-            rows={3}
-            className="w-full pl-11 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-sm placeholder:text-muted-foreground focus:outline-none focus:border-cyan-400/30 resize-none text-foreground font-mono"
-          />
+      {/* NL → SQL mode */}
+      {mode === 'nl' && (
+        <div className="space-y-3">
+          <div className="relative">
+            <Terminal className="absolute left-4 top-4 w-4 h-4 text-muted-foreground" />
+            <textarea value={query} onChange={e => setQuery(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleGenerate(); }}
+              placeholder="Ask a question about your data… (Ctrl+Enter to generate SQL)"
+              rows={3}
+              className="w-full pl-11 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-sm placeholder:text-muted-foreground focus:outline-none focus:border-cyan-400/30 resize-none text-foreground font-mono"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => handleGenerate()} disabled={loading || !query.trim()}
+              className="flex items-center gap-2 px-5 py-2.5 bg-cyan-400 rounded-xl text-sm font-bold disabled:opacity-50 hover:bg-cyan-300 transition-all"
+              style={{ color: 'hsl(222,47%,6%)' }}>
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              {loading ? 'Generating…' : 'Generate & Run SQL'}
+            </button>
+            <span className="text-xs text-muted-foreground">Ctrl+Enter to run</span>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => handleGenerate()} disabled={loading || !query.trim()}
-            className="flex items-center gap-2 px-5 py-2.5 bg-cyan-400 rounded-xl text-sm font-bold disabled:opacity-50 hover:bg-cyan-300 transition-all"
-            style={{ color: 'hsl(222,47%,6%)' }}>
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-            {loading ? 'Generating…' : 'Generate & Run SQL'}
-          </button>
-          <span className="text-xs text-muted-foreground">Ctrl+Enter to run</span>
+      )}
+
+      {/* Direct SQL mode with real-time validation */}
+      {mode === 'direct' && (
+        <div className="space-y-3">
+          <div className="relative">
+            <textarea value={directSQL}
+              onChange={e => { setDirectSQL(e.target.value); setValidationErrors(validateSQL(e.target.value)); setDirectResult(null); setDirectError(''); }}
+              onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) runDirectSQL(); }}
+              placeholder={`SELECT column, SUM(value) FROM ${table?.name || 'your_table'} GROUP BY column ORDER BY SUM(value) DESC LIMIT 10`}
+              rows={5}
+              className={`w-full px-4 py-3.5 bg-black/20 border rounded-xl text-sm font-mono placeholder:text-muted-foreground focus:outline-none resize-none text-green-300/90 ${
+                validationErrors.some(e => e.type === 'error') ? 'border-red-400/40' : validationErrors.length > 0 ? 'border-amber-400/30' : directSQL ? 'border-green-400/25' : 'border-white/10'
+              }`}
+            />
+          </div>
+          {/* Real-time validation feedback */}
+          {validationErrors.length > 0 && (
+            <div className="space-y-1">
+              {validationErrors.map((e, i) => (
+                <div key={i} className={`flex items-start gap-2 text-xs px-3 py-2 rounded-lg ${e.type === 'error' ? 'bg-red-400/8 border border-red-400/20 text-red-400' : 'bg-amber-400/8 border border-amber-400/15 text-amber-400'}`}>
+                  {e.type === 'error' ? <AlertTriangle className="w-3 h-3 flex-shrink-0 mt-0.5" /> : <RefreshCw className="w-3 h-3 flex-shrink-0 mt-0.5" />}
+                  {e.msg}
+                </div>
+              ))}
+            </div>
+          )}
+          {directSQL && !validationErrors.some(e => e.type === 'error') && (
+            <div className="flex items-center gap-1.5 text-xs text-green-400">
+              <CheckCircle2 className="w-3.5 h-3.5" /> SQL syntax looks valid — ready to run
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <button onClick={runDirectSQL} disabled={!directSQL.trim() || validationErrors.some(e => e.type === 'error')}
+              className="flex items-center gap-2 px-5 py-2.5 bg-purple-400/15 border border-purple-400/25 text-purple-400 rounded-xl text-sm font-bold disabled:opacity-40 hover:bg-purple-400/25 transition-all">
+              <Play className="w-4 h-4" /> Run Query
+            </button>
+            <button onClick={() => { setDirectSQL(''); setValidationErrors([]); setDirectResult(null); setDirectError(''); }}
+              className="px-3 py-2.5 text-xs text-white/30 hover:text-white/60 hover:bg-white/5 rounded-xl transition-all">
+              Clear
+            </button>
+            <span className="text-xs text-muted-foreground">Ctrl+Enter to run · Read-only mode</span>
+          </div>
+          {directError && (
+            <div className="flex items-start gap-2 px-4 py-3 bg-red-400/8 border border-red-400/20 rounded-xl text-sm text-red-400">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" /> {directError}
+            </div>
+          )}
+          {directResult && (
+            <div className="glass-card rounded-xl border border-purple-400/20 overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-white/8">
+                <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />
+                <span className="text-xs font-semibold">Direct Query Results</span>
+                <span className="text-xs text-white/30">· {directResult.rows?.length} rows</span>
+              </div>
+              <div className="overflow-auto max-h-64">
+                <table className="w-full text-xs">
+                  <thead><tr className="bg-white/3 border-b border-white/8 sticky top-0">
+                    {directResult.headers?.map(h => <th key={h} className="px-3 py-2 text-left font-mono text-white/50">{h}</th>)}
+                  </tr></thead>
+                  <tbody>
+                    {directResult.rows?.map((row, i) => (
+                      <tr key={i} className="border-b border-white/5 hover:bg-white/2">
+                        {directResult.headers?.map(h => (
+                          <td key={h} className="px-3 py-2 font-mono text-white/65">{typeof row[h] === 'number' ? fmtV(row[h]) : String(row[h] ?? '—')}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
-      </div>
+      )}
 
       {/* Query history */}
       {history.length > 1 && (
