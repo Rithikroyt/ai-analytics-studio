@@ -1,0 +1,54 @@
+{
+  "name": "ProjectDiagram",
+  "type": "object",
+  "properties": {
+    "configId": {
+      "type": "string",
+      "title": "Project Config ID"
+    },
+    "title": {
+      "type": "string",
+      "title": "Title"
+    },
+    "diagramType": {
+      "type": "string",
+      "enum": [
+        "flowchart",
+        "use_case",
+        "sequence",
+        "class",
+        "er",
+        "activity",
+        "component",
+        "deployment",
+        "user_journey",
+        "state"
+      ],
+      "title": "Diagram Type"
+    },
+    "mermaidCode": {
+      "type": "string",
+      "title": "Mermaid Code"
+    },
+    "explanation": {
+      "type": "string",
+      "title": "Explanation"
+    },
+    "order": {
+      "type": "number",
+      "title": "Order",
+      "default": 0
+    },
+    "includeInPdf": {
+      "type": "boolean",
+      "default": true,
+      "title": "Include in PDF"
+    }
+  },
+  "required": [
+    "configId",
+    "title",
+    "diagramType",
+    "mermaidCode"
+  ]
+}

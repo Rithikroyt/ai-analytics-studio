@@ -1,0 +1,54 @@
+{
+  "name": "ProjectCodeSnippet",
+  "type": "object",
+  "properties": {
+    "configId": {
+      "type": "string",
+      "title": "Project Config ID"
+    },
+    "title": {
+      "type": "string",
+      "title": "Title"
+    },
+    "language": {
+      "type": "string",
+      "enum": [
+        "javascript",
+        "python",
+        "sql",
+        "mermaid",
+        "json",
+        "text"
+      ],
+      "title": "Language"
+    },
+    "moduleName": {
+      "type": "string",
+      "title": "Module Name"
+    },
+    "code": {
+      "type": "string",
+      "title": "Code Content"
+    },
+    "explanation": {
+      "type": "string",
+      "title": "Explanation"
+    },
+    "order": {
+      "type": "number",
+      "title": "Order",
+      "default": 0
+    },
+    "includeInPdf": {
+      "type": "boolean",
+      "default": true,
+      "title": "Include in PDF"
+    }
+  },
+  "required": [
+    "configId",
+    "title",
+    "language",
+    "code"
+  ]
+}

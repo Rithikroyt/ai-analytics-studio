@@ -1,0 +1,118 @@
+{
+  "name": "ProjectDocumentConfig",
+  "type": "object",
+  "properties": {
+    "projectTitle": {
+      "type": "string",
+      "title": "Project Title"
+    },
+    "subtitle": {
+      "type": "string",
+      "title": "Subtitle"
+    },
+    "authorName": {
+      "type": "string",
+      "title": "Author Name"
+    },
+    "organization": {
+      "type": "string",
+      "title": "Organization"
+    },
+    "university": {
+      "type": "string",
+      "title": "University"
+    },
+    "program": {
+      "type": "string",
+      "title": "Program Name"
+    },
+    "course": {
+      "type": "string",
+      "title": "Course Name"
+    },
+    "professorName": {
+      "type": "string",
+      "title": "Professor / Mentor Name"
+    },
+    "semester": {
+      "type": "string",
+      "title": "Semester"
+    },
+    "version": {
+      "type": "string",
+      "title": "Version Number",
+      "default": "1.0"
+    },
+    "appUrl": {
+      "type": "string",
+      "title": "Application Link"
+    },
+    "githubUrl": {
+      "type": "string",
+      "title": "GitHub Link"
+    },
+    "logoUrl": {
+      "type": "string",
+      "title": "Logo URL"
+    },
+    "abstract": {
+      "type": "string",
+      "title": "Abstract"
+    },
+    "keywords": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Keywords"
+    },
+    "confidentialityNote": {
+      "type": "string",
+      "title": "Confidentiality Note"
+    },
+    "acknowledgementText": {
+      "type": "string",
+      "title": "Acknowledgement Text"
+    },
+    "selectedSections": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Selected Sections"
+    },
+    "pageFormat": {
+      "type": "string",
+      "enum": [
+        "A4",
+        "Letter"
+      ],
+      "default": "A4",
+      "title": "Page Format"
+    },
+    "fontFamily": {
+      "type": "string",
+      "default": "Helvetica",
+      "title": "Font Family"
+    },
+    "lineSpacing": {
+      "type": "number",
+      "default": 1.15,
+      "title": "Line Spacing"
+    },
+    "createdBy": {
+      "type": "string",
+      "title": "Created By"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Updated At"
+    }
+  },
+  "required": [
+    "projectTitle",
+    "authorName",
+    "organization"
+  ]
+}

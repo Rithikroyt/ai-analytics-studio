@@ -1,0 +1,51 @@
+{
+  "name": "ProjectReference",
+  "type": "object",
+  "properties": {
+    "configId": {
+      "type": "string",
+      "title": "Project Config ID"
+    },
+    "title": {
+      "type": "string",
+      "title": "Title"
+    },
+    "author": {
+      "type": "string",
+      "title": "Author(s)"
+    },
+    "year": {
+      "type": "string",
+      "title": "Year"
+    },
+    "source": {
+      "type": "string",
+      "title": "Source"
+    },
+    "url": {
+      "type": "string",
+      "title": "URL"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "book",
+        "journal_article",
+        "website",
+        "report",
+        "other"
+      ],
+      "title": "Reference Type"
+    },
+    "order": {
+      "type": "number",
+      "title": "Order",
+      "default": 0
+    }
+  },
+  "required": [
+    "configId",
+    "title",
+    "author"
+  ]
+}

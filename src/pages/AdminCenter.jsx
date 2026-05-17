@@ -12,6 +12,7 @@ import {
   Search, Filter, Eye, ChevronRight, X, CheckCircle2,
   AlertCircle, Clock, Globe, Zap, FileText, Lock,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import AdminOverview from '@/components/admin/AdminOverview.jsx';
 import AdminUsersTable from '@/components/admin/AdminUsersTable.jsx';
 import AdminFeatureUsage from '@/components/admin/AdminFeatureUsage.jsx';
@@ -37,6 +38,7 @@ const TABS = [
   { id: 'modules',   label: 'Module Usage',    icon: Activity },
   { id: 'audit',     label: 'Audit Log',       icon: ClipboardList },
   { id: 'observability', label: 'Observability', icon: Activity },
+  { id: 'projectdocs',   label: 'Project Docs',   icon: FileText },
 ];
 
 export default function AdminCenter() {
@@ -139,6 +141,35 @@ export default function AdminCenter() {
               <div className="space-y-4">
                 <div className="text-sm text-white/40 mb-2">Full observability dashboard available at <a href="/observability" className="text-cyan-400 hover:underline">/observability</a></div>
                 <iframe src="/observability" className="w-full h-screen rounded-2xl border border-white/8" title="Observability Center" />
+              </div>
+            )}
+            {tab === 'projectdocs' && (
+              <div className="space-y-6">
+                <div className="glass-card rounded-2xl border border-cyan-400/20 p-8 text-center space-y-4">
+                  <div className="w-16 h-16 rounded-2xl bg-cyan-400/15 border border-cyan-400/25 flex items-center justify-center mx-auto">
+                    <FileText className="w-8 h-8 text-cyan-400" />
+                  </div>
+                  <h2 className="text-xl font-black">Project Documentation Center</h2>
+                  <p className="text-sm text-white/50 max-w-xl mx-auto">Generate a capstone-grade, MNC-standard 21-chapter project document PDF from live application data. Includes architecture diagrams, module descriptions, AI agent logic, formulas, SQL examples, test cases, and full references.</p>
+                  <Link to="/admin/project-documentation"
+                    className="inline-flex items-center gap-2 px-8 py-3 bg-cyan-400/15 border border-cyan-400/30 text-cyan-400 rounded-xl font-bold hover:bg-cyan-400/25 transition-all">
+                    <FileText className="w-4 h-4" />
+                    Open Project Documentation Center
+                  </Link>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {[
+                    { label: '21 Chapters', desc: 'Introduction to References' },
+                    { label: 'Mermaid Diagrams', desc: 'Architecture, ER, Sequence, Use Case' },
+                    { label: 'Screenshot Manager', desc: 'Upload & caption app screenshots' },
+                    { label: 'Code Snippets', desc: 'JS, Python, SQL examples' },
+                  ].map(item => (
+                    <div key={item.label} className="glass-card rounded-xl border border-white/8 p-4 text-center">
+                      <div className="text-sm font-bold text-white/70 mb-1">{item.label}</div>
+                      <div className="text-xs text-white/30">{item.desc}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </motion.div>

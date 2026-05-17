@@ -1,0 +1,55 @@
+{
+  "name": "ApplicationScreenshot",
+  "type": "object",
+  "properties": {
+    "configId": {
+      "type": "string",
+      "title": "Project Config ID"
+    },
+    "pageName": {
+      "type": "string",
+      "title": "Page Name"
+    },
+    "sectionName": {
+      "type": "string",
+      "title": "Section Name"
+    },
+    "imageUrl": {
+      "type": "string",
+      "title": "Image URL"
+    },
+    "caption": {
+      "type": "string",
+      "title": "Caption"
+    },
+    "description": {
+      "type": "string",
+      "title": "Description"
+    },
+    "order": {
+      "type": "number",
+      "title": "Order",
+      "default": 0
+    },
+    "capturedAt": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Captured At"
+    },
+    "capturedBy": {
+      "type": "string",
+      "title": "Captured By"
+    },
+    "includeInPdf": {
+      "type": "boolean",
+      "default": true,
+      "title": "Include in PDF"
+    }
+  },
+  "required": [
+    "configId",
+    "pageName",
+    "imageUrl",
+    "caption"
+  ]
+}

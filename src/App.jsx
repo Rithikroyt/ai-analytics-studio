@@ -46,6 +46,7 @@ import DataLineageViewer from '@/pages/DataLineageViewer';
 import PipelineStudio from '@/pages/PipelineStudio';
 import RAGEvidenceHub from '@/pages/RAGEvidenceHub';
 import ObservabilityCenter from '@/pages/ObservabilityCenter';
+import ProjectDocumentationCenter from '@/pages/ProjectDocumentationCenter';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -113,6 +114,7 @@ const AuthenticatedApp = () => {
         <Route path="/pipeline-studio" element={<PipelineStudio />} />
         <Route path="/rag-evidence" element={<RAGEvidenceHub />} />
         <Route path="/observability" element={<ObservabilityCenter />} />
+        <Route path="/admin/project-documentation" element={<ProjectDocumentationCenter />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </>
