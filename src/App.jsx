@@ -43,6 +43,9 @@ import AdvancedAnalyticsLab from '@/pages/AdvancedAnalyticsLab';
 import ExecutiveBriefing from '@/pages/ExecutiveBriefing';
 import StrategicOKRBoard from '@/pages/StrategicOKRBoard';
 import DataLineageViewer from '@/pages/DataLineageViewer';
+import PipelineStudio from '@/pages/PipelineStudio';
+import RAGEvidenceHub from '@/pages/RAGEvidenceHub';
+import ObservabilityCenter from '@/pages/ObservabilityCenter';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -107,6 +110,9 @@ const AuthenticatedApp = () => {
         <Route path="/executive-briefing" element={<ExecutiveBriefing />} />
         <Route path="/strategic-okr" element={<StrategicOKRBoard />} />
         <Route path="/data-lineage" element={<DataLineageViewer />} />
+        <Route path="/pipeline-studio" element={<PipelineStudio />} />
+        <Route path="/rag-evidence" element={<RAGEvidenceHub />} />
+        <Route path="/observability" element={<ObservabilityCenter />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </>

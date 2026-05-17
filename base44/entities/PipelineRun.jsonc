@@ -1,0 +1,75 @@
+{
+  "name": "PipelineRun",
+  "type": "object",
+  "properties": {
+    "pipelineId": {
+      "type": "string",
+      "title": "Pipeline ID"
+    },
+    "pipelineName": {
+      "type": "string",
+      "title": "Pipeline Name"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "running",
+        "success",
+        "failed",
+        "partial"
+      ],
+      "default": "running",
+      "title": "Status"
+    },
+    "startedAt": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Started At"
+    },
+    "endedAt": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Ended At"
+    },
+    "durationMs": {
+      "type": "number",
+      "title": "Duration (ms)",
+      "default": 0
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "title": "Steps"
+    },
+    "errorMessage": {
+      "type": "string",
+      "title": "Error Message"
+    },
+    "createdBy": {
+      "type": "string",
+      "title": "Created By"
+    },
+    "tableId": {
+      "type": "string",
+      "title": "Table ID"
+    },
+    "tableName": {
+      "type": "string",
+      "title": "Table Name"
+    },
+    "inputRowCount": {
+      "type": "number",
+      "title": "Input Rows"
+    },
+    "outputRowCount": {
+      "type": "number",
+      "title": "Output Rows"
+    }
+  },
+  "required": [
+    "pipelineId",
+    "pipelineName"
+  ]
+}

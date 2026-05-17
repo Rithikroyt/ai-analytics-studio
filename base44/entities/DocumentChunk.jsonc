@@ -1,0 +1,52 @@
+{
+  "name": "DocumentChunk",
+  "type": "object",
+  "properties": {
+    "documentId": {
+      "type": "string",
+      "title": "Document ID"
+    },
+    "documentName": {
+      "type": "string",
+      "title": "Document Name"
+    },
+    "fileType": {
+      "type": "string",
+      "title": "File Type"
+    },
+    "fileUrl": {
+      "type": "string",
+      "title": "File URL"
+    },
+    "chunkIndex": {
+      "type": "number",
+      "title": "Chunk Index",
+      "default": 0
+    },
+    "content": {
+      "type": "string",
+      "title": "Content"
+    },
+    "wordCount": {
+      "type": "number",
+      "title": "Word Count",
+      "default": 0
+    },
+    "summary": {
+      "type": "string",
+      "title": "Summary"
+    },
+    "uploadedBy": {
+      "type": "string",
+      "title": "Uploaded By"
+    },
+    "workspaceId": {
+      "type": "string",
+      "title": "Workspace ID"
+    }
+  },
+  "required": [
+    "documentId",
+    "content"
+  ]
+}

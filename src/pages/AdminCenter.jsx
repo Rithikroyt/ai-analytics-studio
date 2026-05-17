@@ -36,6 +36,7 @@ const TABS = [
   { id: 'errors',    label: 'Error Logs',      icon: AlertTriangle },
   { id: 'modules',   label: 'Module Usage',    icon: Activity },
   { id: 'audit',     label: 'Audit Log',       icon: ClipboardList },
+  { id: 'observability', label: 'Observability', icon: Activity },
 ];
 
 export default function AdminCenter() {
@@ -134,6 +135,12 @@ export default function AdminCenter() {
             {tab === 'errors'    && <AdminErrorLogs errors={data.recentErrors} onRefresh={loadData} />}
             {tab === 'modules'   && <AdminModuleUsage recentEvents={data.recentEvents} recentErrors={data.recentErrors} />}
             {tab === 'audit'     && <AdminAuditLog logs={data.auditLogs} />}
+            {tab === 'observability' && (
+              <div className="space-y-4">
+                <div className="text-sm text-white/40 mb-2">Full observability dashboard available at <a href="/observability" className="text-cyan-400 hover:underline">/observability</a></div>
+                <iframe src="/observability" className="w-full h-screen rounded-2xl border border-white/8" title="Observability Center" />
+              </div>
+            )}
           </motion.div>
         )}
       </div>

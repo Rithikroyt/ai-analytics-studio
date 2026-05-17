@@ -1,0 +1,67 @@
+{
+  "name": "AgentTrace",
+  "type": "object",
+  "properties": {
+    "sessionId": {
+      "type": "string",
+      "title": "Session ID"
+    },
+    "agentName": {
+      "type": "string",
+      "title": "Agent Name"
+    },
+    "userQuestion": {
+      "type": "string",
+      "title": "User Question"
+    },
+    "finalAnswer": {
+      "type": "string",
+      "title": "Final Answer"
+    },
+    "toolsCalled": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Tools Called"
+    },
+    "durationMs": {
+      "type": "number",
+      "title": "Duration (ms)",
+      "default": 0
+    },
+    "sqlSuccess": {
+      "type": "boolean",
+      "title": "SQL Success",
+      "default": true
+    },
+    "confidenceScore": {
+      "type": "number",
+      "title": "Confidence Score",
+      "default": 0
+    },
+    "answerQualityScore": {
+      "type": "number",
+      "title": "Answer Quality Score",
+      "default": 0
+    },
+    "qualityBreakdown": {
+      "type": "object",
+      "title": "Quality Breakdown",
+      "additionalProperties": true
+    },
+    "userEmail": {
+      "type": "string",
+      "title": "User Email"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Timestamp"
+    }
+  },
+  "required": [
+    "agentName",
+    "userQuestion"
+  ]
+}
