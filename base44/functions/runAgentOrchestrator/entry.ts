@@ -479,29 +479,43 @@ Provide specific, evidence-backed recommendations with estimated impact.`;
 
     // ── Step 12: Log trace ────────────────────────────────────────────────────
     try {
+      const qualityScore = Math.min(
+        (finalResult.evidence?.length || 0) * 10 +
+        (finalResult.recommendations?.length || 0) * 8 +
+        (finalResult.executive_summary?.length > 100 ? 20 : 0) +
+        (finalResult.metrics_used?.length || 0) * 5,
+        100
+      );
       await base44.asServiceRole.entities.AgentTrace.create({
         sessionId: sessionId || `session_${Date.now()}`,
         agentName: personaName,
+        userEmail: user.email,
+        datasetName: tableData?.name || '',
         userQuestion: question,
-        finalAnswer: finalResult.executive_summary,
+        intent: intent,
+        domain: intent,
         toolsCalled: tools,
-        durationMs: duration,
+        sqlGenerated: primarySQL,
         sqlSuccess: sqlRisk.safe,
+        dataSufficiencyScore: dataSufficiency.score,
+        dataSufficiencyStatus: dataSufficiency.status,
+        missingFields: finalResult.missing_fields || [],
         confidenceScore: decisionConfidence,
-        answerQualityScore: Math.min(
-          (finalResult.evidence?.length || 0) * 10 +
-          (finalResult.recommendations?.length || 0) * 8 +
-          (finalResult.executive_summary?.length > 100 ? 20 : 0) +
-          (finalResult.metrics_used?.length || 0) * 5,
-          100
-        ),
+        answerQualityScore: qualityScore,
+        fallbackReason: dataSufficiency.status === 'insufficient' ? 'Insufficient data' : '',
+        finalAnswer: {
+          executive_summary: finalResult.executive_summary,
+          evidence_count: finalResult.evidence?.length || 0,
+          recs_count: enrichedRecs.length,
+        },
         qualityBreakdown: {
           evidence_count: finalResult.evidence?.length || 0,
           recs_count: enrichedRecs.length,
           data_sufficiency: dataSufficiency.status,
           sql_risk: sqlRisk.issues,
         },
-        userEmail: user.email,
+        feedbackRating: '',
+        durationMs: duration,
         timestamp: new Date().toISOString(),
       });
     } catch (_) {}

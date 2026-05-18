@@ -10,13 +10,34 @@
       "type": "string",
       "title": "Agent Name"
     },
+    "userEmail": {
+      "type": "string",
+      "title": "User Email"
+    },
+    "datasetName": {
+      "type": "string",
+      "title": "Dataset Name"
+    },
     "userQuestion": {
       "type": "string",
       "title": "User Question"
     },
-    "finalAnswer": {
+    "intent": {
       "type": "string",
-      "title": "Final Answer"
+      "title": "Intent Classified"
+    },
+    "domain": {
+      "type": "string",
+      "enum": [
+        "finance",
+        "growth",
+        "operations",
+        "quality",
+        "forecast",
+        "strategy",
+        "general"
+      ],
+      "title": "Domain"
     },
     "toolsCalled": {
       "type": "array",
@@ -25,34 +46,76 @@
       },
       "title": "Tools Called"
     },
-    "durationMs": {
-      "type": "number",
-      "title": "Duration (ms)",
-      "default": 0
+    "sqlGenerated": {
+      "type": "string",
+      "title": "SQL Generated"
     },
     "sqlSuccess": {
       "type": "boolean",
-      "title": "SQL Success",
-      "default": true
+      "default": true,
+      "title": "SQL Success"
+    },
+    "dataSufficiencyScore": {
+      "type": "number",
+      "default": 0,
+      "title": "Data Sufficiency Score"
+    },
+    "dataSufficiencyStatus": {
+      "type": "string",
+      "enum": [
+        "strong",
+        "partial",
+        "limited",
+        "insufficient"
+      ],
+      "title": "Data Sufficiency Status"
+    },
+    "missingFields": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Missing Fields"
     },
     "confidenceScore": {
       "type": "number",
-      "title": "Confidence Score",
-      "default": 0
+      "default": 0,
+      "title": "Confidence Score"
     },
     "answerQualityScore": {
       "type": "number",
-      "title": "Answer Quality Score",
-      "default": 0
+      "default": 0,
+      "title": "Answer Quality Score"
+    },
+    "fallbackReason": {
+      "type": "string",
+      "title": "Fallback Reason"
+    },
+    "finalAnswer": {
+      "type": "object",
+      "title": "Final Answer (JSON)",
+      "additionalProperties": true
     },
     "qualityBreakdown": {
       "type": "object",
       "title": "Quality Breakdown",
       "additionalProperties": true
     },
-    "userEmail": {
+    "feedbackRating": {
       "type": "string",
-      "title": "User Email"
+      "enum": [
+        "useful",
+        "improve",
+        "incorrect",
+        "missing_data",
+        ""
+      ],
+      "title": "Feedback Rating"
+    },
+    "durationMs": {
+      "type": "number",
+      "default": 0,
+      "title": "Duration (ms)"
     },
     "timestamp": {
       "type": "string",
