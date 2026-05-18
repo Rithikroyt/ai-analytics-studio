@@ -1,0 +1,59 @@
+{
+  "name": "AccuracyBenchmark",
+  "type": "object",
+  "properties": {
+    "testQuestion": {
+      "type": "string",
+      "title": "Test Question"
+    },
+    "expectedSql": {
+      "type": "string",
+      "title": "Expected SQL"
+    },
+    "actualSql": {
+      "type": "string",
+      "title": "Actual SQL"
+    },
+    "expectedOutput": {
+      "type": "string",
+      "title": "Expected Output"
+    },
+    "actualOutput": {
+      "type": "string",
+      "title": "Actual Output"
+    },
+    "passed": {
+      "type": "boolean",
+      "default": false,
+      "title": "Passed"
+    },
+    "regressionStatus": {
+      "type": "string",
+      "enum": [
+        "pass",
+        "fail",
+        "pending",
+        "regression"
+      ],
+      "default": "pending",
+      "title": "Regression Status"
+    },
+    "agentUsed": {
+      "type": "string",
+      "title": "Agent Used"
+    },
+    "runAt": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Run At"
+    },
+    "notes": {
+      "type": "string",
+      "title": "Notes"
+    }
+  },
+  "required": [
+    "testQuestion",
+    "expectedSql"
+  ]
+}

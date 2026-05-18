@@ -1,0 +1,60 @@
+{
+  "name": "VerifiedAnswer",
+  "type": "object",
+  "properties": {
+    "question": {
+      "type": "string",
+      "title": "Question"
+    },
+    "verifiedSql": {
+      "type": "string",
+      "title": "Verified SQL"
+    },
+    "expectedAnswer": {
+      "type": "string",
+      "title": "Expected Answer"
+    },
+    "metricUsed": {
+      "type": "string",
+      "title": "Metric Used"
+    },
+    "domain": {
+      "type": "string",
+      "enum": [
+        "finance",
+        "growth",
+        "operations",
+        "general"
+      ],
+      "title": "Domain"
+    },
+    "owner": {
+      "type": "string",
+      "title": "Owner Email"
+    },
+    "lastReviewed": {
+      "type": "string",
+      "format": "date",
+      "title": "Last Reviewed"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "certified",
+        "draft",
+        "deprecated"
+      ],
+      "default": "draft",
+      "title": "Status"
+    },
+    "timesUsed": {
+      "type": "number",
+      "default": 0,
+      "title": "Times Used"
+    }
+  },
+  "required": [
+    "question",
+    "metricUsed"
+  ]
+}

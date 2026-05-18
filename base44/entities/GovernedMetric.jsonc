@@ -2,41 +2,37 @@
   "name": "GovernedMetric",
   "type": "object",
   "properties": {
-    "metricId": {
+    "metricName": {
       "type": "string",
-      "title": "Metric ID"
-    },
-    "displayName": {
-      "type": "string",
-      "title": "Display Name"
-    },
-    "formula": {
-      "type": "string",
-      "title": "Formula"
+      "title": "Metric Name"
     },
     "businessDefinition": {
       "type": "string",
       "title": "Business Definition"
     },
-    "aggregation": {
+    "formula": {
+      "type": "string",
+      "title": "Formula"
+    },
+    "aggregationType": {
       "type": "string",
       "enum": [
         "sum",
-        "avg",
+        "average",
+        "ratio",
         "count",
         "min",
         "max",
-        "ratio"
+        "custom"
       ],
       "title": "Aggregation Type"
     },
-    "sourceTable": {
-      "type": "string",
-      "title": "Source Table"
-    },
-    "sourceColumn": {
-      "type": "string",
-      "title": "Source Column"
+    "sourceColumns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Source Columns"
     },
     "validDimensions": {
       "type": "array",
@@ -45,39 +41,52 @@
       },
       "title": "Valid Dimensions"
     },
-    "owner": {
-      "type": "string",
-      "title": "Owner Email"
+    "synonyms": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Synonyms"
     },
-    "certificationStatus": {
+    "domain": {
       "type": "string",
       "enum": [
-        "draft",
-        "verified",
-        "deprecated"
+        "finance",
+        "growth",
+        "operations",
+        "quality",
+        "general"
       ],
-      "default": "draft",
-      "title": "Certification Status"
+      "title": "Domain"
     },
-    "exampleQuestions": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "title": "Example Questions"
+    "certified": {
+      "type": "boolean",
+      "default": false,
+      "title": "Certified"
     },
-    "tags": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "title": "Tags"
+    "certifiedBy": {
+      "type": "string",
+      "title": "Certified By"
+    },
+    "certifiedAt": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Certified At"
+    },
+    "nonAdditive": {
+      "type": "boolean",
+      "default": false,
+      "title": "Non-Additive (cannot SUM)"
+    },
+    "integrityScore": {
+      "type": "number",
+      "default": 0,
+      "title": "Integrity Score"
     }
   },
   "required": [
-    "metricId",
-    "displayName",
+    "metricName",
     "formula",
-    "sourceTable"
+    "aggregationType"
   ]
 }

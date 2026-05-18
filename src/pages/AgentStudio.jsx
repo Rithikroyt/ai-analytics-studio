@@ -12,17 +12,22 @@ import AgentStructuredAnswer from '@/components/agents/AgentStructuredAnswer.jsx
 import AgentPipelineBuilderV2 from '@/components/agents/AgentPipelineBuilderV2.jsx';
 import AgentTaskBoardV2 from '@/components/agents/AgentTaskBoardV2.jsx';
 import ExecutiveSummaryTab from '@/components/agents/ExecutiveSummaryTab.jsx';
+import PrincipalAnswerCard from '@/components/agents/PrincipalAnswerCard.jsx';
 
 const DEFAULT_PERSONAS = [
-  { id: 'cfo',       name: 'CFO Analyst',        department: 'Finance',     role: 'Senior FP&A / Finance Analytics Expert',          avatarColor: '#00e5ff' },
-  { id: 'marketing', name: 'Growth Analyst',      department: 'Marketing',   role: 'Senior Growth / Product / Revenue Analyst',        avatarColor: '#ff2d7a' },
-  { id: 'ops',       name: 'Operations Analyst',  department: 'Operations',  role: 'Senior Operations Excellence Specialist',          avatarColor: '#4caf50' },
+  { id: 'cfo',         name: 'CFO Analyst',               department: 'Finance',     role: 'Principal Finance Intelligence · Revenue, Margin, Cost, Risk',       avatarColor: '#00e5ff' },
+  { id: 'growth',      name: 'Growth Analyst',             department: 'Marketing',   role: 'Principal Growth Intelligence · RFM, Funnel, Retention, LTV/CAC',    avatarColor: '#ff2d7a' },
+  { id: 'ops',         name: 'Operations Analyst',         department: 'Operations',  role: 'Principal Operations Excellence · SLA, Cycle Time, Throughput',      avatarColor: '#4caf50' },
+  { id: 'pda',         name: 'Principal Data Analyst',     department: 'Analytics',   role: 'Data Quality · Schema Governance · SQL Correctness · Metric Integrity', avatarColor: '#a78bfa' },
+  { id: 'pba',         name: 'Principal Business Analyst', department: 'Strategy',    role: 'Business Framing · ROI · Stakeholder Impact · Executive Storytelling',  avatarColor: '#f59e0b' },
 ];
 
 const STARTER_QUESTIONS = {
-  cfo:       ['Why is payroll cost increasing?', 'Which department is over budget?', 'What is our gross margin trend?', 'When do we run out of runway?'],
-  marketing: ['Where is the biggest funnel drop-off?', 'Which customers are churning?', 'What is our LTV/CAC ratio?', 'Which campaign has the best ROI?'],
-  ops:       ['Where is the biggest bottleneck?', 'Which stage is breaching SLA?', 'What is capacity utilization?', 'Where can we automate?'],
+  cfo:       ['Why is revenue decreasing?', 'Which segment contributes most to margin risk?', 'Are costs growing faster than revenue?', 'What is the forecasted financial risk?'],
+  growth:    ['Where is the biggest funnel drop-off?', 'Which customers are churning?', 'What is our LTV/CAC ratio?', 'Which segment should receive investment?'],
+  ops:       ['Where is the biggest bottleneck?', 'Which process is breaching SLA?', 'What is capacity utilization?', 'Where can we automate to improve throughput?'],
+  pda:       ['What is the data quality risk in this dataset?', 'Which columns have the most anomalies?', 'Is this dataset sufficient for revenue analysis?', 'What SQL would be most accurate for this data?'],
+  pba:       ['What business decision does this data support?', 'What is the ROI of fixing the top data issue?', 'How should leadership prioritize these findings?', 'What is the stakeholder impact of this change?'],
 };
 
 const TABS = [
@@ -67,29 +72,28 @@ export default function AgentStudio() {
     } : null;
 
     let result = null;
-    let attempts = 0;
-    while (attempts < 2) {
-      try {
-        const res = await base44.functions.invoke('runAgentOrchestrator', {
-          question: q, persona: activePersona, tableContext, pipelinePreset: 'deep_diagnosis',
-        });
-        result = res.data;
-        const hasAnswer = result?.direct_answer && result.direct_answer.length > 30 &&
-          !['analysis complete','done','completed'].includes(result.direct_answer.toLowerCase().trim());
-        if (hasAnswer) break;
-        attempts++;
-      } catch (e) {
-        attempts++;
-        if (attempts >= 2) {
-          result = {
-            direct_answer: `${activePersona.name} encountered an issue. Please rephrase your question or load a dataset.`,
-            key_takeaways: ['Analysis could not complete — a temporary error occurred.', 'Try rephrasing with specific field names.', 'Ensure a dataset is loaded in the Workspace.'],
-            confidence_score: 0, evidence: [],
-            recommendation: ['Reload the dataset and try again', 'Rephrase the question with specific terms', 'Check the dataset contains relevant fields'],
-            thought_process: ['1. Received the question', '2. Attempted analysis pipeline', `3. Error: ${e.message?.slice(0,80)||'Unknown'}`, '4. Graceful fallback activated', '5. Remediation steps suggested'],
-          };
-        }
-      }
+    try {
+      const res = await base44.functions.invoke('runAgentOrchestrator', {
+        question: q,
+        persona: activePersona.name,
+        tableData: tableContext,
+        sessionId: `session_${Date.now()}`,
+      });
+      result = res.data;
+    } catch (e) {
+      result = {
+        executive_summary: `${activePersona.name} encountered an issue: ${e.message?.slice(0,120) || 'Unknown error'}. Please rephrase your question or ensure a dataset is loaded.`,
+        business_question: q,
+        data_sufficiency: { status: 'insufficient', score: 0, label: 'Error' },
+        evidence: [],
+        recommendations: [{ action: 'Reload the dataset and try again', priority: 'High', expected_impact: 'Enables full analysis', effort: 'Low', owner: 'User', next_metric_to_monitor: 'Data Quality Score' }],
+        confidence_score: 0,
+        limitations: [e.message || 'Unknown error'],
+        next_questions: ['What dataset do you want to analyze?'],
+        tools_used: ['ErrorHandler'],
+        persona: activePersona.name,
+        iq_level: 5,
+      };
     }
     setChatHistory(prev => [...prev, {
       role: 'assistant', persona: activePersona,
@@ -110,8 +114,8 @@ export default function AgentStudio() {
             <Users className="w-5 h-5 text-pink-400" />
           </div>
           <div>
-            <h1 className="text-xl font-black">Executive Analytics War Room</h1>
-            <p className="text-xs text-muted-foreground">Multi-agent system · CFO, Growth, Operations · F-D-E-A-R reasoning loop</p>
+            <h1 className="text-xl font-black">Principal Analyst Intelligence System</h1>
+            <p className="text-xs text-muted-foreground">Level 5 Intelligence · F-D-E-A-R Reasoning · Structured Evidence · Decision Confidence</p>
           </div>
         </div>
         <div className="flex gap-0.5 p-1 bg-white/5 rounded-xl border border-white/8">
@@ -128,7 +132,7 @@ export default function AgentStudio() {
       <div className="flex flex-1 overflow-hidden">
         {/* Persona Sidebar */}
         <div className="w-64 border-r border-white/8 overflow-y-auto p-3 flex-shrink-0 space-y-1.5">
-          <div className="text-xs text-white/25 uppercase tracking-widest mb-3 px-1 font-semibold">Senior Analysts</div>
+          <div className="text-xs text-white/25 uppercase tracking-widest mb-3 px-1 font-semibold">Principal Analysts</div>
           {personas.map(p => (
             <AgentProfileCard key={p.id} persona={p} active={activePersona.id === p.id}
               onClick={() => { setActivePersona(p); setChatHistory([]); }} />
@@ -168,7 +172,7 @@ export default function AgentStudio() {
               </div>
               <div>
                 <div className="text-sm font-bold" style={{ color }}>{activePersona.name}</div>
-                <div className="text-xs text-white/35">{activePersona.role} · Reasoning: Frame → Diagnose → Explain → Act → Review</div>
+                <div className="text-xs text-white/35">{activePersona.role}</div>
               </div>
               {chatHistory.length > 0 && (
                 <button onClick={() => setChatHistory([])} className="ml-auto text-xs text-white/25 hover:text-white/55 flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-white/5 transition-all">
@@ -188,7 +192,7 @@ export default function AgentStudio() {
                     </div>
                     <h3 className="font-bold text-base mb-1">{activePersona.name}</h3>
                     <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
-                      I analyze your data using the F-D-E-A-R reasoning loop: Frame the question, Diagnose with evidence, Explain root causes, Act with recommendations, and Review with follow-up metrics.
+                      I operate at Level 5 Principal Analyst intelligence. I use the F-D-E-A-R framework: Frame → Diagnose → Evaluate → Act → Review. Every answer includes data sufficiency scoring, SQL evidence, root cause analysis, prioritized recommendations with impact scores, and executive decision confidence.
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -224,12 +228,16 @@ export default function AgentStudio() {
                             <span className="text-xs text-white/20">{msg.timestamp}</span>
                             {msg.result?.intent && <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 border border-white/8 text-white/30 capitalize">{msg.result.intent}</span>}
                           </div>
-                          <AgentStructuredAnswer
-                            result={msg.result}
-                            agentColor={msg.persona?.avatarColor || color}
-                            agentName={msg.persona?.name || 'Agent'}
-                            rows={activeTable?.rows}
-                            columns={activeTable?.columns}
+                          <PrincipalAnswerCard
+                            answer={msg.result}
+                            onFeedback={(type, ans) => {
+                              base44.entities.AgentFeedback.create({
+                                agentName: msg.persona?.name || 'Agent',
+                                userQuestion: msg.result?.business_question || '',
+                                rating: type === 'up' ? 'useful' : 'not_useful',
+                                userEmail: '',
+                              }).catch(() => {});
+                            }}
                           />
                         </div>
                       )}
@@ -247,10 +255,10 @@ export default function AgentStudio() {
                   <div className="glass-card rounded-2xl px-5 py-4 border border-white/8 space-y-2.5">
                     <div className="flex items-center gap-2 text-sm text-white/45">
                       <Loader2 className="w-4 h-4 animate-spin" style={{ color }} />
-                      Running F-D-E-A-R analysis pipeline…
+                      Running Principal Analyst pipeline…
                     </div>
                     <div className="flex gap-1.5 flex-wrap">
-                      {['Intent Classifier','Data Context Agent','SQL Agent','Anomaly Detector','Specialist Agent','Strategy Agent','Report Writer'].map((s, i) => (
+                      {['IntentClassifier','DataSufficiencyChecker','SemanticMetricLookup','SQLGenerator','StatisticsEngine','PrincipalAnalystReasoner','ConfidenceScorer'].map((s, i) => (
                         <motion.span key={s} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.25 }}
                           className="text-xs px-2 py-0.5 rounded-full bg-white/5 border border-white/8 text-white/30">
                           {s}
