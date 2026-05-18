@@ -170,7 +170,7 @@ Return JSON only:
   "missingFields": ["field1", "field2"]
 }`;
 
-  const result = await base44.integrations.Core.InvokeLLM({
+  const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
     prompt,
     model: 'claude_sonnet_4_6',
     response_json_schema: {

@@ -37,12 +37,12 @@ export default function NLQueryBar() {
     try {
       const [sqlRes, aiRes] = await Promise.allSettled([
         base44.functions.invoke('generateSQL', { question: text, columns: table.columns?.slice(0, 20), rows: table.rows?.slice(0, 5), tableName: table.name }),
-        base44.functions.invoke('runAgentOrchestrator', { question: text, persona: { id: 'cfo', name: 'AI Analyst', avatarColor: '#00e5ff' }, tableContext: { name: table.name, rowCount: table.rows?.length, columns: table.columns?.slice(0, 20), rows: table.rows?.slice(0, 30) }, pipelinePreset: 'quick_insight' }),
+        base44.functions.invoke('runAgentOrchestrator', { question: text, persona: 'CFO Analyst', tableData: { name: table.name, rowCount: table.rows?.length, columns: table.columns?.slice(0, 20), rows: table.rows?.slice(0, 30) } }),
       ]);
       setResult({
         sql: sqlRes.status === 'fulfilled' ? sqlRes.value?.data?.sql : null,
-        answer: aiRes.status === 'fulfilled' ? aiRes.value?.data?.direct_answer : null,
-        takeaways: aiRes.status === 'fulfilled' ? aiRes.value?.data?.key_takeaways : [],
+        answer: aiRes.status === 'fulfilled' ? aiRes.value?.data?.executive_summary : null,
+        takeaways: aiRes.status === 'fulfilled' ? (aiRes.value?.data?.evidence?.slice(0,2).map(e => e.finding) || []) : [],
         confidence: aiRes.status === 'fulfilled' ? aiRes.value?.data?.confidence_score : 0,
       });
     } catch (e) {

@@ -250,17 +250,13 @@ async function classifyIntent(question) {
 Question: "${question}"
 Return JSON: {"intent": "...", "confidence": 0-1}`;
 
-  const result = await base44.integrations.Core.InvokeLLM({
-    prompt,
-    response_json_schema: {
-      type: 'object',
-      properties: {
-        intent: { type: 'string', enum: ['exploratory', 'diagnostic', 'predictive', 'prescriptive'] },
-        confidence: { type: 'number' },
-      },
-      required: ['intent', 'confidence'],
-    },
-  });
+  // Use a simple heuristic instead of an LLM call for intent classification
+  const q = question.toLowerCase();
+  let intent = 'exploratory';
+  if (/forecast|predict|next|will|future|project/.test(q)) intent = 'predictive';
+  else if (/why|cause|drop|decline|issue|problem|anomal|spike/.test(q)) intent = 'diagnostic';
+  else if (/should|recommend|plan|action|focus|priority|improve|optimize/.test(q)) intent = 'prescriptive';
+  const result = { intent, confidence: 0.85 };
 
   return result;
 }
@@ -447,7 +443,7 @@ Provide a clear, specific answer in 3-5 sentences using the ACTUAL numbers from 
 
 Reference actual column names and specific numeric values from the results.`;
 
-  const explanation = await base44.integrations.Core.InvokeLLM({ prompt });
+  const explanation = await base44.integrations.Core.InvokeLLM({ prompt, model: 'gpt_5_mini' });
 
   // #1: Build chart from SQL query results
   const chart = queryRows?.length >= 2 ? {
