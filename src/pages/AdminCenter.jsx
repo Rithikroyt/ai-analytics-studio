@@ -30,15 +30,16 @@ function isAdmin(user) {
 }
 
 const TABS = [
-  { id: 'overview',  label: 'Overview',       icon: BarChart2 },
-  { id: 'users',     label: 'Users',           icon: Users },
-  { id: 'features',  label: 'Feature Usage',   icon: TrendingUp },
-  { id: 'ai',        label: 'AI Monitor',      icon: Brain },
-  { id: 'errors',    label: 'Error Logs',      icon: AlertTriangle },
-  { id: 'modules',   label: 'Module Usage',    icon: Activity },
-  { id: 'audit',     label: 'Audit Log',       icon: ClipboardList },
-  { id: 'observability', label: 'Observability', icon: Activity },
-  { id: 'projectdocs',   label: 'Project Docs',   icon: FileText },
+  { id: 'overview',      label: 'Overview',        icon: BarChart2 },
+  { id: 'users',         label: 'Users',            icon: Users },
+  { id: 'features',      label: 'Feature Usage',    icon: TrendingUp },
+  { id: 'ai',            label: 'AI Monitor',       icon: Brain },
+  { id: 'errors',        label: 'Error Logs',       icon: AlertTriangle },
+  { id: 'modules',       label: 'Module Usage',     icon: Activity },
+  { id: 'audit',         label: 'Audit Log',        icon: ClipboardList },
+  { id: 'observability', label: 'Observability',    icon: Activity },
+  { id: 'projectdocs',   label: 'Project Docs',     icon: FileText },
+  { id: 'benchmark',     label: 'Benchmarks',       icon: Database },
 ];
 
 export default function AdminCenter() {
@@ -141,6 +142,26 @@ export default function AdminCenter() {
               <div className="space-y-4">
                 <div className="text-sm text-white/40 mb-2">Full observability dashboard available at <a href="/observability" className="text-cyan-400 hover:underline">/observability</a></div>
                 <iframe src="/observability" className="w-full h-screen rounded-2xl border border-white/8" title="Observability Center" />
+              </div>
+            )}
+            {tab === 'benchmark' && (
+              <div className="space-y-4">
+                <div className="text-sm text-white/40 mb-2">
+                  Run SQL accuracy tests and track agent regressions.{' '}
+                  <Link to="/admin/benchmark-center" className="text-cyan-400 hover:underline">Open full Benchmark Center →</Link>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {[
+                    { label: 'SQL Accuracy Tests', desc: 'Compare expected vs generated SQL' },
+                    { label: 'Regression Tracking', desc: 'Pass/fail history over time' },
+                    { label: 'Inspect Mode', desc: 'Databricks Genie-style sub-query validation' },
+                  ].map(item => (
+                    <div key={item.label} className="glass-card rounded-xl border border-white/8 p-4">
+                      <div className="text-sm font-bold text-white/70 mb-1">{item.label}</div>
+                      <div className="text-xs text-white/30">{item.desc}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
             {tab === 'projectdocs' && (

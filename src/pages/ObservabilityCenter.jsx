@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import ObservabilityDashboard from '@/components/observability/ObservabilityDashboard';
 
 const QUALITY_FORMULA = '0.25 × Relevance + 0.25 × Evidence + 0.20 × Completeness + 0.15 × Actionability + 0.15 × Clarity';
 
@@ -62,8 +63,8 @@ export default function ObservabilityCenter() {
 
   const TABS = [
     { id: 'overview', label: 'Overview', icon: BarChart2 },
+    { id: 'live', label: 'Live Traces', icon: Activity },
     { id: 'agents', label: 'Agent Metrics', icon: Brain },
-    { id: 'traces', label: 'Recent Traces', icon: Activity },
     { id: 'pipelines', label: 'Pipelines', icon: Database },
   ];
 
@@ -112,7 +113,10 @@ export default function ObservabilityCenter() {
           </div>
         )}
 
-        {data && (
+        {tab === 'live' && (
+          <ObservabilityDashboard />
+        )}
+        {data && tab !== 'live' && (
           <motion.div key={tab} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
             {tab === 'overview' && (
               <div className="space-y-6">

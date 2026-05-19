@@ -100,6 +100,8 @@ export default function WorkspaceSidebar({ collapsed, onToggle }) {
             { to: '/pipeline-studio',    icon: GitBranch, label: 'Pipeline Studio',  color: 'text-purple-400' },
             { to: '/rag-evidence',       icon: FileText,  label: 'RAG Evidence',     color: 'text-green-400' },
             { to: '/observability',      icon: Activity,  label: 'Observability',    color: 'text-cyan-400' },
+            { to: '/semantic-model',      icon: Layers,      label: 'Semantic Model', color: 'text-indigo-400' },
+            { to: '/admin/benchmark-center', icon: FlaskConical, label: 'Benchmarks',  color: 'text-amber-400' },
             { to: '/dashboards',   icon: PieChart,    label: 'Dashboards',    color: 'text-cyan-400' },
             { to: '/alerts',       icon: Bell,        label: 'Alerts',        color: 'text-amber-400' },
             { to: '/predictive',   icon: TrendingUp,  label: 'Predictive AI', color: 'text-purple-400' },

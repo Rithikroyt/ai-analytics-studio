@@ -1,0 +1,90 @@
+{
+  "name": "AgentBenchmark",
+  "type": "object",
+  "properties": {
+    "testQuestion": {
+      "type": "string",
+      "title": "Test Question"
+    },
+    "expectedSql": {
+      "type": "string",
+      "title": "Expected SQL"
+    },
+    "expectedOutputSummary": {
+      "type": "string",
+      "title": "Expected Output Summary"
+    },
+    "actualSql": {
+      "type": "string",
+      "title": "Actual SQL Generated"
+    },
+    "actualOutputSummary": {
+      "type": "string",
+      "title": "Actual Output Summary"
+    },
+    "passed": {
+      "type": "boolean",
+      "default": false,
+      "title": "Passed"
+    },
+    "regressionStatus": {
+      "type": "string",
+      "enum": [
+        "pass",
+        "fail",
+        "pending",
+        "regression"
+      ],
+      "default": "pending",
+      "title": "Regression Status"
+    },
+    "agentName": {
+      "type": "string",
+      "title": "Agent Used"
+    },
+    "datasetName": {
+      "type": "string",
+      "title": "Dataset Name"
+    },
+    "domain": {
+      "type": "string",
+      "enum": [
+        "finance",
+        "growth",
+        "operations",
+        "quality",
+        "forecast",
+        "general"
+      ],
+      "title": "Domain"
+    },
+    "sqlMatchScore": {
+      "type": "number",
+      "default": 0,
+      "title": "SQL Match Score (0-100)"
+    },
+    "answerMatchScore": {
+      "type": "number",
+      "default": 0,
+      "title": "Answer Match Score (0-100)"
+    },
+    "latencyMs": {
+      "type": "number",
+      "default": 0,
+      "title": "Latency (ms)"
+    },
+    "runAt": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Run At"
+    },
+    "notes": {
+      "type": "string",
+      "title": "Notes"
+    }
+  },
+  "required": [
+    "testQuestion",
+    "expectedSql"
+  ]
+}

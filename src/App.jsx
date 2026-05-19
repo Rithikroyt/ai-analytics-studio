@@ -47,6 +47,8 @@ import PipelineStudio from '@/pages/PipelineStudio';
 import RAGEvidenceHub from '@/pages/RAGEvidenceHub';
 import ObservabilityCenter from '@/pages/ObservabilityCenter';
 import ProjectDocumentationCenter from '@/pages/ProjectDocumentationCenter';
+import SemanticModelStudio from '@/pages/SemanticModelStudio';
+import BenchmarkCenter from '@/pages/BenchmarkCenter';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -115,6 +117,8 @@ const AuthenticatedApp = () => {
         <Route path="/rag-evidence" element={<RAGEvidenceHub />} />
         <Route path="/observability" element={<ObservabilityCenter />} />
         <Route path="/admin/project-documentation" element={<ProjectDocumentationCenter />} />
+        <Route path="/semantic-model" element={<SemanticModelStudio />} />
+        <Route path="/admin/benchmark-center" element={<BenchmarkCenter />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </>

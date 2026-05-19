@@ -35,8 +35,13 @@ export default function MetricStore() {
 
   const fetchMetrics = async () => {
     setLoading(true);
-    const data = await base44.entities.GovernedMetric.list('-created_date', 50);
-    setMetrics(data);
+    const [governed, semantic] = await Promise.all([
+      base44.entities.GovernedMetric.list('-created_date', 50).catch(() => []),
+      base44.entities.SemanticMetric.list('-created_date', 50).catch(() => []),
+    ]);
+    // Merge both metric sources, dedup by name
+    const combined = [...governed, ...semantic.map(s => ({ ...s, displayName: s.metricName, metricId: s.metricName?.toLowerCase().replace(/\s+/g,'_'), certificationStatus: s.certified ? 'verified' : 'draft', businessDefinition: s.businessDefinition }))];
+    setMetrics(combined);
     setLoading(false);
   };
 
