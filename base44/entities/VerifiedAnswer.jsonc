@@ -8,7 +8,11 @@
     },
     "verifiedSql": {
       "type": "string",
-      "title": "Verified SQL"
+      "title": "Verified SQL Query"
+    },
+    "expectedAnswerPattern": {
+      "type": "string",
+      "title": "Expected Answer Pattern or Summary"
     },
     "expectedAnswer": {
       "type": "string",
@@ -16,7 +20,14 @@
     },
     "metricUsed": {
       "type": "string",
-      "title": "Metric Used"
+      "title": "Primary Metric Used"
+    },
+    "metricsUsed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "All Metrics Used"
     },
     "domain": {
       "type": "string",
@@ -24,6 +35,9 @@
         "finance",
         "growth",
         "operations",
+        "quality",
+        "forecast",
+        "strategy",
         "general"
       ],
       "title": "Domain"
@@ -31,11 +45,6 @@
     "owner": {
       "type": "string",
       "title": "Owner Email"
-    },
-    "lastReviewed": {
-      "type": "string",
-      "format": "date",
-      "title": "Last Reviewed"
     },
     "status": {
       "type": "string",
@@ -47,10 +56,57 @@
       "default": "draft",
       "title": "Status"
     },
+    "lastReviewed": {
+      "type": "string",
+      "format": "date",
+      "title": "Last Reviewed Date"
+    },
+    "reviewedBy": {
+      "type": "string",
+      "title": "Reviewed By (email)"
+    },
     "timesUsed": {
       "type": "number",
       "default": 0,
-      "title": "Times Used"
+      "title": "Times Used in Queries"
+    },
+    "datasetId": {
+      "type": "string",
+      "title": "Associated Dataset ID"
+    },
+    "datasetName": {
+      "type": "string",
+      "title": "Associated Dataset Name"
+    },
+    "accuracy": {
+      "type": "number",
+      "title": "Known accuracy (0-100)"
+    },
+    "confidenceScore": {
+      "type": "number",
+      "title": "Confidence Score (0-100)"
+    },
+    "businessImpact": {
+      "type": "string",
+      "title": "Business impact of this answer"
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Known limitations"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Tags for discovery"
+    },
+    "notes": {
+      "type": "string",
+      "title": "Additional context"
     }
   },
   "required": [

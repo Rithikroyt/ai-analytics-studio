@@ -1,0 +1,80 @@
+{
+  "name": "MetricRelationship",
+  "type": "object",
+  "properties": {
+    "leftTable": {
+      "type": "string",
+      "title": "Left Table Name"
+    },
+    "rightTable": {
+      "type": "string",
+      "title": "Right Table Name"
+    },
+    "joinKey": {
+      "type": "string",
+      "title": "Join Key (e.g., 'user_id')"
+    },
+    "joinType": {
+      "type": "string",
+      "enum": [
+        "inner",
+        "left",
+        "right",
+        "full"
+      ],
+      "default": "inner",
+      "title": "Join Type"
+    },
+    "relationshipType": {
+      "type": "string",
+      "enum": [
+        "one_to_one",
+        "one_to_many",
+        "many_to_one",
+        "many_to_many"
+      ],
+      "title": "Relationship Cardinality"
+    },
+    "businessReason": {
+      "type": "string",
+      "title": "Why this relationship exists"
+    },
+    "leftTableKey": {
+      "type": "string",
+      "title": "Left table key column"
+    },
+    "rightTableKey": {
+      "type": "string",
+      "title": "Right table key column"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true,
+      "title": "Is this relationship active"
+    },
+    "certified": {
+      "type": "boolean",
+      "default": false,
+      "title": "Certified by data steward"
+    },
+    "owner": {
+      "type": "string",
+      "title": "Owner Email"
+    },
+    "datasetId": {
+      "type": "string",
+      "title": "Associated Dataset ID"
+    },
+    "notes": {
+      "type": "string",
+      "title": "Additional context and caveats"
+    }
+  },
+  "required": [
+    "leftTable",
+    "rightTable",
+    "joinKey",
+    "relationshipType",
+    "businessReason"
+  ]
+}

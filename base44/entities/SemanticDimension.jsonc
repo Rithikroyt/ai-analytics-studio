@@ -1,0 +1,104 @@
+{
+  "name": "SemanticDimension",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "Dimension Name"
+    },
+    "displayName": {
+      "type": "string",
+      "title": "Display Name"
+    },
+    "sourceColumn": {
+      "type": "string",
+      "title": "Source Column Name"
+    },
+    "businessDefinition": {
+      "type": "string",
+      "title": "Business Definition"
+    },
+    "dataType": {
+      "type": "string",
+      "enum": [
+        "date",
+        "string",
+        "number",
+        "boolean",
+        "category"
+      ],
+      "title": "Data Type"
+    },
+    "validValues": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Valid enumerated values (if applicable)"
+    },
+    "synonyms": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Alternative names"
+    },
+    "domain": {
+      "type": "string",
+      "enum": [
+        "time",
+        "geography",
+        "product",
+        "customer",
+        "organization",
+        "channel",
+        "other"
+      ],
+      "title": "Domain"
+    },
+    "isDateDimension": {
+      "type": "boolean",
+      "default": false,
+      "title": "Is this a time/date dimension"
+    },
+    "isGeographic": {
+      "type": "boolean",
+      "default": false,
+      "title": "Is this a geographic dimension"
+    },
+    "isHierarchical": {
+      "type": "boolean",
+      "default": false,
+      "title": "Has hierarchical structure (e.g., Year > Month > Day)"
+    },
+    "hierarchyLevels": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Hierarchy levels if applicable"
+    },
+    "owner": {
+      "type": "string",
+      "title": "Owner Email"
+    },
+    "certified": {
+      "type": "boolean",
+      "default": false,
+      "title": "Certified"
+    },
+    "datasetId": {
+      "type": "string",
+      "title": "Associated Dataset ID"
+    },
+    "notes": {
+      "type": "string",
+      "title": "Additional context"
+    }
+  },
+  "required": [
+    "name",
+    "sourceColumn",
+    "dataType"
+  ]
+}

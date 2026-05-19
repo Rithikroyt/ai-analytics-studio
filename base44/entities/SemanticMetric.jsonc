@@ -1,0 +1,152 @@
+{
+  "name": "SemanticMetric",
+  "type": "object",
+  "properties": {
+    "metricName": {
+      "type": "string",
+      "title": "Metric Name"
+    },
+    "displayName": {
+      "type": "string",
+      "title": "Display Name"
+    },
+    "businessDefinition": {
+      "type": "string",
+      "title": "Business Definition"
+    },
+    "formula": {
+      "type": "string",
+      "title": "Formula (SQL or mathematical expression)"
+    },
+    "aggregationType": {
+      "type": "string",
+      "enum": [
+        "sum",
+        "average",
+        "ratio",
+        "count",
+        "min",
+        "max",
+        "custom"
+      ],
+      "title": "Aggregation Type"
+    },
+    "sourceColumns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Source Columns"
+    },
+    "validDimensions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Valid Dimensions for slicing"
+    },
+    "synonyms": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Alternative names for this metric"
+    },
+    "domain": {
+      "type": "string",
+      "enum": [
+        "finance",
+        "growth",
+        "operations",
+        "quality",
+        "forecast",
+        "strategy",
+        "general"
+      ],
+      "title": "Domain"
+    },
+    "certified": {
+      "type": "boolean",
+      "default": false,
+      "title": "Certified by Owner"
+    },
+    "certifiedBy": {
+      "type": "string",
+      "title": "Certified By (email)"
+    },
+    "certifiedAt": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Certification Timestamp"
+    },
+    "owner": {
+      "type": "string",
+      "title": "Owner Email"
+    },
+    "nonAdditive": {
+      "type": "boolean",
+      "default": false,
+      "title": "Non-Additive (cannot SUM across dimensions)"
+    },
+    "integrityScore": {
+      "type": "number",
+      "default": 0,
+      "title": "Metric Integrity Score (0-100)"
+    },
+    "formulaValidity": {
+      "type": "number",
+      "default": 0,
+      "title": "Formula Validity Score"
+    },
+    "sourceColumnFit": {
+      "type": "number",
+      "default": 0,
+      "title": "Source Column Fit Score"
+    },
+    "aggregationCorrectness": {
+      "type": "number",
+      "default": 0,
+      "title": "Aggregation Correctness Score"
+    },
+    "businessDefinitionScore": {
+      "type": "number",
+      "default": 0,
+      "title": "Business Definition Score"
+    },
+    "certificationScore": {
+      "type": "number",
+      "default": 0,
+      "title": "Certification Score"
+    },
+    "datasetId": {
+      "type": "string",
+      "title": "Associated Dataset ID"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Tags for categorization"
+    },
+    "lastValidated": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Last Validation Timestamp"
+    },
+    "usageCount": {
+      "type": "number",
+      "default": 0,
+      "title": "Times used in queries"
+    },
+    "notes": {
+      "type": "string",
+      "title": "Additional notes and context"
+    }
+  },
+  "required": [
+    "metricName",
+    "formula",
+    "aggregationType"
+  ]
+}
