@@ -81,5 +81,34 @@
   },
   "required": [
     "title"
-  ]
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "$or": [
+        {
+          "data.isPublic": true
+        },
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "data.invitedEmails": "{{user.email}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "data.accessLevel": "edit"
+        }
+      ]
+    },
+    "delete": {
+      "created_by": "{{user.email}}"
+    }
+  }
 }
