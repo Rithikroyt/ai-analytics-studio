@@ -48,5 +48,17 @@
   "required": [
     "documentId",
     "content"
-  ]
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "data.uploadedBy": "{{user.email}}"
+    },
+    "update": {
+      "data.uploadedBy": "{{user.email}}"
+    },
+    "delete": {
+      "data.uploadedBy": "{{user.email}}"
+    }
+  }
 }
