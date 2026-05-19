@@ -71,10 +71,26 @@ export default function PrincipalAnswerCard({ answer, onFeedback }) {
 
   if (!answer) return null;
 
+  // Guard against shallow "analysis complete" answers
+  const execSummary = answer.executive_summary && !answer.executive_summary.toLowerCase().includes('analysis complete')
+    ? answer.executive_summary
+    : answer.executive_summary || 'No summary available.';
+
   const iq = IQ_LABELS[answer.iq_level || 5];
   const suf = SUFFICIENCY_COLORS[answer.data_sufficiency?.status || 'partial'];
   const conf = answer.confidence_score || answer.decision_confidence || 0;
   const confColor = conf >= 80 ? 'text-green-400' : conf >= 60 ? 'text-amber-400' : 'text-red-400';
+
+  // Quality checks
+  const missingRequired = [];
+  if (!answer.evidence?.length) missingRequired.push('Evidence');
+  if (!answer.metrics_used?.length) missingRequired.push('Metrics Used');
+  if (!answer.root_cause) missingRequired.push('Root Cause');
+  if (!answer.business_impact) missingRequired.push('Business Impact');
+  if (!answer.risk_assessment) missingRequired.push('Risk Assessment');
+  if (!answer.recommendations?.length) missingRequired.push('Recommendations');
+  if (!answer.limitations?.length) missingRequired.push('Limitations');
+  if (!answer.next_questions?.length) missingRequired.push('Next Questions');
 
   const handleFeedback = (type) => {
     setFeedback(type);
@@ -114,7 +130,12 @@ export default function PrincipalAnswerCard({ answer, onFeedback }) {
           <Zap className="w-4 h-4 text-cyan-400" />
           <span className="text-xs font-bold text-cyan-400 uppercase tracking-widest">Executive Summary</span>
         </div>
-        <p className="text-sm text-white/85 leading-relaxed">{answer.executive_summary || 'No summary available.'}</p>
+        {missingRequired.length > 0 && (
+          <div className="mb-3 px-3 py-2 rounded-lg bg-amber-400/8 border border-amber-400/20 text-xs text-amber-400">
+            ⚠️ Answer incomplete — missing sections: {missingRequired.join(', ')}
+          </div>
+        )}
+        <p className="text-sm text-white/85 leading-relaxed">{execSummary}</p>
       </div>
 
       {/* Confidence + Data Sufficiency row */}
@@ -235,10 +256,38 @@ export default function PrincipalAnswerCard({ answer, onFeedback }) {
                 </div>
                 {m.definition && <p className="text-xs text-white/50">{m.definition}</p>}
                 {m.formula && <code className="text-xs text-green-400/70 font-mono mt-1 block">{m.formula}</code>}
+                {m.value_observed && <span className="text-xs text-amber-400/80 mt-1 block">Observed: {m.value_observed}</span>}
               </div>
             ))}
           </div>
         </Collapsible>
+      )}
+
+      {/* Missing Fields Warning */}
+      {(answer.missing_fields?.length > 0 || answer.data_sufficiency?.missing_required?.length > 0) && (
+        <div className="rounded-xl bg-amber-400/5 border border-amber-400/20 p-4">
+          <div className="flex items-center gap-1.5 mb-2">
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+            <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">Missing Fields & Partial Analysis</span>
+          </div>
+          {(answer.missing_fields || answer.data_sufficiency?.missing_required || []).map((f, i) => (
+            <div key={i} className="text-xs text-white/60 leading-relaxed">⚠️ Missing: <span className="text-amber-400 font-mono">{f}</span></div>
+          ))}
+          {answer.data_sufficiency?.partial_analysis_possible && (
+            <p className="text-xs text-white/50 mt-2 leading-relaxed">{answer.data_sufficiency.partial_analysis_possible}</p>
+          )}
+        </div>
+      )}
+
+      {/* SQL Safety */}
+      {answer.unsafe_columns?.length > 0 && (
+        <div className="rounded-xl bg-red-400/5 border border-red-400/20 p-3">
+          <div className="flex items-center gap-1.5 mb-1">
+            <Shield className="w-3.5 h-3.5 text-red-400" />
+            <span className="text-xs font-bold text-red-400 uppercase tracking-wider">SQL Safety — Never Aggregated</span>
+          </div>
+          <p className="text-xs text-white/50">These columns were blocked from SUM/AVG: <span className="font-mono text-red-400/70">{answer.unsafe_columns.join(', ')}</span></p>
+        </div>
       )}
 
       {/* SQL Generated */}

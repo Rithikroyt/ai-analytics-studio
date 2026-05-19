@@ -110,6 +110,10 @@ export default function ObservabilityDashboard() {
     (search === '' || t.userQuestion?.toLowerCase().includes(search.toLowerCase()))
   );
 
+  // SQL failure traces
+  const sqlFailures = filtered.filter(t => t.sqlSuccess === false);
+  const sqlFailureRate = metrics.total > 0 ? Math.round((sqlFailures.length / metrics.total) * 100) : 0;
+
   return (
     <div className="space-y-6">
       {/* Quality formula */}
@@ -126,9 +130,15 @@ export default function ObservabilityDashboard() {
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KPICard label="SQL Success" value={metrics.sqlSuccess || 0} color="text-green-400" sub={`of ${metrics.total || 0} traces`} />
+        <KPICard label="SQL Failures" value={sqlFailures.length} color="text-red-400" sub={`${sqlFailureRate}% failure rate`} />
         <KPICard label="High Confidence (≥70%)" value={metrics.highConf || 0} color="text-green-400" />
         <KPICard label="Low Confidence (<50%)" value={metrics.lowConf || 0} color="text-red-400" />
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KPICard label="Useful Feedback" value={metrics.feedbackUseful || 0} color="text-cyan-400" sub={`${metrics.feedbackBad || 0} negative`} />
+        <KPICard label="Shallow Answers (quality<40)" value={traces.filter(t => (t.answerQualityScore||0) < 40).length} color="text-amber-400" sub="Needs improvement" />
+        <KPICard label="Missing Fields Reports" value={traces.filter(t => t.missingFields?.length > 0).length} color="text-orange-400" sub="Traces with missing data" />
+        <KPICard label="Insufficient Data" value={traces.filter(t => t.dataSufficiencyStatus === 'insufficient').length} color="text-red-400" sub="Cannot answer" />
       </div>
 
       {/* Charts row */}
@@ -211,20 +221,26 @@ export default function ObservabilityDashboard() {
               className="p-4 rounded-2xl border border-white/8 bg-white/1 cursor-pointer hover:border-white/15 hover:bg-white/3 transition-all"
               onClick={() => setSelectedTrace(selectedTrace?.id === t.id ? null : t)}>
               <div className="flex items-start gap-3">
-                <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${(t.confidenceScore || 0) >= 70 ? 'bg-green-400' : (t.confidenceScore || 0) >= 50 ? 'bg-amber-400' : 'bg-red-400'}`} />
+                <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${(t.answerQualityScore || 0) >= 70 ? 'bg-green-400' : (t.answerQualityScore || 0) >= 40 ? 'bg-amber-400' : 'bg-red-400'}`} />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm text-white/80 truncate">{t.userQuestion}</div>
                   <div className="flex items-center gap-2 mt-1 flex-wrap text-xs">
                     <span className="text-purple-400">{t.agentName}</span>
-                    <span className="text-white/25">Q: {t.answerQualityScore || 0}%</span>
+                    <span className={`font-semibold ${(t.answerQualityScore||0) >= 70 ? 'text-green-400' : (t.answerQualityScore||0) >= 40 ? 'text-amber-400' : 'text-red-400'}`}>
+                      Q: {t.answerQualityScore || 0}%
+                    </span>
                     <span className="text-white/25">Conf: {t.confidenceScore || 0}%</span>
                     <span className={`${t.dataSufficiencyStatus === 'strong' ? 'text-green-400' : t.dataSufficiencyStatus === 'partial' ? 'text-amber-400' : 'text-red-400'}`}>
                       {t.dataSufficiencyStatus}
                     </span>
                     {t.durationMs > 0 && <span className="text-white/20 font-mono">{t.durationMs}ms</span>}
                     {t.sqlSuccess === false && <span className="text-red-400 flex items-center gap-0.5"><XCircle className="w-3 h-3" /> SQL failed</span>}
+                    {t.missingFields?.length > 0 && <span className="text-orange-400">{t.missingFields.length} missing fields</span>}
                     {t.feedbackRating === 'useful' && <span className="text-green-400 flex items-center gap-0.5"><ThumbsUp className="w-3 h-3" /></span>}
                     {t.feedbackRating === 'incorrect' && <span className="text-red-400 flex items-center gap-0.5"><ThumbsDown className="w-3 h-3" /></span>}
+                    {t.qualityBreakdown?.quality_score !== undefined && t.qualityBreakdown.quality_score < 40 && (
+                      <span className="text-amber-400 border border-amber-400/20 bg-amber-400/8 px-1.5 py-0.5 rounded-full">Shallow</span>
+                    )}
                   </div>
                 </div>
                 {selectedTrace?.id === t.id ? <ChevronDown className="w-4 h-4 text-white/25 flex-shrink-0" /> : <ChevronRight className="w-4 h-4 text-white/25 flex-shrink-0" />}

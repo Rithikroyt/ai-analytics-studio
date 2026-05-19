@@ -10,7 +10,7 @@ import { useWorkspaceStore } from '@/lib/store';
 import {
   BarChart2, TrendingUp, Circle, Hash, Type, Filter, Palette,
   Tag, Eye, Save, X, ChevronDown, Maximize2, RefreshCw, Loader2,
-  CheckCircle2, Info, Lightbulb
+  CheckCircle2, Info, Lightbulb, Code2, Brain, AlertTriangle, Zap
 } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, AreaChart, Area, ScatterChart, Scatter,
   XAxis, YAxis, Tooltip as RTooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
@@ -165,6 +165,69 @@ export default function ChartSpecEditor({ onSave, onClose }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [activeShelf, setActiveShelf] = useState(null);
+  const [explaining, setExplaining] = useState(false);
+  const [explanation, setExplanation] = useState(null);
+  const [showSQL, setShowSQL] = useState(false);
+
+  const buildViewSQL = () => {
+    if (!spec.x) return '-- Configure X axis to generate SQL';
+    const tableName = table?.name || 'dataset';
+    const xAggPart = spec.xAgg && spec.xAgg !== 'NONE' ? `${spec.xAgg}(${spec.x})` : spec.x;
+    const yPart = spec.y ? (spec.yAgg && spec.yAgg !== 'NONE' ? `, ${spec.yAgg}(${spec.y}) AS ${spec.y}_${spec.yAgg.toLowerCase()}` : `, ${spec.y}`) : '';
+    const colorPart = spec.color && spec.color !== spec.x ? `, ${spec.color}` : '';
+    const tooltipParts = spec.tooltipFields.filter(f => f !== spec.x && f !== spec.y && f !== spec.color).map(f => `, ${f}`).join('');
+    const groupBy = spec.y && spec.yAgg && spec.yAgg !== 'NONE' ? `\nGROUP BY ${spec.x}${colorPart}` : '';
+    const orderBy = spec.y ? `\nORDER BY ${spec.y}${spec.yAgg && spec.yAgg !== 'NONE' ? '_' + spec.yAgg.toLowerCase() : ''} DESC` : '';
+    return `SELECT ${xAggPart}${yPart}${colorPart}${tooltipParts}\nFROM ${tableName}${groupBy}${orderBy}\nLIMIT 50;`;
+  };
+
+  const handleExplainChart = async () => {
+    if (!spec.x || !rows.length || !spec.title) return;
+    setExplaining(true);
+    setExplanation(null);
+    try {
+      // Build chart data for explanation
+      const groups = {};
+      for (const row of rows) {
+        const key = String(row[spec.x] ?? 'Unknown');
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(row);
+      }
+      const chartData = Object.entries(groups).map(([key, grp]) => {
+        const entry = { name: key };
+        if (spec.y) {
+          const vals = grp.map(r => Number(r[spec.y]) || 0);
+          const agg = spec.yAgg || 'SUM';
+          entry.value = agg === 'AVG' ? vals.reduce((a, b) => a + b, 0) / Math.max(vals.length, 1) :
+            agg === 'COUNT' ? vals.length : agg === 'MIN' ? Math.min(...vals) :
+            agg === 'MAX' ? Math.max(...vals) : vals.reduce((a, b) => a + b, 0);
+        }
+        return entry;
+      }).slice(0, 30);
+
+      const res = await base44.functions.invoke('explainChart', {
+        title: spec.title,
+        type: spec.mark,
+        xLabel: spec.x,
+        yLabel: spec.y,
+        data: chartData,
+        xKey: 'name',
+        yKey: 'value',
+        tableName: table?.name,
+      });
+      setExplanation(res.data?.explanation);
+      if (res.data?.explanation?.businessMeaning) {
+        setSpec(s => ({ ...s, businessMeaning: res.data.explanation.businessMeaning }));
+      }
+      if (res.data?.explanation?.recommendedNextStep) {
+        setSpec(s => ({ ...s, recommendedAction: res.data.explanation.recommendedNextStep }));
+      }
+      if (res.data?.explanation?.topInsight) {
+        setSpec(s => ({ ...s, insight: res.data.explanation.topInsight }));
+      }
+    } catch (e) {}
+    setExplaining(false);
+  };
 
   const update = (key, val) => setSpec(s => ({ ...s, [key]: val }));
 
@@ -209,6 +272,15 @@ export default function ChartSpecEditor({ onSave, onClose }) {
           <span className="text-xs text-white/30">Vega-Lite-style declarative specs</span>
         </div>
         <div className="flex gap-2">
+          <button onClick={() => setShowSQL(v => !v)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border ${showSQL ? 'bg-green-400/15 border-green-400/25 text-green-400' : 'bg-white/5 border-white/10 text-white/40 hover:text-white/60'}`}>
+            <Code2 className="w-3 h-3" /> View SQL
+          </button>
+          <button onClick={handleExplainChart} disabled={explaining || !spec.x || !spec.title}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-400/15 border border-purple-400/25 text-purple-400 rounded-xl text-xs font-semibold hover:bg-purple-400/20 transition-all disabled:opacity-40">
+            {explaining ? <Loader2 className="w-3 h-3 animate-spin" /> : <Brain className="w-3 h-3" />}
+            Explain Chart
+          </button>
           <button onClick={handleSave} disabled={saving || !spec.title}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-400/15 border border-cyan-400/25 text-cyan-400 rounded-xl text-xs font-semibold hover:bg-cyan-400/20 transition-all disabled:opacity-40">
             {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : saved ? <CheckCircle2 className="w-3 h-3" /> : <Save className="w-3 h-3" />}
@@ -314,17 +386,77 @@ export default function ChartSpecEditor({ onSave, onClose }) {
 
         {/* Preview */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 p-6">
-            {spec.title && <h3 className="text-sm font-bold mb-4">{spec.title}</h3>}
-            <div className="h-72">
+          <div className="flex-1 p-6 overflow-y-auto">
+            {spec.title && <h3 className="text-sm font-bold mb-1">{spec.title}</h3>}
+            {spec.x && spec.y && (
+              <div className="text-xs text-white/30 mb-3">
+                X: <span className="text-cyan-400">{spec.x}</span>
+                {spec.xAgg !== 'NONE' && <span className="text-white/20"> ({spec.xAgg})</span>}
+                {' '}· Y: <span className="text-cyan-400">{spec.y}</span>
+                {spec.yAgg !== 'NONE' && <span className="text-white/20"> ({spec.yAgg})</span>}
+              </div>
+            )}
+            <div className="h-60">
               <ChartPreview spec={spec} rows={rows} />
             </div>
+
+            {/* View SQL panel */}
+            {showSQL && (
+              <div className="mt-4 p-3 rounded-xl bg-black/30 border border-green-400/20">
+                <div className="text-xs text-green-400 font-bold mb-2 flex items-center gap-1.5"><Code2 className="w-3 h-3" /> Generated SQL</div>
+                <pre className="text-xs text-green-400/70 font-mono whitespace-pre-wrap overflow-x-auto">{buildViewSQL()}</pre>
+              </div>
+            )}
+
+            {/* Explain Chart result */}
+            {explanation && (
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-purple-400 mb-2">
+                  <Brain className="w-3.5 h-3.5" /> AI Business Interpretation
+                </div>
+                {explanation.topInsight && (
+                  <div className="p-3 rounded-xl bg-cyan-400/5 border border-cyan-400/15">
+                    <div className="text-xs text-cyan-400 font-bold mb-1">Top Insight</div>
+                    <p className="text-xs text-white/70">{explanation.topInsight}</p>
+                  </div>
+                )}
+                {explanation.businessMeaning && (
+                  <div className="p-3 rounded-xl bg-purple-400/5 border border-purple-400/15">
+                    <div className="text-xs text-purple-400 font-bold mb-1">Business Meaning</div>
+                    <p className="text-xs text-white/70">{explanation.businessMeaning}</p>
+                  </div>
+                )}
+                {explanation.trendOrPattern && (
+                  <div className="p-3 rounded-xl bg-white/3 border border-white/8">
+                    <div className="text-xs text-white/40 font-bold mb-1">Trend / Pattern</div>
+                    <p className="text-xs text-white/60">{explanation.trendOrPattern}</p>
+                  </div>
+                )}
+                {explanation.riskOrWarning && explanation.riskOrWarning !== 'No significant risk detected' && (
+                  <div className="p-3 rounded-xl bg-amber-400/5 border border-amber-400/15">
+                    <div className="text-xs text-amber-400 font-bold mb-1 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Risk / Warning</div>
+                    <p className="text-xs text-white/60">{explanation.riskOrWarning}</p>
+                  </div>
+                )}
+                {explanation.recommendedNextStep && (
+                  <div className="p-3 rounded-xl bg-green-400/5 border border-green-400/15">
+                    <div className="text-xs text-green-400 font-bold mb-1"><Zap className="w-3 h-3 inline mr-1" />Recommended Action</div>
+                    <p className="text-xs text-white/70">{explanation.recommendedNextStep}</p>
+                  </div>
+                )}
+              </div>
+            )}
+            {explaining && (
+              <div className="mt-4 flex items-center gap-2 text-xs text-purple-400">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Generating AI business interpretation…
+              </div>
+            )}
           </div>
 
           {/* Generated spec preview */}
-          <div className="border-t border-white/8 p-4">
+          <div className="border-t border-white/8 p-4 flex-shrink-0">
             <div className="text-xs text-white/30 mb-2 flex items-center gap-1.5"><Type className="w-3 h-3" /> Declarative Spec (JSON)</div>
-            <pre className="text-xs text-cyan-400/60 bg-white/3 rounded-xl p-3 font-mono overflow-x-auto max-h-32 overflow-y-auto">
+            <pre className="text-xs text-cyan-400/60 bg-white/3 rounded-xl p-3 font-mono overflow-x-auto max-h-24 overflow-y-auto">
 {JSON.stringify({
   title: spec.title,
   mark: spec.mark,
