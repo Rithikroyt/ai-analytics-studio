@@ -6,6 +6,7 @@ import {
   ChevronLeft, Database, GitCompare, PieChart, Bell, Link2, FlaskConical,
   Users, Filter, Activity, Scissors, TrendingUp, History, Shield, Paintbrush,
   Target, RefreshCw, DollarSign, Zap, Bot, Table2, Brain, GitBranch, Cpu,
+  Map, CheckSquare, Beaker, BookMarked,
 } from 'lucide-react';
 import { useWorkspaceStore } from '@/lib/store';
 
@@ -32,9 +33,14 @@ const sections = [
   { id: 'sql',           label: 'SQL Studio',         icon: Terminal },
   { id: 'docs',          label: 'Docs & Evidence',    icon: FileText },
   { id: 'observability', label: 'Observability',      icon: Activity },
-  { id: 'agentStudio',   label: 'Agent Studio',       icon: Bot },
-  { id: 'connectors',   label: 'Data Connectors',    icon: Link2 },
-  { id: 'realtime',     label: 'Live Monitor',        icon: Cpu },
+  { id: 'agentStudio',       label: 'Agent Studio',       icon: Bot },
+  { id: 'connectors',        label: 'Data Connectors',    icon: Link2 },
+  { id: 'realtime',          label: 'Live Monitor',        icon: Cpu },
+  { id: 'productanalytics',  label: 'Product Analytics',  icon: Users },
+  { id: 'abtest',            label: 'A/B Testing',         icon: FlaskConical },
+  { id: 'reconciliation',    label: 'Reconciliation',      icon: GitCompare },
+  { id: 'geo',               label: 'Geo Analytics',       icon: Map },
+  { id: 'methodology',       label: 'Methodology Docs',    icon: BookMarked },
 ];
 
 export default function WorkspaceSidebar({ collapsed, onToggle }) {
@@ -102,6 +108,7 @@ export default function WorkspaceSidebar({ collapsed, onToggle }) {
             { to: '/observability',      icon: Activity,  label: 'Observability',    color: 'text-cyan-400' },
             { to: '/semantic-model',      icon: Layers,      label: 'Semantic Model', color: 'text-indigo-400' },
             { to: '/admin/benchmark-center', icon: FlaskConical, label: 'Benchmarks',  color: 'text-amber-400' },
+            { to: '/skill-matrix',           icon: CheckSquare,  label: 'Skill Matrix', color: 'text-green-400' },
             { to: '/dashboards',   icon: PieChart,    label: 'Dashboards',    color: 'text-cyan-400' },
             { to: '/alerts',       icon: Bell,        label: 'Alerts',        color: 'text-amber-400' },
             { to: '/predictive',   icon: TrendingUp,  label: 'Predictive AI', color: 'text-purple-400' },

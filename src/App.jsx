@@ -49,6 +49,7 @@ import ObservabilityCenter from '@/pages/ObservabilityCenter';
 import ProjectDocumentationCenter from '@/pages/ProjectDocumentationCenter';
 import SemanticModelStudio from '@/pages/SemanticModelStudio';
 import BenchmarkCenter from '@/pages/BenchmarkCenter';
+import SkillMatrix from '@/pages/SkillMatrix';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -119,6 +120,7 @@ const AuthenticatedApp = () => {
         <Route path="/admin/project-documentation" element={<ProjectDocumentationCenter />} />
         <Route path="/semantic-model" element={<SemanticModelStudio />} />
         <Route path="/admin/benchmark-center" element={<BenchmarkCenter />} />
+        <Route path="/skill-matrix" element={<SkillMatrix />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </>

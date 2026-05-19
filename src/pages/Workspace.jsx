@@ -31,6 +31,11 @@ import AgentStudioSection from '@/components/workspace/AgentStudioSection';
 import DataConnectorSection from '@/components/workspace/DataConnectorSection';
 import DataExplorer from '@/components/workspace/DataExplorer';
 import RealTimeMonitor from '@/components/workspace/RealTimeMonitor';
+import ProductAnalyticsSection from '@/components/workspace/ProductAnalyticsSection';
+import ABTestingStudio from '@/components/workspace/ABTestingStudio';
+import DataReconciliationModule from '@/components/workspace/DataReconciliationModule';
+import GeoAnalyticsSection from '@/components/workspace/GeoAnalyticsSection';
+import AnalystMethodologyPanel from '@/components/workspace/AnalystMethodologyPanel';
 import { useWorkspaceStore } from '@/lib/store';
 
 // Wrapper for RealTimeMonitor as a full workspace section
@@ -70,6 +75,11 @@ const sectionComponents = {
   connectors: DataConnectorSection,
   explorer: DataExplorer,
   realtime: RealTimeSection,
+  productanalytics: ProductAnalyticsSection,
+  abtest: ABTestingStudio,
+  reconciliation: DataReconciliationModule,
+  geo: GeoAnalyticsSection,
+  methodology: AnalystMethodologyPanel,
 };
 
 export default function Workspace() {
