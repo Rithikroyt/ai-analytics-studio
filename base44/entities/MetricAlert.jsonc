@@ -71,5 +71,17 @@
     "metricName",
     "condition",
     "threshold"
-  ]
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "data.userEmail": "{{user.email}}"
+    },
+    "update": {
+      "data.userEmail": "{{user.email}}"
+    },
+    "delete": {
+      "data.userEmail": "{{user.email}}"
+    }
+  }
 }
