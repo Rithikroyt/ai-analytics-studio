@@ -1,0 +1,62 @@
+{
+  "name": "ProcessingLog",
+  "type": "object",
+  "properties": {
+    "jobId": {
+      "type": "string",
+      "title": "Job ID"
+    },
+    "dataSourceId": {
+      "type": "string",
+      "title": "Data Source ID"
+    },
+    "stepName": {
+      "type": "string",
+      "title": "Step Name"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "running",
+        "success",
+        "failed",
+        "skipped"
+      ],
+      "default": "running",
+      "title": "Status"
+    },
+    "startedAt": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Started At"
+    },
+    "completedAt": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Completed At"
+    },
+    "durationMs": {
+      "type": "number",
+      "default": 0,
+      "title": "Duration (ms)"
+    },
+    "message": {
+      "type": "string",
+      "title": "Message"
+    },
+    "errorMessage": {
+      "type": "string",
+      "title": "Error Message"
+    },
+    "metadata": {
+      "type": "object",
+      "title": "Additional Metadata",
+      "additionalProperties": true
+    }
+  },
+  "required": [
+    "jobId",
+    "dataSourceId",
+    "stepName"
+  ]
+}

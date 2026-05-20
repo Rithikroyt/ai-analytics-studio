@@ -1,0 +1,69 @@
+{
+  "name": "MetricCertification",
+  "type": "object",
+  "properties": {
+    "metricId": {
+      "type": "string",
+      "title": "Semantic Metric ID"
+    },
+    "metricName": {
+      "type": "string",
+      "title": "Metric Name"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "reviewed",
+        "certified",
+        "deprecated"
+      ],
+      "default": "draft",
+      "title": "Status"
+    },
+    "reviewedBy": {
+      "type": "string",
+      "title": "Reviewed By (email)"
+    },
+    "reviewedAt": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Reviewed At"
+    },
+    "certifiedBy": {
+      "type": "string",
+      "title": "Certified By (email)"
+    },
+    "certifiedAt": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Certified At"
+    },
+    "integrityScore": {
+      "type": "number",
+      "default": 0,
+      "title": "Integrity Score (0-100)"
+    },
+    "notes": {
+      "type": "string",
+      "title": "Review Notes"
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Known Issues"
+    },
+    "version": {
+      "type": "number",
+      "default": 1,
+      "title": "Version"
+    }
+  },
+  "required": [
+    "metricId",
+    "metricName",
+    "status"
+  ]
+}

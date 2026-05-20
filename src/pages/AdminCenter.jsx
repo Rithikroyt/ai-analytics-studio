@@ -10,7 +10,7 @@ import {
   Shield, Users, Activity, Brain, Database, AlertTriangle,
   ClipboardList, BarChart2, TrendingUp, RefreshCw, Loader2,
   Search, Filter, Eye, ChevronRight, X, CheckCircle2,
-  AlertCircle, Clock, Globe, Zap, FileText, Lock,
+  AlertCircle, Clock, Globe, Zap, FileText, Lock, Package,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import AdminOverview from '@/components/admin/AdminOverview.jsx';
@@ -40,6 +40,7 @@ const TABS = [
   { id: 'observability', label: 'Observability',    icon: Activity },
   { id: 'projectdocs',   label: 'Project Docs',     icon: FileText },
   { id: 'benchmark',     label: 'Benchmarks',       icon: Database },
+  { id: 'handover',      label: 'Handover Package', icon: FileText },
 ];
 
 export default function AdminCenter() {
@@ -157,6 +158,27 @@ export default function AdminCenter() {
                     { label: 'Inspect Mode', desc: 'Databricks Genie-style sub-query validation' },
                   ].map(item => (
                     <div key={item.label} className="glass-card rounded-xl border border-white/8 p-4">
+                      <div className="text-sm font-bold text-white/70 mb-1">{item.label}</div>
+                      <div className="text-xs text-white/30">{item.desc}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {tab === 'handover' && (
+              <div className="space-y-4">
+                <div className="text-sm text-white/40 mb-2">
+                  Sale readiness checklist, feature matrix, and buyer handover package.{' '}
+                  <Link to="/handover" className="text-amber-400 hover:underline">Open Handover Package →</Link>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  {[
+                    { icon: Package, label: 'Sale Readiness Score', desc: 'Weighted score across 7 dimensions', color: 'text-amber-400' },
+                    { icon: CheckCircle2, label: 'Handover Checklist', desc: '18-item buyer acceptance checklist', color: 'text-green-400' },
+                    { icon: FileText, label: 'Feature Matrix', desc: '10 modules × 50+ documented features', color: 'text-cyan-400' },
+                  ].map(item => (
+                    <div key={item.label} className="glass-card rounded-xl border border-white/8 p-4">
+                      <item.icon className={`w-5 h-5 ${item.color} mb-2`} />
                       <div className="text-sm font-bold text-white/70 mb-1">{item.label}</div>
                       <div className="text-xs text-white/30">{item.desc}</div>
                     </div>

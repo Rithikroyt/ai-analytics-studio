@@ -2,13 +2,13 @@
   "name": "DataContract",
   "type": "object",
   "properties": {
-    "tableId": {
+    "datasetName": {
       "type": "string",
-      "title": "Table ID"
+      "title": "Dataset Name"
     },
-    "tableName": {
+    "dataSourceId": {
       "type": "string",
-      "title": "Table Name"
+      "title": "Data Source ID"
     },
     "requiredColumns": {
       "type": "array",
@@ -17,36 +17,30 @@
       },
       "title": "Required Columns"
     },
-    "numericColumns": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "title": "Numeric Columns"
+    "expectedTypes": {
+      "type": "object",
+      "title": "Expected Column Types",
+      "additionalProperties": true
     },
-    "dateColumns": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "title": "Date Columns"
+    "allowedValues": {
+      "type": "object",
+      "title": "Allowed Values per Column",
+      "additionalProperties": true
     },
-    "categoryColumns": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "title": "Category Columns"
-    },
-    "allowedMissingRate": {
+    "missingThreshold": {
       "type": "number",
-      "title": "Allowed Missing Rate (%)",
-      "default": 5
+      "default": 0.1,
+      "title": "Max Missing Rate (0-1)"
     },
     "duplicateThreshold": {
       "type": "number",
-      "title": "Duplicate Threshold (%)",
-      "default": 1
+      "default": 0.05,
+      "title": "Max Duplicate Rate (0-1)"
+    },
+    "validDateRange": {
+      "type": "object",
+      "title": "Valid Date Range",
+      "additionalProperties": true
     },
     "businessRules": {
       "type": "array",
@@ -55,76 +49,38 @@
       },
       "title": "Business Rules"
     },
-    "validDateRangeStart": {
+    "owner": {
       "type": "string",
-      "format": "date",
-      "title": "Valid Date Range Start"
-    },
-    "validDateRangeEnd": {
-      "type": "string",
-      "format": "date",
-      "title": "Valid Date Range End"
-    },
-    "contractPassRate": {
-      "type": "number",
-      "title": "Contract Pass Rate (%)"
-    },
-    "dataReadinessScore": {
-      "type": "number",
-      "title": "Data Readiness Score (0-100)"
-    },
-    "qualityScore": {
-      "type": "number",
-      "title": "Quality Score (%)"
-    },
-    "kpiReadiness": {
-      "type": "number",
-      "title": "KPI Readiness (%)"
-    },
-    "relationshipReadiness": {
-      "type": "number",
-      "title": "Relationship Readiness (%)"
-    },
-    "lastValidatedAt": {
-      "type": "string",
-      "format": "date-time",
-      "title": "Last Validated At"
+      "title": "Owner Email"
     },
     "status": {
       "type": "string",
       "enum": [
         "draft",
         "active",
-        "failed",
-        "passed"
+        "deprecated"
       ],
       "default": "draft",
       "title": "Status"
     },
-    "validationResults": {
+    "lastValidatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Last Validated At"
+    },
+    "lastValidationResult": {
       "type": "object",
-      "title": "Validation Results",
+      "title": "Last Validation Result",
       "additionalProperties": true
     },
-    "notes": {
-      "type": "string",
-      "title": "Notes"
+    "passRate": {
+      "type": "number",
+      "default": 0,
+      "title": "Last Pass Rate (0-100)"
     }
   },
   "required": [
-    "tableId",
-    "tableName"
-  ],
-  "rls": {
-    "create": {},
-    "read": {
-      "created_by": "{{user.email}}"
-    },
-    "update": {
-      "created_by": "{{user.email}}"
-    },
-    "delete": {
-      "created_by": "{{user.email}}"
-    }
-  }
+    "datasetName",
+    "owner"
+  ]
 }

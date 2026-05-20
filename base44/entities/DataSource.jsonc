@@ -1,0 +1,95 @@
+{
+  "name": "DataSource",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "Dataset Name"
+    },
+    "fileName": {
+      "type": "string",
+      "title": "Original File Name"
+    },
+    "fileType": {
+      "type": "string",
+      "enum": [
+        "csv",
+        "xlsx",
+        "json",
+        "parquet"
+      ],
+      "title": "File Type"
+    },
+    "rowCount": {
+      "type": "number",
+      "default": 0,
+      "title": "Row Count"
+    },
+    "columnCount": {
+      "type": "number",
+      "default": 0,
+      "title": "Column Count"
+    },
+    "uploadedBy": {
+      "type": "string",
+      "title": "Uploaded By (email)"
+    },
+    "uploadedAt": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Uploaded At"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "uploading",
+        "processing",
+        "ready",
+        "error"
+      ],
+      "default": "uploading",
+      "title": "Status"
+    },
+    "rawFileUrl": {
+      "type": "string",
+      "title": "Raw File URL"
+    },
+    "cleanedFileUrl": {
+      "type": "string",
+      "title": "Cleaned File URL"
+    },
+    "activeVersionId": {
+      "type": "string",
+      "title": "Active Version ID"
+    },
+    "qualityScore": {
+      "type": "number",
+      "default": 0,
+      "title": "Quality Score (0-100)"
+    },
+    "readinessScore": {
+      "type": "number",
+      "default": 0,
+      "title": "Readiness Score (0-100)"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Tags"
+    },
+    "description": {
+      "type": "string",
+      "title": "Description"
+    },
+    "sheetName": {
+      "type": "string",
+      "title": "Sheet Name (XLSX)"
+    }
+  },
+  "required": [
+    "name",
+    "fileType"
+  ]
+}

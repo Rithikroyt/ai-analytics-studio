@@ -50,6 +50,11 @@ import ProjectDocumentationCenter from '@/pages/ProjectDocumentationCenter';
 import SemanticModelStudio from '@/pages/SemanticModelStudio';
 import BenchmarkCenter from '@/pages/BenchmarkCenter';
 import SkillMatrix from '@/pages/SkillMatrix';
+import DataEngineeringStudio from '@/pages/DataEngineeringStudio';
+import SemanticMetricStore from '@/pages/SemanticMetricStore';
+import SQLPythonWorkbench from '@/pages/SQLPythonWorkbench';
+import DecisionIntelligenceReports from '@/pages/DecisionIntelligenceReports';
+import HandoverPackage from '@/pages/HandoverPackage';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -121,6 +126,11 @@ const AuthenticatedApp = () => {
         <Route path="/semantic-model" element={<SemanticModelStudio />} />
         <Route path="/admin/benchmark-center" element={<BenchmarkCenter />} />
         <Route path="/skill-matrix" element={<SkillMatrix />} />
+        <Route path="/data-engineering" element={<DataEngineeringStudio />} />
+        <Route path="/semantic-metrics" element={<SemanticMetricStore />} />
+        <Route path="/sql-workbench" element={<SQLPythonWorkbench />} />
+        <Route path="/decision-reports" element={<DecisionIntelligenceReports />} />
+        <Route path="/handover" element={<HandoverPackage />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </>

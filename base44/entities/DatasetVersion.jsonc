@@ -1,0 +1,97 @@
+{
+  "name": "DatasetVersion",
+  "type": "object",
+  "properties": {
+    "dataSourceId": {
+      "type": "string",
+      "title": "Data Source ID"
+    },
+    "versionType": {
+      "type": "string",
+      "enum": [
+        "raw",
+        "cleaned",
+        "transformed"
+      ],
+      "default": "raw",
+      "title": "Version Type"
+    },
+    "rowCount": {
+      "type": "number",
+      "default": 0,
+      "title": "Row Count"
+    },
+    "columnCount": {
+      "type": "number",
+      "default": 0,
+      "title": "Column Count"
+    },
+    "qualityScore": {
+      "type": "number",
+      "default": 0,
+      "title": "Quality Score (0-100)"
+    },
+    "readinessScore": {
+      "type": "number",
+      "default": 0,
+      "title": "Readiness Score (0-100)"
+    },
+    "completenessScore": {
+      "type": "number",
+      "default": 0,
+      "title": "Completeness Score"
+    },
+    "validityScore": {
+      "type": "number",
+      "default": 0,
+      "title": "Validity Score"
+    },
+    "uniquenessScore": {
+      "type": "number",
+      "default": 0,
+      "title": "Uniqueness Score"
+    },
+    "consistencyScore": {
+      "type": "number",
+      "default": 0,
+      "title": "Consistency Score"
+    },
+    "timelinessScore": {
+      "type": "number",
+      "default": 0,
+      "title": "Timeliness Score"
+    },
+    "cleaningSummary": {
+      "type": "object",
+      "title": "Cleaning Summary",
+      "additionalProperties": true
+    },
+    "fileUrl": {
+      "type": "string",
+      "title": "File URL"
+    },
+    "columns": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "title": "Column Definitions"
+    },
+    "sampleRows": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "title": "Sample Rows (first 20)"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+    }
+  },
+  "required": [
+    "dataSourceId",
+    "versionType"
+  ]
+}

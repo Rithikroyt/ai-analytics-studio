@@ -115,6 +115,11 @@ export default function WorkspaceSidebar({ collapsed, onToggle }) {
             { to: '/forecast-hub', icon: History,     label: 'Forecast Hub',  color: 'text-teal-400' },
             { to: '/workbench',    icon: Zap,         label: 'Workbench',     color: 'text-cyan-400' },
             { to: '/integrations', icon: Link2,       label: 'Integrations',  color: 'text-cyan-400' },
+            { to: '/data-engineering', icon: Database,   label: 'Data Engineering', color: 'text-cyan-400' },
+            { to: '/semantic-metrics', icon: Layers,     label: 'Semantic Metrics', color: 'text-purple-400' },
+            { to: '/sql-workbench',    icon: Terminal,   label: 'SQL Workbench',    color: 'text-green-400' },
+            { to: '/decision-reports', icon: FileText,   label: 'Decision Reports', color: 'text-amber-400' },
+            { to: '/handover',         icon: CheckSquare,label: 'Handover Package', color: 'text-pink-400' },
           ].map(link => (
             collapsed ? (
               <Link key={link.to} to={link.to} title={link.label} className="w-full flex justify-center py-1.5">

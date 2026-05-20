@@ -8,14 +8,14 @@ import { useAuth } from '@/lib/AuthContext';
 const ADMIN_EMAILS = ['rthati1@asu.edu', 'thatirithikroy@gmail.com'];
 
 const navLinks = [
-  { label: 'AI Command Center', path: '/ai-command-center' },
-  { label: 'Platform', path: '/platform' },
-  { label: 'Workflows', path: '/workflows' },
-  { label: 'Dashboards', path: '/dashboards' },
+  { label: 'Data Studio', path: '/data-engineering' },
+  { label: 'Semantic Metrics', path: '/semantic-metrics' },
+  { label: 'SQL Workbench', path: '/sql-workbench' },
   { label: 'Agent Studio', path: '/agent-studio' },
-  { label: 'ML Workbench', path: '/ml-workbench' },
-  { label: 'Strategic KPIs', path: '/strategic-kpi' },
-  { label: 'Data Intelligence', path: '/data-intelligence' },
+  { label: 'Visual Builder', path: '/workspace' },
+  { label: 'Reports', path: '/decision-reports' },
+  { label: 'Dashboards', path: '/dashboards' },
+  { label: 'AI Command', path: '/ai-command-center' },
 ];
 
 export default function Navbar() {
@@ -30,7 +30,7 @@ export default function Navbar() {
   );
 
   // Hide navbar on workspace/app pages
-  const appPages = ['/workspace', '/story-builder', '/alerts', '/integrations', '/data-mapping', '/reports', '/collaboration', '/predictive', '/forecast-hub', '/governance', '/workbench', '/ml-workbench', '/policy-center', '/agent-studio', '/ai-command-center', '/data-intelligence', '/ml-intelligence', '/strategic-kpi', '/analytics-lab'];
+  const appPages = ['/workspace', '/story-builder', '/alerts', '/integrations', '/data-mapping', '/reports', '/collaboration', '/predictive', '/forecast-hub', '/governance', '/workbench', '/ml-workbench', '/policy-center', '/agent-studio', '/ai-command-center', '/data-intelligence', '/ml-intelligence', '/strategic-kpi', '/analytics-lab', '/data-engineering', '/semantic-metrics', '/sql-workbench', '/decision-reports', '/handover'];
   const isWorkspace = appPages.some(p => location.pathname.startsWith(p));
   
   useEffect(() => {

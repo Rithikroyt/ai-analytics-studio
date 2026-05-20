@@ -359,20 +359,20 @@ export default function Home() {
       <section className="py-16 px-6">
         <div className="max-w-7xl mx-auto">
           <FadeIn className="text-center mb-10">
-            <div className="text-xs text-pink-400 uppercase tracking-widest font-semibold mb-3">Enterprise Upgrade — All Phases Active</div>
-            <h2 className="text-3xl font-black mb-3">MNC-grade capabilities, now live</h2>
-            <p className="text-muted-foreground text-sm">Matching Microsoft Fabric · IBM OpenScale · Amazon QuickSight Q · Adobe Analytics · Tableau Enterprise</p>
+            <div className="text-xs text-pink-400 uppercase tracking-widest font-semibold mb-3">All 13 Phases Complete · Sale-Ready Enterprise Product</div>
+            <h2 className="text-3xl font-black mb-3">$20K–$25K Analytics Platform, live now</h2>
+            <p className="text-muted-foreground text-sm">Inspired by: Power BI Copilot · Snowflake Cortex · Databricks Genie · Amazon QuickSight · Tableau Next · dbt Semantic Layer</p>
           </FadeIn>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { label: 'AI Command Center', sub: 'Proactive CXO intelligence', to: '/ai-command-center', color: '#00e5ff', emoji: '🧠' },
-              { label: 'Strategic KPI Board', sub: 'Balanced Scorecard + OKRs', to: '/strategic-kpi', color: '#4caf50', emoji: '🎯' },
-              { label: 'Data Intelligence Hub', sub: 'Medallion + Lineage', to: '/data-intelligence', color: '#ffcc02', emoji: '🏅' },
-              { label: 'Analytics Lab', sub: 'Stats · Regression · Causal', to: '/analytics-lab', color: '#a855f7', emoji: '🔬' },
-              { label: 'ML Intelligence', sub: 'AutoML · XAI · SHAP', to: '/ml-intelligence', color: '#ff6b35', emoji: '🤖' },
-              { label: 'Agent War Room', sub: 'CFO · Growth · Ops agents', to: '/agent-studio', color: '#ff2d7a', emoji: '⚔️' },
-              { label: 'Executive Dashboard', sub: 'CXO-level analytics', to: '/executive-dashboard', color: '#60a5fa', emoji: '📊' },
-              { label: 'Decision Reports', sub: '12 AI-generated report types', to: '/decision-reports', color: '#00bfa5', emoji: '📋' },
+              { label: 'Data Engineering Studio', sub: 'Upload · Profile · Clean · Version', to: '/data-engineering', color: '#00e5ff', emoji: '🏗️' },
+              { label: 'Semantic Metric Store', sub: 'Define · Certify · Govern metrics', to: '/semantic-metrics', color: '#a855f7', emoji: '📐' },
+              { label: 'SQL Python Workbench', sub: 'DuckDB · NL-to-SQL · 15 Templates', to: '/sql-workbench', color: '#4caf50', emoji: '💻' },
+              { label: 'Agent Studio', sub: 'CFO · Growth · Ops · F-D-E-A-R', to: '/agent-studio', color: '#ff2d7a', emoji: '🧠' },
+              { label: 'Decision Reports', sub: '8 report types · What/Why/Risk/Action', to: '/decision-reports', color: '#ffcc02', emoji: '📋' },
+              { label: 'AI Command Center', sub: 'Proactive CXO intelligence', to: '/ai-command-center', color: '#00e5ff', emoji: '⚡' },
+              { label: 'Admin Observability', sub: 'Agent traces · SQL failures · Quality', to: '/observability', color: '#60a5fa', emoji: '👁️' },
+              { label: 'Handover Package', sub: 'Sale Readiness · $20K–$25K product', to: '/handover', color: '#fb923c', emoji: '📦' },
             ].map(c => (
               <FadeIn key={c.label}>
                 <Link to={c.to}
@@ -432,7 +432,7 @@ export default function Home() {
             <Link to="/integrations" className="hover:text-foreground transition-colors">Integrations</Link>
             <Link to="/reports" className="hover:text-foreground transition-colors">Reports</Link>
           </div>
-          <div className="text-xs text-muted-foreground">© 2026 OmniData AI Analytics Studio · AutoML · Causal Inference · Balanced Scorecard · Multi-Agent AI · Enterprise BI</div>
+          <div className="text-xs text-muted-foreground">© 2026 OmniData AI · Data Engineering · Semantic Metrics · SQL Workbench · AI Agents · Decision Reports · $20K–$25K Enterprise Product</div>
         </div>
       </footer>
     </div>
