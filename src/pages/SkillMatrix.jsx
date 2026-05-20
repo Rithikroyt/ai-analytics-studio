@@ -75,6 +75,7 @@ export default function SkillMatrix() {
               <div className="text-2xl font-black text-purple-400">{coverage}%</div>
               <div className="text-xs text-white/30">Coverage</div>
             </div>
+          </div>
         </div>
       </div>
 
