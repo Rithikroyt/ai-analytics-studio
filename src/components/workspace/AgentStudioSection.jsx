@@ -8,7 +8,7 @@ import { base44 } from '@/api/base44Client';
 import { useWorkspaceStore } from '@/lib/store';
 import { Sparkles, Loader2, Send, Trash2, GitMerge, ClipboardList, Brain, LayoutDashboard } from 'lucide-react';
 import AgentProfileCard from '@/components/agents/AgentProfileCard.jsx';
-import AgentStructuredAnswer from '@/components/agents/AgentStructuredAnswer.jsx';
+import PrincipalAnswerCard from '@/components/agents/PrincipalAnswerCard.jsx';
 import AgentPipelineBuilderV2 from '@/components/agents/AgentPipelineBuilderV2.jsx';
 import AgentTaskBoardV2 from '@/components/agents/AgentTaskBoardV2.jsx';
 import ExecutiveSummaryTab from '@/components/agents/ExecutiveSummaryTab.jsx';
@@ -68,35 +68,28 @@ export default function AgentStudioSection() {
     } : null;
 
     let result = null;
-    let attempts = 0;
-
-    while (attempts < 2) {
-      try {
-        const res = await base44.functions.invoke('runAgentOrchestrator', {
-          question: q,
-          persona: activePersona,
-          tableContext,
-          pipelinePreset: 'deep_diagnosis',
-        });
-        result = res.data;
-        // Validate the result has substance
-        const hasAnswer = result?.direct_answer && result.direct_answer.length > 30 &&
-          !['analysis complete','done','completed'].includes(result.direct_answer.toLowerCase().trim());
-        if (hasAnswer) break;
-        attempts++;
-      } catch (e) {
-        attempts++;
-        if (attempts >= 2) {
-          result = {
-            direct_answer: `${activePersona.name} encountered an issue processing this request. Please try rephrasing your question or ensure a dataset is loaded for analysis.`,
-            key_takeaways: ['Analysis could not complete — the system encountered a temporary error.', 'Try rephrasing your question with more specific terms.', 'Ensure your dataset is loaded in the Workspace.'],
-            confidence_score: 0,
-            evidence: [],
-            recommendation: ['Reload the dataset and try again', 'Rephrase the question with specific field names', 'Check that the dataset contains relevant fields for this question type'],
-            thought_process: ['1. Received the question', '2. Attempted to invoke analysis pipeline', `3. Error encountered: ${e.message?.slice(0, 80) || 'Unknown error'}`, '4. Graceful fallback activated', '5. Suggested remediation steps generated'],
-          };
-        }
-      }
+    try {
+      const res = await base44.functions.invoke('runAgentOrchestrator', {
+        question: q,
+        persona: activePersona.name,
+        tableData: tableContext,
+        sessionId: `session_${Date.now()}`,
+      });
+      result = res.data;
+    } catch (e) {
+      result = {
+        executive_summary: `${activePersona.name} encountered an issue: ${e.message?.slice(0, 120) || 'Unknown error'}. Please rephrase your question or ensure a dataset is loaded.`,
+        business_question: q,
+        data_sufficiency: { status: 'insufficient', score: 0, label: 'Error' },
+        evidence: [],
+        recommendations: [{ action: 'Reload the dataset and try again', priority: 'High', expected_impact: 'Enables full analysis', effort: 'Low', owner: 'User', next_metric_to_monitor: 'Data Quality Score' }],
+        confidence_score: 0,
+        limitations: [e.message || 'Unknown error'],
+        next_questions: ['What dataset do you want to analyze?'],
+        tools_used: ['ErrorHandler'],
+        persona: activePersona.name,
+        iq_level: 5,
+      };
     }
 
     setChatHistory(prev => [...prev, {
@@ -241,12 +234,16 @@ export default function AgentStudioSection() {
                               </span>
                             )}
                           </div>
-                          <AgentStructuredAnswer
-                            result={msg.result}
-                            agentColor={msg.persona?.avatarColor || color}
-                            agentName={msg.persona?.name || 'Agent'}
-                            rows={activeTable?.rows}
-                            columns={activeTable?.columns}
+                          <PrincipalAnswerCard
+                            answer={msg.result}
+                            onFeedback={(type) => {
+                              base44.entities.AgentFeedback.create({
+                                agentName: msg.persona?.name || 'Agent',
+                                userQuestion: msg.result?.business_question || '',
+                                rating: type === 'up' ? 'useful' : 'not_useful',
+                                userEmail: '',
+                              }).catch(() => {});
+                            }}
                           />
                         </div>
                       )}
