@@ -15,6 +15,9 @@ import ColumnProfileTable from '@/components/dataengineering/ColumnProfileTable.
 import QualityScoreCard from '@/components/dataengineering/QualityScoreCard.jsx';
 import DataPreviewTable from '@/components/dataengineering/DataPreviewTable.jsx';
 import CleaningLogPanel from '@/components/dataengineering/CleaningLogPanel.jsx';
+import PowerQueryStudio from '@/components/dataengineering/PowerQueryStudio.jsx';
+import DataQualityEngine from '@/components/dataengineering/DataQualityEngine.jsx';
+import StarSchemaDetector from '@/components/semantic/StarSchemaDetector.jsx';
 
 export default function DataEngineeringStudio() {
   const [dragOver, setDragOver] = useState(false);
@@ -88,9 +91,11 @@ export default function DataEngineeringStudio() {
   const TABS = [
     { id: 'upload', label: 'Upload', icon: Upload },
     { id: 'profile', label: 'Column Profiles', icon: BarChart2 },
-    { id: 'quality', label: 'Quality Scores', icon: Shield },
+    { id: 'quality', label: 'Quality Engine', icon: Shield },
     { id: 'preview', label: 'Data Preview', icon: Eye },
     { id: 'cleaning', label: 'Cleaning Report', icon: Zap },
+    { id: 'transform', label: 'Power Query', icon: RefreshCw },
+    { id: 'semantic', label: 'Star Schema', icon: Layers },
     { id: 'sources', label: 'My Datasets', icon: Database },
   ];
 
@@ -263,9 +268,12 @@ export default function DataEngineeringStudio() {
           <ColumnProfileTable columns={result?.columns || []} />
         )}
 
-        {/* Quality Scores Tab */}
+        {/* Quality Engine Tab */}
         {tab === 'quality' && (
-          <QualityScoreCard scores={result?.qualityScores} columns={result?.columns} warnings={result?.warnings} />
+          <div className="space-y-6">
+            <DataQualityEngine rows={result?.sampleRows || []} columns={result?.columns || []} />
+            <QualityScoreCard scores={result?.qualityScores} columns={result?.columns} warnings={result?.warnings} />
+          </div>
         )}
 
         {/* Data Preview Tab */}
@@ -276,6 +284,34 @@ export default function DataEngineeringStudio() {
         {/* Cleaning Report Tab */}
         {tab === 'cleaning' && (
           <CleaningLogPanel summary={result?.cleaningSummary} columns={result?.columns} dataSourceId={result?.dataSourceId} />
+        )}
+
+        {/* Power Query Studio Tab */}
+        {tab === 'transform' && (
+          <div>
+            <div className="mb-5 p-4 rounded-xl bg-cyan-400/5 border border-cyan-400/15 text-xs text-white/55 leading-relaxed">
+              <strong className="text-cyan-400">Power Query-style transformations</strong> — Apply step-by-step transformations with generated Python/Pandas logic and SQL equivalents. Save as reusable recipes.
+            </div>
+            <PowerQueryStudio
+              columns={result?.columns || []}
+              rows={result?.sampleRows || []}
+              datasetName={result?.fileName || activeDataSource?.name || ''}
+              datasetId={result?.dataSourceId || activeDataSource?.id || ''}
+            />
+          </div>
+        )}
+
+        {/* Star Schema Detector Tab */}
+        {tab === 'semantic' && (
+          <div>
+            <div className="mb-5 p-4 rounded-xl bg-purple-400/5 border border-purple-400/15 text-xs text-white/55 leading-relaxed">
+              <strong className="text-purple-400">Star Schema Detector</strong> — Auto-detects fact tables, dimensions, measures, ID columns, and unsafe fields. Enforces SQL safety rules and saves measures to the Semantic Metric Store.
+            </div>
+            <StarSchemaDetector
+              rows={result?.sampleRows || []}
+              columns={result?.columns || []}
+            />
+          </div>
         )}
 
         {/* My Datasets Tab */}

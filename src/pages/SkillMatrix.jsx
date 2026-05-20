@@ -9,26 +9,30 @@ import {
   RefreshCw, Users, TrendingUp, Brain, Shield, MessageSquare, Layers,
   Map, Zap, Target, GitCompare, ChevronLeft
 } from 'lucide-react';
+// Note: Layers is used for both Semantic and Workbench skills above
 
 const SKILLS = [
-  { id: 'sql', label: 'SQL Analytics', icon: Terminal, color: 'text-cyan-400', border: 'border-cyan-400/20', bg: 'bg-cyan-400/8', level: 'Advanced', module: 'SQL Studio', path: '/workspace', section: 'sql', desc: 'Complex queries, aggregations, window functions, CTEs' },
-  { id: 'stats', label: 'Statistical Analysis', icon: FlaskConical, color: 'text-purple-400', border: 'border-purple-400/20', bg: 'bg-purple-400/8', level: 'Advanced', module: 'Statistics + A/B Testing', path: '/workspace', section: 'abtest', desc: 'Z-tests, significance, confidence intervals, variance analysis' },
-  { id: 'cleaning', label: 'Data Cleaning', icon: Shield, color: 'text-green-400', border: 'border-green-400/20', bg: 'bg-green-400/8', level: 'Intermediate', module: 'Data Quality Studio', path: '/workspace', section: 'quality', desc: 'Null imputation, deduplication, outlier removal, type correction' },
-  { id: 'processing', label: 'Data Processing', icon: Database, color: 'text-teal-400', border: 'border-teal-400/20', bg: 'bg-teal-400/8', level: 'Advanced', module: 'Data Prep + Reconciliation', path: '/workspace', section: 'reconciliation', desc: 'ETL pipelines, transformation, validation, reconciliation' },
+  { id: 'workbench', label: 'Senior Analyst Workbench', icon: Layers, color: 'text-cyan-400', border: 'border-cyan-400/20', bg: 'bg-cyan-400/8', level: 'Advanced', module: 'Senior Analyst Workbench', path: '/senior-workbench', desc: 'Full workflow: SQL + Python EDA + Pivot + Stats + Validation + Charts + Methodology export' },
+  { id: 'sql', label: 'SQL Analytics', icon: Terminal, color: 'text-green-400', border: 'border-green-400/20', bg: 'bg-green-400/8', level: 'Advanced', module: 'SQL Proof Studio', path: '/sql-workbench', desc: 'Complex queries, aggregations, window functions, CTEs, NL-to-SQL, 15 templates' },
+  { id: 'python', label: 'Python/Pandas EDA', icon: Brain, color: 'text-purple-400', border: 'border-purple-400/20', bg: 'bg-purple-400/8', level: 'Advanced', module: 'Senior Analyst Workbench', path: '/senior-workbench', desc: 'df.info(), df.describe(), cleaning logic, pivot tables, correlation, outlier detection' },
+  { id: 'powerquery', label: 'Power Query Transformations', icon: RefreshCw, color: 'text-amber-400', border: 'border-amber-400/20', bg: 'bg-amber-400/8', level: 'Advanced', module: 'Data Engineering Studio', path: '/data-engineering', desc: '15 transformations: dedup, fill, replace, pivot, unpivot, split, group-by, custom column' },
+  { id: 'starschema', label: 'Star Schema / Data Modeling', icon: Database, color: 'text-teal-400', border: 'border-teal-400/20', bg: 'bg-teal-400/8', level: 'Advanced', module: 'Semantic Metric Store', path: '/semantic-metrics', desc: 'Fact/dimension detection, grain analysis, relationship modeling, non-additive field safety' },
+  { id: 'semantic', label: 'Semantic Metrics Layer', icon: Layers, color: 'text-pink-400', border: 'border-pink-400/20', bg: 'bg-pink-400/8', level: 'Advanced', module: 'Semantic Metric Store', path: '/semantic-metrics', desc: 'Certified metrics, formulas, synonyms, domain, aggregation rules, SQL safety enforcement' },
+  { id: 'stats', label: 'Statistical Analysis', icon: FlaskConical, color: 'text-purple-400', border: 'border-purple-400/20', bg: 'bg-purple-400/8', level: 'Advanced', module: 'Statistics + A/B Testing', path: '/workspace', section: 'abtest', desc: 'Z-tests, significance, confidence intervals, MAPE, RMSE, MAE, IQR, outlier detection' },
+  { id: 'cleaning', label: 'Data Cleaning & Validation', icon: Shield, color: 'text-green-400', border: 'border-green-400/20', bg: 'bg-green-400/8', level: 'Advanced', module: 'Data Engineering Studio', path: '/data-engineering', desc: '5-dimension quality engine: Completeness, Validity, Uniqueness, Consistency, Timeliness' },
   { id: 'viz', label: 'Visualization', icon: BarChart2, color: 'text-amber-400', border: 'border-amber-400/20', bg: 'bg-amber-400/8', level: 'Advanced', module: 'Visual Builder', path: '/workspace', section: 'visual', desc: 'Bar, line, scatter, heatmap, geo maps, custom chart specs' },
   { id: 'reporting', label: 'Executive Reporting', icon: FileText, color: 'text-pink-400', border: 'border-pink-400/20', bg: 'bg-pink-400/8', level: 'Advanced', module: 'Reports + Decision Reports', path: '/workspace', section: 'reports', desc: 'Executive briefs, decision memos, PDF export, stakeholder decks' },
-  { id: 'docs', label: 'Documentation', icon: FileText, color: 'text-indigo-400', border: 'border-indigo-400/20', bg: 'bg-indigo-400/8', level: 'Advanced', module: 'Methodology Panel', path: '/workspace', section: 'methodology', desc: 'Cleaning rules, SQL audit, assumptions, reproducibility notes' },
-  { id: 'automation', label: 'Automation', icon: Zap, color: 'text-yellow-400', border: 'border-yellow-400/20', bg: 'bg-yellow-400/8', level: 'Intermediate', module: 'Pipeline Studio', path: '/pipeline-studio', desc: 'Scheduled refreshes, data pipelines, auto-reporting workflows' },
+  { id: 'docs', label: 'Documentation & Reproducibility', icon: FileText, color: 'text-indigo-400', border: 'border-indigo-400/20', bg: 'bg-indigo-400/8', level: 'Advanced', module: 'Methodology Panel + Workbench', path: '/senior-workbench', desc: 'Cleaning rules, SQL audit, assumptions, limitations, methodology export to Markdown' },
+  { id: 'pipeline', label: 'ELT Pipeline Thinking', icon: Zap, color: 'text-yellow-400', border: 'border-yellow-400/20', bg: 'bg-yellow-400/8', level: 'Intermediate', module: 'Pipeline Studio', path: '/pipeline-studio', desc: 'dbt-style layers: Raw → Staging → Intermediate → Fact/Dim → Metrics → Dashboard → Report' },
   { id: 'cohort', label: 'Cohort Analysis', icon: RefreshCw, color: 'text-teal-400', border: 'border-teal-400/20', bg: 'bg-teal-400/8', level: 'Advanced', module: 'Cohort Retention', path: '/workspace', section: 'cohort', desc: 'Cohort heatmap, retention curves, churn risk, period analysis' },
-  { id: 'abtest', label: 'A/B Testing', icon: FlaskConical, color: 'text-purple-400', border: 'border-purple-400/20', bg: 'bg-purple-400/8', level: 'Advanced', module: 'A/B Testing Studio', path: '/workspace', section: 'abtest', desc: 'Z-test proportions, p-value, lift %, statistical significance' },
-  { id: 'product', label: 'Product Analytics', icon: Users, color: 'text-cyan-400', border: 'border-cyan-400/20', bg: 'bg-cyan-400/8', level: 'Advanced', module: 'Product Analytics', path: '/workspace', section: 'productanalytics', desc: 'DAU/WAU/MAU, activation, retention, churn, segment growth' },
-  { id: 'forecast', label: 'Forecasting', icon: TrendingUp, color: 'text-green-400', border: 'border-green-400/20', bg: 'bg-green-400/8', level: 'Advanced', module: 'Forecast Hub', path: '/forecast-hub', desc: 'Time-series, seasonality, confidence intervals, MAPE, RMSE' },
+  { id: 'forecast', label: 'Forecasting & Time Series', icon: TrendingUp, color: 'text-green-400', border: 'border-green-400/20', bg: 'bg-green-400/8', level: 'Advanced', module: 'Forecast Hub + Forecast Engine', path: '/forecast-hub', desc: 'Model routing: Moving Avg → SARIMA → Prophet → XGBoost. MAPE, RMSE, MAE, CI bands' },
   { id: 'governance', label: 'Data Governance', icon: Shield, color: 'text-amber-400', border: 'border-amber-400/20', bg: 'bg-amber-400/8', level: 'Advanced', module: 'Semantic Model + Governance', path: '/data-governance', desc: 'KPI definitions, certified metrics, data contracts, lineage' },
   { id: 'stakeholder', label: 'Stakeholder Communication', icon: MessageSquare, color: 'text-teal-400', border: 'border-teal-400/20', bg: 'bg-teal-400/8', level: 'Advanced', module: 'Agent Studio + Reports', path: '/agent-studio', desc: 'Executive summaries, decision reports, narrative builders' },
   { id: 'decision', label: 'Business Decision-Making', icon: Target, color: 'text-pink-400', border: 'border-pink-400/20', bg: 'bg-pink-400/8', level: 'Advanced', module: 'AI Command Center', path: '/ai-command-center', desc: 'Evidence-based recommendations, what-if scenarios, risk scoring' },
   { id: 'geo', label: 'Geospatial Analytics', icon: Map, color: 'text-green-400', border: 'border-green-400/20', bg: 'bg-green-400/8', level: 'Intermediate', module: 'Geo Analytics', path: '/workspace', section: 'geo', desc: 'Map charts, density, region KPIs, route analysis, location clustering' },
   { id: 'ops', label: 'Operational Analytics', icon: GitCompare, color: 'text-orange-400', border: 'border-orange-400/20', bg: 'bg-orange-400/8', level: 'Advanced', module: 'RFM + CLV + Pipeline Studio', path: '/workspace', section: 'rfm', desc: 'Process efficiency, capacity, SLA tracking, bottleneck analysis' },
   { id: 'ml', label: 'ML & Predictive', icon: Brain, color: 'text-purple-400', border: 'border-purple-400/20', bg: 'bg-purple-400/8', level: 'Advanced', module: 'ML Intelligence', path: '/ml-intelligence', desc: 'Regression, classification, anomaly detection, feature importance' },
+  { id: 'admin', label: 'Admin Observability', icon: CheckCircle2, color: 'text-cyan-400', border: 'border-cyan-400/20', bg: 'bg-cyan-400/8', level: 'Advanced', module: 'Admin Center + Observability', path: '/observability', desc: 'Agent traces, SQL failures, quality scores, session analytics, feedback ratings' },
 ];
 
 const LEVEL_COLORS = {
@@ -41,7 +45,7 @@ export default function SkillMatrix() {
   const { setActiveSection } = useWorkspaceStore();
 
   const advanced = SKILLS.filter(s => s.level === 'Advanced').length;
-  const coverage = Math.round((SKILLS.length / 18) * 100);
+  const coverage = Math.round(Math.min((SKILLS.length / 20) * 100, 100));
 
   return (
     <div className="min-h-screen bg-background">
@@ -71,7 +75,6 @@ export default function SkillMatrix() {
               <div className="text-2xl font-black text-purple-400">{coverage}%</div>
               <div className="text-xs text-white/30">Coverage</div>
             </div>
-          </div>
         </div>
       </div>
 
@@ -120,11 +123,11 @@ export default function SkillMatrix() {
         {/* Summary badge */}
         <div className="mt-10 p-6 rounded-2xl bg-gradient-to-r from-cyan-400/8 via-purple-400/5 to-teal-400/8 border border-white/10 text-center">
           <div className="text-sm font-semibold text-white/60 mb-2">
-            This project demonstrates <strong className="text-white">{SKILLS.length} professional data analyst skills</strong>, covering the full analytics lifecycle
+            This project demonstrates <strong className="text-white">{SKILLS.length} professional Senior Data Analyst skills</strong>, covering the full analytics operating system lifecycle
           </div>
           <div className="text-xs text-white/35 max-w-2xl mx-auto">
-            From data extraction and cleaning through statistical modeling, experimentation, forecasting, and executive communication —
-            OmniData reflects what Senior Data Analysts and Business Intelligence professionals actually do in companies.
+            From data engineering, Power Query transformations, semantic modeling, SQL/Python analytics, star schema design, time-series forecasting, dashboard storytelling, AI-grounded analysis, and executive reporting —
+            OmniData reflects how Senior Data Analysts and Business Intelligence professionals actually work in enterprise companies.
           </div>
         </div>
       </div>

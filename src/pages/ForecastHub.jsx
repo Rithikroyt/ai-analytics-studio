@@ -17,6 +17,7 @@ import {
 } from 'recharts';
 import ForecastEvaluator from '@/components/workspace/ForecastEvaluator';
 import MLOpsPipelinePanel from '@/components/forecast/MLOpsPipelinePanel';
+import ForecastEnginePanel from '@/components/forecast/ForecastEnginePanel';
 
 const fmtV = v => {
   if (v == null || isNaN(Number(v))) return '—';
@@ -41,7 +42,7 @@ export default function ForecastHub() {
   const [notes, setNotes] = useState('');
   const [showNotes, setShowNotes] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
-  const [activeTab, setActiveTab] = useState('history'); // 'history' | 'mlops'
+  const [activeTab, setActiveTab] = useState('history'); // 'history' | 'engine' | 'mlops'
   const [showCI, setShowCI] = useState(true);
   const [ciWidth, setCiWidth] = useState(20); // ±% confidence band
   const [growthAdj, setGrowthAdj] = useState(0); // manual growth adjustment %
@@ -117,6 +118,10 @@ export default function ForecastHub() {
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeTab === 'history' ? 'bg-teal-400/20 text-teal-400' : 'text-white/40 hover:text-white/70'}`}>
                 <History className="w-3.5 h-3.5" /> History
               </button>
+              <button onClick={() => setActiveTab('engine')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeTab === 'engine' ? 'bg-purple-400/20 text-purple-400' : 'text-white/40 hover:text-white/70'}`}>
+                <Brain className="w-3.5 h-3.5" /> Forecast Engine
+              </button>
               <button onClick={() => setActiveTab('mlops')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeTab === 'mlops' ? 'bg-teal-400/20 text-teal-400' : 'text-white/40 hover:text-white/70'}`}>
                 <RefreshCw className="w-3.5 h-3.5" /> MLOps
@@ -137,6 +142,16 @@ export default function ForecastHub() {
       </div>
 
       <div className="max-w-6xl mx-auto px-8 py-6 space-y-6">
+        {/* Forecast Engine Tab */}
+        {activeTab === 'engine' && (
+          <div>
+            <div className="mb-5 p-4 rounded-xl bg-purple-400/5 border border-purple-400/15 text-xs text-white/55 leading-relaxed">
+              <strong className="text-purple-400">Advanced Forecast Engine</strong> — Automatic model routing: Moving Average → SARIMA → Prophet-style → XGBoost based on data characteristics. Includes MAPE, RMSE, MAE metrics and AI business interpretation.
+            </div>
+            <ForecastEnginePanel rows={table?.rows || []} columns={table?.columns || []} />
+          </div>
+        )}
+
         {/* MLOps Tab */}
         {activeTab === 'mlops' && (
           <MLOpsPipelinePanel history={history} />

@@ -1,0 +1,57 @@
+{
+  "name": "TransformationRecipe",
+  "type": "object",
+  "properties": {
+    "recipeName": {
+      "type": "string",
+      "title": "Recipe Name"
+    },
+    "datasetId": {
+      "type": "string",
+      "title": "Dataset ID"
+    },
+    "datasetName": {
+      "type": "string",
+      "title": "Dataset Name"
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "title": "Transformation Steps"
+    },
+    "generatedPython": {
+      "type": "string",
+      "title": "Generated Python/Pandas Logic"
+    },
+    "generatedSql": {
+      "type": "string",
+      "title": "Generated SQL Equivalent"
+    },
+    "rowsBefore": {
+      "type": "number",
+      "default": 0,
+      "title": "Rows Before"
+    },
+    "rowsAfter": {
+      "type": "number",
+      "default": 0,
+      "title": "Rows After"
+    },
+    "columnsAffected": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Columns Affected"
+    },
+    "createdBy": {
+      "type": "string",
+      "title": "Created By"
+    }
+  },
+  "required": [
+    "recipeName"
+  ]
+}

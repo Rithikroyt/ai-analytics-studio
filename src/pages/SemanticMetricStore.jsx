@@ -7,8 +7,10 @@ import { base44 } from '@/api/base44Client';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookOpen, Plus, CheckCircle2, Shield, AlertTriangle, Loader2,
-  Tag, Hash, TrendingUp, Trash2, RefreshCw, Edit2, Star, Code2, Database
+  Tag, Hash, TrendingUp, Trash2, RefreshCw, Edit2, Star, Code2, Database, Layers, GitBranch
 } from 'lucide-react';
+import StarSchemaDetector from '@/components/semantic/StarSchemaDetector.jsx';
+import { useWorkspaceStore } from '@/lib/store';
 
 const DOMAIN_COLORS = {
   finance: 'text-green-400 bg-green-400/10 border-green-400/20',
@@ -176,12 +178,15 @@ function MetricForm({ metric, onSave, onCancel }) {
 }
 
 export default function SemanticMetricStore() {
+  const { getActiveTable } = useWorkspaceStore();
+  const activeTable = getActiveTable();
   const [metrics, setMetrics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editMetric, setEditMetric] = useState(null);
   const [filter, setFilter] = useState('all');
   const [seeding, setSeeding] = useState(false);
+  const [activeTab, setActiveTab] = useState('metrics');
 
   const load = async () => {
     setLoading(true);
@@ -231,6 +236,12 @@ export default function SemanticMetricStore() {
   const filtered = metrics.filter(m => filter === 'all' || m.domain === filter);
   const certifiedCount = metrics.filter(m => m.certified).length;
 
+  const TABS = [
+    { id: 'metrics', label: 'Metric Store', icon: BookOpen },
+    { id: 'schema', label: 'Star Schema Detector', icon: Layers },
+    { id: 'safety', label: 'SQL Safety Rules', icon: Shield },
+  ];
+
   return (
     <div className="min-h-screen bg-background">
       <div className="border-b border-white/8 px-8 py-5">
@@ -268,6 +279,62 @@ export default function SemanticMetricStore() {
         </div>
       </div>
 
+      {/* Tab bar */}
+      <div className="border-b border-white/8 px-8">
+        <div className="flex gap-0">
+          {TABS.map(t => (
+            <button key={t.id} onClick={() => setActiveTab(t.id)}
+              className={`flex items-center gap-1.5 px-4 py-3 text-xs font-semibold border-b-2 transition-all ${activeTab === t.id ? 'border-purple-400 text-purple-400' : 'border-transparent text-white/35 hover:text-white/60'}`}>
+              <t.icon className="w-3.5 h-3.5" />{t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Star Schema tab */}
+      {activeTab === 'schema' && (
+        <div className="p-8">
+          <div className="mb-5 p-4 rounded-xl bg-purple-400/5 border border-purple-400/15 text-xs text-white/55">
+            <strong className="text-purple-400">Star Schema Detector</strong> — Detects fact tables, dimension columns, measure candidates, and unsafe fields from your active workspace dataset. Auto-generates metric definitions you can save to this store.
+          </div>
+          <StarSchemaDetector
+            rows={activeTable?.rows || []}
+            columns={activeTable?.columns || []}
+          />
+          {!activeTable && (
+            <div className="text-center py-12 text-white/30 text-sm">Load a dataset in the Workspace to use the Star Schema Detector</div>
+          )}
+        </div>
+      )}
+
+      {/* SQL Safety Rules tab */}
+      {activeTab === 'safety' && (
+        <div className="p-8 max-w-3xl space-y-4">
+          <div className="text-sm font-bold text-white/60 mb-4">SQL Safety Rules — Hard Constraints</div>
+          {[
+            { rule: 'Never SUM ID fields', detail: 'Columns ending in _id, id_, uuid are identifiers — not measures', example: '❌ SUM(customer_id)' },
+            { rule: 'Never SUM rank/score fields', detail: 'rank, ranking, percentile, quintile, decile, score fields are ordinal', example: '❌ SUM(rank)' },
+            { rule: 'Never SUM age', detail: 'Age is demographic data — use AVG if needed, never SUM', example: '❌ SUM(age)' },
+            { rule: 'Never SUM postal/geo codes', detail: 'zip, postal, latitude, longitude are geographic identifiers', example: '❌ SUM(zip_code)' },
+            { rule: 'Never treat record_id as revenue/cost', detail: 'Auto-increment IDs look numeric but have no business meaning', example: '❌ SUM(row_id) as revenue' },
+            { rule: 'Non-additive metrics — never SUM across dimensions', detail: 'Ratios, percentages, rates cannot be summed (avg order value, margin%)', example: '❌ SUM(conversion_rate)' },
+            { rule: 'No payroll analysis without payroll fields', detail: 'Only answer compensation questions if salary/wage/payroll columns exist', example: '⚠ Requires: salary, wage, labor_cost' },
+            { rule: 'Never SUM phone numbers or email addresses', detail: 'Contact fields are identifiers, not measures', example: '❌ SUM(phone_number)' },
+          ].map((r, i) => (
+            <div key={i} className="p-4 rounded-xl border border-white/8 bg-white/2 space-y-1">
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-red-400 flex-shrink-0" />
+                <span className="text-sm font-bold text-white/80">{r.rule}</span>
+              </div>
+              <p className="text-xs text-white/45 ml-6">{r.detail}</p>
+              <code className="text-xs font-mono text-red-400/70 ml-6 block">{r.example}</code>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Main metrics tab */}
+      {activeTab === 'metrics' && <>
       <div className="px-8 py-4 border-b border-white/8">
         <div className="flex gap-1 flex-wrap">
           {domains.map(d => (
@@ -301,6 +368,7 @@ export default function SemanticMetricStore() {
           </div>
         )}
       </div>
+      </>}
     </div>
   );
 }

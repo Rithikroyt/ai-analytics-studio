@@ -55,6 +55,7 @@ import SemanticMetricStore from '@/pages/SemanticMetricStore';
 import SQLPythonWorkbench from '@/pages/SQLPythonWorkbench';
 import DecisionIntelligenceReports from '@/pages/DecisionIntelligenceReports';
 import HandoverPackage from '@/pages/HandoverPackage';
+import SeniorAnalystWorkbench from '@/pages/SeniorAnalystWorkbench';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -131,6 +132,7 @@ const AuthenticatedApp = () => {
         <Route path="/sql-workbench" element={<SQLPythonWorkbench />} />
         <Route path="/decision-reports" element={<DecisionIntelligenceReports />} />
         <Route path="/handover" element={<HandoverPackage />} />
+        <Route path="/senior-workbench" element={<SeniorAnalystWorkbench />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </>

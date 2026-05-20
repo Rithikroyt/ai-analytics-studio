@@ -120,6 +120,7 @@ export default function WorkspaceSidebar({ collapsed, onToggle }) {
             { to: '/sql-workbench',    icon: Terminal,   label: 'SQL Workbench',    color: 'text-green-400' },
             { to: '/decision-reports', icon: FileText,   label: 'Decision Reports', color: 'text-amber-400' },
             { to: '/handover',         icon: CheckSquare,label: 'Handover Package', color: 'text-pink-400' },
+            { to: '/senior-workbench', icon: Layers,     label: 'Senior Workbench', color: 'text-cyan-400' },
           ].map(link => (
             collapsed ? (
               <Link key={link.to} to={link.to} title={link.label} className="w-full flex justify-center py-1.5">
