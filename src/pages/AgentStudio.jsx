@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useWorkspaceStore } from '@/lib/store';
-import { Brain, GitMerge, ClipboardList, Sparkles, Loader2, Send, Trash2, Users, LayoutDashboard } from 'lucide-react';
+import { Brain, GitMerge, ClipboardList, Loader2, Send, Trash2, Users, LayoutDashboard, ShieldCheck } from 'lucide-react';
 import AgentProfileCard from '@/components/agents/AgentProfileCard.jsx';
 import AgentStructuredAnswer from '@/components/agents/AgentStructuredAnswer.jsx';
 import AgentPipelineBuilderV2 from '@/components/agents/AgentPipelineBuilderV2.jsx';
@@ -116,6 +116,9 @@ export default function AgentStudio() {
           <div>
             <h1 className="text-xl font-black">Principal Analyst Intelligence System</h1>
             <p className="text-xs text-muted-foreground">Level 5 Intelligence · F-D-E-A-R Reasoning · Structured Evidence · Decision Confidence</p>
+          </div>
+          <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-green-400/8 border border-green-400/20 text-xs text-green-400 font-semibold">
+            <ShieldCheck className="w-3.5 h-3.5" /> Structured Evidence + Risk Assessment enforced on every response
           </div>
         </div>
         <div className="flex gap-0.5 p-1 bg-white/5 rounded-xl border border-white/8">

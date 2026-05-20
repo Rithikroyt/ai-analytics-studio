@@ -233,6 +233,34 @@ export default function SeniorAnalystWorkbench() {
   const [validationResults, setValidationResults] = useState(null);
   const [validating, setValidating] = useState(false);
 
+  // Pre-flight data check
+  const [preflight, setPreflight] = useState(null);
+
+  const runPreflight = () => {
+    if (!rows.length) return;
+    const issues = [];
+    let totalMissing = 0;
+    let totalOutliers = 0;
+    for (const name of colNames) {
+      const vals = rows.map(r => r[name]);
+      const missing = vals.filter(v => v == null || v === '' || v === 'null' || v === 'NaN').length;
+      if (missing > 0) totalMissing += missing;
+      if (missing / rows.length > 0.1) issues.push({ type: 'missing', col: name, msg: `${Math.round(missing / rows.length * 100)}% missing` });
+      const numVals = vals.map(v => parseFloat(v)).filter(v => !isNaN(v));
+      if (numVals.length > 5) {
+        const sorted = [...numVals].sort((a, b) => a - b);
+        const q1 = sorted[Math.floor(sorted.length * 0.25)];
+        const q3 = sorted[Math.floor(sorted.length * 0.75)];
+        const iqr = q3 - q1;
+        const outliers = numVals.filter(v => v < q1 - 1.5 * iqr || v > q3 + 1.5 * iqr).length;
+        if (outliers > 0) { totalOutliers += outliers; issues.push({ type: 'outlier', col: name, msg: `${outliers} outliers (IQR)` }); }
+      }
+    }
+    const dupCount = rows.length - new Set(rows.map(r => JSON.stringify(r))).size;
+    if (dupCount > 0) issues.push({ type: 'duplicate', col: 'ALL', msg: `${dupCount} duplicate rows` });
+    setPreflight({ issues, totalMissing, totalOutliers, dupCount, clean: issues.length === 0 });
+  };
+
   const colNames = columns.map(c => c.name || c);
 
   const runQuery = () => {
@@ -246,6 +274,7 @@ export default function SeniorAnalystWorkbench() {
 
   const generateSQL = async () => {
     if (!nlQuery.trim()) return;
+    runPreflight();
     setGenerating(true);
     try {
       const res = await base44.functions.invoke('generateSQL', {
@@ -293,6 +322,7 @@ export default function SeniorAnalystWorkbench() {
 
   const getChartInsight = async () => {
     if (!chartX || !chartY || !rows.length) return;
+    runPreflight();
     setGettingInsight(true);
     try {
       const chartRows = rows.slice(0, 30).map(r => ({ [chartX]: r[chartX], [chartY]: r[chartY] }));
@@ -397,6 +427,38 @@ Generated: ${new Date().toISOString()}`;
           ))}
         </div>
       </div>
+
+      {/* Pre-flight data quality banner */}
+      {rows.length > 0 && (
+        <div className="px-8 py-2 border-b border-white/5">
+          {!preflight ? (
+            <button onClick={runPreflight}
+              className="flex items-center gap-1.5 text-xs text-white/30 hover:text-amber-400 transition-all py-1">
+              <Shield className="w-3.5 h-3.5" /> Run data pre-flight check before AI analysis
+            </button>
+          ) : preflight.clean ? (
+            <div className="flex items-center gap-2 text-xs text-green-400 py-1">
+              <CheckCircle2 className="w-3.5 h-3.5" /> Pre-flight passed — data looks clean. No outliers or missing value issues found.
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 flex-wrap py-1">
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+              <span className="text-xs text-amber-400 font-semibold">Pre-flight issues detected:</span>
+              {preflight.issues.slice(0, 4).map((issue, i) => (
+                <span key={i} className={`text-xs px-2 py-0.5 rounded-full border font-mono ${
+                  issue.type === 'outlier' ? 'bg-red-400/10 border-red-400/20 text-red-400' :
+                  issue.type === 'duplicate' ? 'bg-purple-400/10 border-purple-400/20 text-purple-400' :
+                  'bg-amber-400/10 border-amber-400/20 text-amber-400'
+                }`}>
+                  {issue.col}: {issue.msg}
+                </span>
+              ))}
+              {preflight.issues.length > 4 && <span className="text-xs text-white/30">+{preflight.issues.length - 4} more</span>}
+              <button onClick={() => setPreflight(null)} className="ml-auto text-xs text-white/20 hover:text-white/50 transition-all">✕ Dismiss</button>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="p-6">
         {/* SQL Editor */}

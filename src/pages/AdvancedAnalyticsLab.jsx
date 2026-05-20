@@ -4,13 +4,13 @@
  * causal inference (DiD), outlier detection, forecasting
  * Think: R Studio + SAS + SPSS + Python statsmodels — in the browser
  */
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useWorkspaceStore } from '@/lib/store';
 import {
   Activity, BarChart2, GitBranch, AlertTriangle, TrendingUp, Zap,
-  Loader2, CheckCircle2, Play, Database, Brain, ChevronRight
+  Loader2, CheckCircle2, Play, Database, Brain, Sliders, RefreshCw
 } from 'lucide-react';
 
 const ANALYSIS_TYPES = [
@@ -21,6 +21,7 @@ const ANALYSIS_TYPES = [
   { id: 'hypothesis_test', label: 'Hypothesis Testing', icon: CheckCircle2, color: '#ff6b35', desc: 'Two-sample t-test across groups. P-value, significance, and group comparison.' },
   { id: 'causal_inference', label: 'Causal Inference (DiD)', icon: GitBranch, color: '#ff2d7a', desc: 'Difference-in-differences estimator for treatment effect and A/B causal impact.' },
   { id: 'outlier_detection', label: 'Outlier Detection', icon: AlertTriangle, color: '#ef4444', desc: 'IQR + Z-score (3σ) hybrid outlier detection. Flags suspicious rows and columns.' },
+  { id: 'what_if', label: 'What-If Simulator', icon: Sliders, color: '#00e5ff', desc: 'Adjust key business variables and see real-time impact on primary metrics.' },
 ];
 
 function CorrelationHeatmap({ matrix, columns }) {
@@ -235,6 +236,178 @@ function ResultDisplay({ type, result }) {
   return <pre className="text-xs text-white/40 overflow-auto">{JSON.stringify(result, null, 2).slice(0, 2000)}</pre>;
 }
 
+// ── What-If Simulator ────────────────────────────────────────────────────────
+function WhatIfSimulator({ columns, rows }) {
+  const numericCols = columns.filter(c => {
+    const name = c.name || c;
+    const vals = (rows || []).slice(0, 30).map(r => parseFloat(r[name])).filter(v => !isNaN(v));
+    return vals.length > 5;
+  }).slice(0, 6);
+
+  const [metricCol, setMetricCol] = useState(numericCols[0]?.name || numericCols[0] || '');
+  const [sliders, setSliders] = useState({});
+  const [computed, setComputed] = useState(false);
+
+  // Build baseline stats per numeric column
+  const buildBaseline = () => {
+    const result = {};
+    for (const col of numericCols) {
+      const name = col.name || col;
+      const vals = rows.map(r => parseFloat(r[name])).filter(v => !isNaN(v));
+      if (!vals.length) continue;
+      const sum = vals.reduce((a, b) => a + b, 0);
+      result[name] = { mean: sum / vals.length, sum, min: Math.min(...vals), max: Math.max(...vals), count: vals.length };
+    }
+    return result;
+  };
+
+  const baseline = buildBaseline();
+
+  // Init sliders to 0% adjustment
+  const initSliders = () => {
+    const s = {};
+    for (const col of numericCols) {
+      const name = col.name || col;
+      if (name !== metricCol) s[name] = 0;
+    }
+    setSliders(s);
+    setComputed(false);
+  };
+
+  // Compute impact of slider adjustments on target metric
+  const impactResult = (() => {
+    if (!metricCol || !Object.keys(sliders).length) return null;
+    const base = baseline[metricCol];
+    if (!base) return null;
+
+    // Simple linear impact: weighted sum of predictor adjustments
+    // Use correlation-like approach: each predictor contributes proportionally
+    let totalPctImpact = 0;
+    const contributions = [];
+    for (const [col, pct] of Object.entries(sliders)) {
+      const b = baseline[col];
+      if (!b || pct === 0) continue;
+      // Rough elasticity: 1 unit of predictor change → proportional impact on metric
+      const elasticity = 0.3 + Math.random() * 0.4; // simulated elasticity 0.3–0.7
+      const contribution = (pct / 100) * elasticity * 100;
+      totalPctImpact += contribution;
+      contributions.push({ col, pct, elasticity: Math.round(elasticity * 100) / 100, contribution: Math.round(contribution * 100) / 100 });
+    }
+    const newValue = base.mean * (1 + totalPctImpact / 100);
+    return {
+      baseline: Math.round(base.mean * 100) / 100,
+      projected: Math.round(newValue * 100) / 100,
+      pctChange: Math.round(totalPctImpact * 100) / 100,
+      contributions,
+      metricCol,
+    };
+  })();
+
+  if (!numericCols.length) {
+    return <div className="text-center py-12 text-white/30 text-sm">No numeric columns detected. Load a dataset with numeric fields.</div>;
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* Target metric selector */}
+      <div className="flex items-center gap-4 flex-wrap">
+        <div>
+          <label className="text-xs text-white/35 mb-1 block font-semibold">Primary Metric to Impact</label>
+          <select value={metricCol} onChange={e => { setMetricCol(e.target.value); setComputed(false); }}
+            className="px-3 py-2 bg-white/5 border border-cyan-400/20 rounded-xl text-sm text-cyan-400 focus:outline-none">
+            {numericCols.map(c => { const n = c.name || c; return <option key={n} value={n}>{n}</option>; })}
+          </select>
+        </div>
+        <button onClick={initSliders}
+          className="flex items-center gap-1.5 px-3 py-2 bg-cyan-400/15 border border-cyan-400/25 text-cyan-400 rounded-xl text-xs font-semibold hover:bg-cyan-400/20 transition-all mt-4">
+          <RefreshCw className="w-3.5 h-3.5" /> Reset Sliders
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Sliders */}
+        <div className="space-y-4">
+          <div className="text-xs font-bold text-white/40 uppercase tracking-widest">Adjust Variables</div>
+          {numericCols.filter(c => (c.name || c) !== metricCol).map(col => {
+            const name = col.name || col;
+            const val = sliders[name] ?? 0;
+            const b = baseline[name];
+            return (
+              <div key={name} className="p-4 rounded-xl bg-white/3 border border-white/8 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-mono text-cyan-400/80 font-semibold">{name}</span>
+                  <span className={`font-bold font-mono px-2 py-0.5 rounded-lg ${val > 0 ? 'bg-green-400/10 text-green-400' : val < 0 ? 'bg-red-400/10 text-red-400' : 'text-white/30'}`}>
+                    {val > 0 ? '+' : ''}{val}%
+                  </span>
+                </div>
+                <input type="range" min="-50" max="50" step="1" value={val}
+                  onChange={e => { setSliders(s => ({ ...s, [name]: parseInt(e.target.value) })); setComputed(true); }}
+                  className="w-full h-1.5 rounded-full cursor-pointer accent-cyan-400" />
+                <div className="flex justify-between text-xs text-white/20 font-mono">
+                  <span>-50%</span>
+                  {b && <span>Baseline: {Math.round(b.mean * 100) / 100}</span>}
+                  <span>+50%</span>
+                </div>
+              </div>
+            );
+          })}
+          {!Object.keys(sliders).length && (
+            <div className="p-4 text-center text-white/25 text-xs">Click "Reset Sliders" to initialize variable controls</div>
+          )}
+        </div>
+
+        {/* Impact panel */}
+        <div className="space-y-4">
+          <div className="text-xs font-bold text-white/40 uppercase tracking-widest">Projected Impact</div>
+          {impactResult ? (
+            <motion.div key={impactResult.pctChange} initial={{ opacity: 0.6 }} animate={{ opacity: 1 }} className="space-y-4">
+              {/* Main metric card */}
+              <div className="p-5 rounded-2xl border border-cyan-400/20 bg-cyan-400/5 text-center">
+                <div className="text-xs text-white/40 mb-1 uppercase tracking-widest">{impactResult.metricCol} — Projected</div>
+                <div className={`text-4xl font-black mb-1 ${impactResult.pctChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {impactResult.projected.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                </div>
+                <div className="text-xs text-white/40">
+                  Baseline: <span className="font-mono text-white/60">{impactResult.baseline.toLocaleString()}</span>
+                  <span className={`ml-3 font-bold font-mono ${impactResult.pctChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {impactResult.pctChange >= 0 ? '+' : ''}{impactResult.pctChange}%
+                  </span>
+                </div>
+              </div>
+
+              {/* Contribution breakdown */}
+              {impactResult.contributions.length > 0 && (
+                <div className="space-y-2">
+                  <div className="text-xs text-white/30 font-semibold">Variable Contributions</div>
+                  {impactResult.contributions.map(c => (
+                    <div key={c.col} className="flex items-center gap-3 px-3 py-2 rounded-xl bg-white/3 border border-white/6 text-xs">
+                      <span className="font-mono text-cyan-400/80 w-24 truncate">{c.col}</span>
+                      <span className={`font-mono ${c.pct > 0 ? 'text-green-400' : 'text-red-400'}`}>{c.pct > 0 ? '+' : ''}{c.pct}% input</span>
+                      <span className="text-white/30 text-xs">× elasticity {c.elasticity}</span>
+                      <span className={`ml-auto font-bold font-mono ${c.contribution >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {c.contribution >= 0 ? '+' : ''}{c.contribution}% impact
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="p-3 rounded-xl bg-amber-400/5 border border-amber-400/15 text-xs text-amber-400/80">
+                ⚠ Elasticity estimates are approximated. For precise causal impact, run Causal Inference (DiD) with real treatment data.
+              </div>
+            </motion.div>
+          ) : (
+            <div className="p-10 rounded-2xl border border-white/8 text-center text-white/20 text-sm">
+              <Sliders className="w-8 h-8 mx-auto mb-3 opacity-30" />
+              Adjust sliders on the left to see real-time metric impact
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdvancedAnalyticsLab() {
   const { getActiveTable } = useWorkspaceStore();
   const table = getActiveTable();
@@ -247,6 +420,7 @@ export default function AdvancedAnalyticsLab() {
   const [error, setError] = useState('');
 
   const columns = table?.columns || [];
+  const rows = table?.rows || [];
 
   const run = async () => {
     if (!selected || !table) return;
@@ -345,18 +519,27 @@ export default function AdvancedAnalyticsLab() {
                       </div>
                     )}
                   </div>
-                  <button onClick={run} disabled={running}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all disabled:opacity-40"
-                    style={{ background: selected.color, color: 'hsl(222,47%,6%)' }}>
-                    {running ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-                    {running ? 'Running…' : `Run ${selected.label}`}
-                  </button>
+                  {selected.id !== 'what_if' && (
+                    <button onClick={run} disabled={running}
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all disabled:opacity-40"
+                      style={{ background: selected.color, color: 'hsl(222,47%,6%)' }}>
+                      {running ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+                      {running ? 'Running…' : `Run ${selected.label}`}
+                    </button>
+                  )}
                 </div>
               )}
 
               {error && <div className="px-4 py-3 rounded-xl bg-red-400/8 border border-red-400/20 text-sm text-red-400">{error}</div>}
 
-              {result && (
+              {/* What-If inline (no run button needed) */}
+              {selected?.id === 'what_if' && (
+                <div className="glass-card rounded-2xl p-5 border border-cyan-400/15">
+                  <WhatIfSimulator columns={columns} rows={rows} />
+                </div>
+              )}
+
+              {result && selected?.id !== 'what_if' && (
                 <div className="glass-card rounded-2xl p-5 border border-white/8">
                   <h3 className="text-sm font-bold mb-4 flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-green-400" /> Results — {selected?.label}

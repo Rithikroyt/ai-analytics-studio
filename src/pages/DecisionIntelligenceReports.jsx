@@ -8,7 +8,8 @@ import { useWorkspaceStore } from '@/lib/store';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FileText, Loader2, CheckCircle2, AlertTriangle, TrendingUp, Zap,
-  Download, Eye, Brain, Shield, Target, BarChart2, RefreshCw, Plus, Trash2
+  Download, Eye, Brain, Shield, Target, BarChart2, RefreshCw, Plus, Trash2,
+  FolderOpen, ExternalLink
 } from 'lucide-react';
 
 const REPORT_TYPES = [
@@ -60,9 +61,14 @@ function GeneratedReport({ report, onExport }) {
             <h2 className="text-lg font-black text-white/90">{r.title || 'Decision Intelligence Report'}</h2>
             <p className="text-xs text-white/40 mt-1">{r.dataset_name} · Generated {new Date().toLocaleDateString()} · Confidence: {r.confidence_score || 0}%</p>
           </div>
-          <button onClick={onExport} className="flex items-center gap-1.5 px-3 py-2 bg-cyan-400/15 border border-cyan-400/25 text-cyan-400 rounded-xl text-xs font-semibold hover:bg-cyan-400/20 transition-all">
-            <Download className="w-3.5 h-3.5" /> Export PDF
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={onExport} className="flex items-center gap-1.5 px-3 py-2 bg-cyan-400/15 border border-cyan-400/25 text-cyan-400 rounded-xl text-xs font-semibold hover:bg-cyan-400/20 transition-all">
+              <Download className="w-3.5 h-3.5" /> Export PDF
+            </button>
+            <a href="/integrations" className="flex items-center gap-1.5 px-3 py-2 bg-green-400/10 border border-green-400/20 text-green-400 rounded-xl text-xs font-semibold hover:bg-green-400/15 transition-all">
+              <FolderOpen className="w-3.5 h-3.5" /> Save to Drive <ExternalLink className="w-3 h-3 ml-0.5 opacity-60" />
+            </a>
+          </div>
         </div>
       </div>
 
@@ -204,6 +210,11 @@ export default function DecisionIntelligenceReports() {
             <h1 className="text-xl font-black">Decision Intelligence Reports</h1>
             <p className="text-xs text-muted-foreground">What · Why · Evidence · Risk · Action · Impact · Limitations · Next</p>
           </div>
+          <a href="/integrations" className="ml-auto hidden md:flex items-center gap-2 px-3 py-2 bg-green-400/8 border border-green-400/20 text-green-400 rounded-xl text-xs font-semibold hover:bg-green-400/12 transition-all">
+            <FolderOpen className="w-3.5 h-3.5" />
+            Connect Google Drive for auto-export
+            <ExternalLink className="w-3 h-3 opacity-60" />
+          </a>
         </div>
       </div>
 
