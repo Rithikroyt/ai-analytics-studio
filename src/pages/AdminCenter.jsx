@@ -20,6 +20,7 @@ import AdminAIMonitor from '@/components/admin/AdminAIMonitor.jsx';
 import AdminErrorLogs from '@/components/admin/AdminErrorLogs.jsx';
 import AdminAuditLog from '@/components/admin/AdminAuditLog.jsx';
 import AdminModuleUsage from '@/components/admin/AdminModuleUsage.jsx';
+import AdminAgentTraceTable from '@/components/admin/AdminAgentTraceTable.jsx';
 
 const ADMIN_EMAILS = ['rthati1@asu.edu', 'thatirithikroy@gmail.com'];
 
@@ -37,6 +38,7 @@ const TABS = [
   { id: 'errors',        label: 'Error Logs',       icon: AlertTriangle },
   { id: 'modules',       label: 'Module Usage',     icon: Activity },
   { id: 'audit',         label: 'Audit Log',        icon: ClipboardList },
+  { id: 'traces',        label: 'Agent Traces',     icon: Brain },
   { id: 'observability', label: 'Observability',    icon: Activity },
   { id: 'projectdocs',   label: 'Project Docs',     icon: FileText },
   { id: 'benchmark',     label: 'Benchmarks',       icon: Database },
@@ -139,6 +141,16 @@ export default function AdminCenter() {
             {tab === 'errors'    && <AdminErrorLogs errors={data.recentErrors} onRefresh={loadData} />}
             {tab === 'modules'   && <AdminModuleUsage recentEvents={data.recentEvents} recentErrors={data.recentErrors} />}
             {tab === 'audit'     && <AdminAuditLog logs={data.auditLogs} />}
+            {tab === 'traces' && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Brain className="w-4 h-4 text-cyan-400" />
+                  <h2 className="text-sm font-bold text-white/70">Agent Trace Monitor</h2>
+                  <span className="text-xs text-white/30">Every agent question, tool call, confidence score, and missing field logged here</span>
+                </div>
+                <AdminAgentTraceTable />
+              </div>
+            )}
             {tab === 'observability' && (
               <div className="space-y-4">
                 <div className="text-sm text-white/40 mb-2">Full observability dashboard available at <a href="/observability" className="text-cyan-400 hover:underline">/observability</a></div>

@@ -101,12 +101,51 @@ You NEVER return "analysis complete." You NEVER hallucinate numbers. You use ONL
   },
 };
 
+// ── Payroll / cost field requirements ────────────────────────────────────────
+const PAYROLL_REQUIRED_FIELDS = [
+  'payroll_cost', 'salary', 'wage', 'labor_cost', 'hours_worked',
+  'employee_id', 'department', 'pay_period', 'gross_pay', 'net_pay',
+  'compensation', 'payroll', 'headcount',
+];
+
+const COST_REQUIRED_FIELDS = [
+  'cost', 'expense', 'spend', 'cogs', 'opex', 'capex', 'budget',
+  'overhead', 'direct_cost', 'indirect_cost',
+];
+
+// Fields that MUST NEVER be used as revenue/cost/payroll metrics
+const FORBIDDEN_AS_METRICS = [
+  /_id$/, /^id$/, /^id_/, /uuid/, /rank$/, /ranking$/, /income_rank/,
+  /age$/, /zip$/, /postal$/, /row_number/, /sequence$/, /record_id/,
+  /^index$/, /percentile$/, /quintile$/, /decile$/, /year_of_birth/,
+  /birth_year/, /phone/, /latitude/, /longitude/, /lat$/, /lng$/, /lon$/,
+];
+
+function checkPayrollAvailability(columns) {
+  const colNames = columns.map(c => (c.name || '').toLowerCase());
+  const available = PAYROLL_REQUIRED_FIELDS.filter(f =>
+    colNames.some(c => c.includes(f) || f.includes(c))
+  );
+  const missing = PAYROLL_REQUIRED_FIELDS.filter(f =>
+    !colNames.some(c => c.includes(f) || f.includes(c))
+  );
+  return { available, missing, hasPayrollData: available.length >= 2 };
+}
+
+function checkCostAvailability(columns) {
+  const colNames = columns.map(c => (c.name || '').toLowerCase());
+  const available = COST_REQUIRED_FIELDS.filter(f =>
+    colNames.some(c => c.includes(f) || f.includes(c))
+  );
+  return { available, hasCostData: available.length >= 1 };
+}
+
 // ── SQL safety rules ──────────────────────────────────────────────────────────
 const UNSAFE_SUM_PATTERNS = [
   /_id$/, /^id$/, /^id_/, /uuid/, /rank$/, /ranking$/, /score$/, /index$/,
   /percentile$/, /quintile$/, /decile$/, /age$/, /zip$/, /postal$/, /phone/,
   /latitude/, /longitude/, /lat$/, /lng$/, /lon$/, /year_of_birth/, /birth_year/,
-  /row_number/, /sequence/,
+  /row_number/, /sequence/, /income_rank/, /record_id/,
 ];
 
 function isSafeToSum(colName) {
@@ -373,6 +412,27 @@ Deno.serve(async (req) => {
       return cols.some(c => colNames.some(cn => cn.toLowerCase().includes(c)));
     });
 
+    // ── Step 6b: CFO payroll / cost field safety check ───────────────────────
+    const isPayrollQuestion = /payroll|salary|wage|labor cost|headcount|compensation|pay|employee cost/i.test(question);
+    const isCostQuestion = /cost|expense|spend|budget|overhead|opex|capex/i.test(question);
+    const payrollCheck = checkPayrollAvailability(enrichedColumns);
+    const costCheck = checkCostAvailability(enrichedColumns);
+
+    // Build forbidden-as-metric column list (IDs, ranks, age, zip etc.)
+    const forbiddenMetricColumns = enrichedColumns
+      .filter(c => FORBIDDEN_AS_METRICS.some(p => p.test((c.name || '').toLowerCase())))
+      .map(c => c.name);
+
+    // If CFO asks about payroll but no payroll fields exist — create a clear notice
+    let payrollWarning = null;
+    if (personaName === 'CFO Analyst' && isPayrollQuestion && !payrollCheck.hasPayrollData) {
+      payrollWarning = `⚠️ PAYROLL ANALYSIS NOT POSSIBLE: The dataset "${tableData?.name || 'uploaded dataset'}" does not contain payroll/labor fields. ` +
+        `Required fields for payroll analysis: ${PAYROLL_REQUIRED_FIELDS.slice(0, 8).join(', ')}. ` +
+        `Available in dataset: none detected. ` +
+        `Do NOT synthesize payroll numbers from non-payroll columns such as: ${forbiddenMetricColumns.slice(0, 5).join(', ') || 'ID fields, rank fields, age fields'}. ` +
+        `Instead, explain what is missing and what partial financial analysis IS possible with the available data.`;
+    }
+
     // ── Step 7: SQL generation with safety ────────────────────────────────────
     const domainQueries = generateDomainSQL(intent, enrichedColumns, tableData?.name || 'dataset');
     const primarySQL = domainQueries[0]?.sql || '';
@@ -433,6 +493,16 @@ Deno.serve(async (req) => {
       ? `\n⚠️ MISSING REQUIRED FIELDS: ${missingFieldsAnalysis.explanation}`
       : '';
 
+    const payrollContext = payrollWarning
+      ? `\n\n${payrollWarning}`
+      : (personaName === 'CFO Analyst' && isPayrollQuestion && payrollCheck.hasPayrollData)
+        ? `\nPayroll fields available: ${payrollCheck.available.join(', ')}. Use ONLY these for payroll analysis.`
+        : '';
+
+    const forbiddenMetricContext = forbiddenMetricColumns.length > 0
+      ? `\n🚫 FORBIDDEN AS METRICS (never use as revenue/cost/payroll): ${forbiddenMetricColumns.join(', ')}`
+      : '';
+
     const prompt = `${persona.systemPrompt}
 
 You are answering as a ${personaName} using the F-D-E-A-R framework:
@@ -449,6 +519,8 @@ CRITICAL INSTRUCTIONS:
 - ONLY use safe financial columns for revenue/cost metrics: ${safeFinancialCols.join(', ') || 'none available'}
 - If required fields are missing, explain in data_sufficiency what is missing AND what partial analysis you can still do
 - Reference actual column names and statistical values in your evidence
+${payrollContext}
+${forbiddenMetricContext}
 
 DATASET: "${tableData?.name || 'Uploaded Dataset'}" 
 Rows: ${rows.length} | Columns: ${enrichedColumns.length}
@@ -596,6 +668,8 @@ Now produce a complete, structured answer with ALL required fields populated. Us
     if (sqlRisk.issues.length > 0) tools.push('SQLRiskDetector');
     if (verifiedAnswerUsed) tools.push('VerifiedAnswerLibrary');
     if (missingFieldsAnalysis.missing.length > 0) tools.push('MissingFieldsAnalyzer');
+    if (payrollWarning) tools.push('PayrollSafetyGuard');
+    if (forbiddenMetricColumns.length > 0) tools.push('ForbiddenMetricBlocker');
 
     const finalResult = {
       ...ensuredResponse,
