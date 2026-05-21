@@ -4,7 +4,8 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import WorkspaceSidebar from '@/components/workspace/WorkspaceSidebar';
 import AnnotationsPanel from '@/components/workspace/AnnotationsPanel';
 import NotificationCenter from '@/components/workspace/NotificationCenter';
-import { MessageSquare, X } from 'lucide-react';
+import { MessageSquare, X, MapPin } from 'lucide-react';
+import GuidedTour from '@/components/workspace/GuidedTour';
 import WorkspaceTopBar from '@/components/workspace/WorkspaceTopBar';
 import OverviewSection from '@/components/workspace/OverviewSection';
 import IntakeSection from '@/components/workspace/IntakeSection';
@@ -85,6 +86,7 @@ const sectionComponents = {
 export default function Workspace() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showAnnotations, setShowAnnotations] = useState(false);
+  const [showTour, setShowTour] = useState(false);
   const { activeSection } = useWorkspaceStore();
 
   const ActiveSection = sectionComponents[activeSection] || OverviewSection;
@@ -115,6 +117,14 @@ export default function Workspace() {
             </motion.div>
           </AnimatePresence>
 
+          {/* Guided Tour button */}
+          <button
+            onClick={() => setShowTour(true)}
+            className="fixed bottom-6 right-28 z-40 flex items-center gap-2 px-3 py-2.5 bg-purple-400/15 border border-purple-400/30 text-purple-400 rounded-xl text-xs font-semibold shadow-xl hover:bg-purple-400/20 transition-all">
+            <MapPin className="w-4 h-4" />
+            <span className="hidden sm:inline">Guided Tour</span>
+          </button>
+
           {/* Annotations toggle button */}
           <button
             onClick={() => setShowAnnotations(v => !v)}
@@ -124,6 +134,9 @@ export default function Workspace() {
           </button>
         </main>
       </div>
+
+      {/* Guided Tour overlay */}
+      {showTour && <GuidedTour onClose={() => setShowTour(false)} />}
 
       {/* Notification Center */}
       <NotificationCenter />
