@@ -82,7 +82,7 @@ export default function StarSchemaDetector({ rows = [], columns = [] }) {
   }
 
   const colAnalysis = columns.map(col => {
-    const name = col.name || col;
+    const name = String(col.name || col || '');
     const values = rows.slice(0, 100).map(r => r[name]).filter(v => v != null);
     const detection = detectRole(name, values);
     const unique = new Set(values.map(String)).size;
