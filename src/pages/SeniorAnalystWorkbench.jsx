@@ -10,8 +10,9 @@ import {
   Code2, Brain, BarChart2, Table2, Shield, FileText, Loader2,
   Play, Save, Download, ChevronLeft, Sparkles, CheckCircle2,
   AlertTriangle, RefreshCw, Database, Layers, Settings2, BookOpen,
-  TrendingUp, Target, Copy, Eye, XCircle
+  TrendingUp, Target, Copy, Eye, XCircle, Wand2
 } from 'lucide-react';
+import SQLBlueprintBuilders from '@/components/workbench/SQLBlueprintBuilders.jsx';
 import { Link } from 'react-router-dom';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
@@ -69,13 +70,14 @@ def eda_summary(df):
     }`;
 
 const ANALYSIS_TABS = [
-  { id: 'sql', label: 'SQL Editor', icon: Code2, color: 'text-green-400' },
-  { id: 'python', label: 'Python EDA', icon: Brain, color: 'text-purple-400' },
-  { id: 'pivot', label: 'Pivot Table', icon: Table2, color: 'text-cyan-400' },
-  { id: 'stats', label: 'Statistics', icon: BarChart2, color: 'text-amber-400' },
-  { id: 'validation', label: 'Data Validation', icon: Shield, color: 'text-red-400' },
-  { id: 'chart', label: 'Chart Builder', icon: TrendingUp, color: 'text-pink-400' },
-  { id: 'notes', label: 'Methodology Notes', icon: FileText, color: 'text-blue-400' },
+  { id: 'sql',        label: 'SQL Editor',       icon: Code2,    color: 'text-green-400' },
+  { id: 'blueprints', label: 'SQL Blueprints',   icon: Wand2,    color: 'text-cyan-400' },
+  { id: 'python',     label: 'Python EDA',       icon: Brain,    color: 'text-purple-400' },
+  { id: 'pivot',      label: 'Pivot Table',      icon: Table2,   color: 'text-cyan-400' },
+  { id: 'stats',      label: 'Statistics',       icon: BarChart2,color: 'text-amber-400' },
+  { id: 'validation', label: 'Data Validation',  icon: Shield,   color: 'text-red-400' },
+  { id: 'chart',      label: 'Chart Builder',    icon: TrendingUp,color: 'text-pink-400' },
+  { id: 'notes',      label: 'Methodology Notes',icon: FileText, color: 'text-blue-400' },
 ];
 
 function executeSQL(sql, rows) {
@@ -552,6 +554,19 @@ Generated: ${new Date().toISOString()}`;
                 <div className="flex items-center justify-center h-48 text-white/20 text-sm">Run a query to see results</div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* SQL Blueprints */}
+        {tab === 'blueprints' && (
+          <div>
+            <div className="mb-4 p-3 rounded-xl bg-cyan-400/5 border border-cyan-400/15 text-xs text-white/50 leading-relaxed">
+              <strong className="text-cyan-400">SQL Blueprint Builders</strong> — Configure fields and instantly generate validated SQL for advanced patterns: CTEs, window functions, running totals, pivot queries, date trends, and more.
+            </div>
+            <SQLBlueprintBuilders
+              colNames={colNames}
+              onRunSQL={(generatedSql) => { setSql(generatedSql); setTab('sql'); }}
+            />
           </div>
         )}
 

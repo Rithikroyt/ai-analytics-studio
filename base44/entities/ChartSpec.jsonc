@@ -1,0 +1,127 @@
+{
+  "name": "ChartSpec",
+  "type": "object",
+  "properties": {
+    "datasetId": {
+      "type": "string",
+      "title": "Dataset ID"
+    },
+    "chartTitle": {
+      "type": "string",
+      "title": "Chart Title"
+    },
+    "chartType": {
+      "type": "string",
+      "enum": [
+        "bar",
+        "line",
+        "area",
+        "scatter",
+        "histogram",
+        "heatmap",
+        "funnel",
+        "table",
+        "pivot",
+        "kpi"
+      ],
+      "title": "Chart Type"
+    },
+    "xAxis": {
+      "type": "string",
+      "title": "X-Axis Field"
+    },
+    "yAxis": {
+      "type": "string",
+      "title": "Y-Axis Field"
+    },
+    "color": {
+      "type": "string",
+      "title": "Color Field"
+    },
+    "size": {
+      "type": "string",
+      "title": "Size Field"
+    },
+    "label": {
+      "type": "string",
+      "title": "Label Field"
+    },
+    "detail": {
+      "type": "string",
+      "title": "Detail Field"
+    },
+    "aggregation": {
+      "type": "string",
+      "enum": [
+        "sum",
+        "avg",
+        "count",
+        "min",
+        "max",
+        "none"
+      ],
+      "default": "sum",
+      "title": "Aggregation Function"
+    },
+    "tooltipFields": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Tooltip Fields"
+    },
+    "filters": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "title": "Filters Applied"
+    },
+    "metricDefinition": {
+      "type": "string",
+      "title": "Metric Definition"
+    },
+    "generatedSql": {
+      "type": "string",
+      "title": "Generated SQL"
+    },
+    "generatedPython": {
+      "type": "string",
+      "title": "Generated Python Logic"
+    },
+    "oneLineInsight": {
+      "type": "string",
+      "title": "One-Line Insight"
+    },
+    "businessMeaning": {
+      "type": "string",
+      "title": "Business Meaning"
+    },
+    "recommendation": {
+      "type": "string",
+      "title": "Recommendation"
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations"
+    },
+    "explanation": {
+      "type": "object",
+      "title": "Full AI Explanation",
+      "additionalProperties": true
+    },
+    "createdBy": {
+      "type": "string",
+      "title": "Created By"
+    }
+  },
+  "required": [
+    "chartTitle",
+    "chartType",
+    "xAxis",
+    "yAxis"
+  ]
+}
