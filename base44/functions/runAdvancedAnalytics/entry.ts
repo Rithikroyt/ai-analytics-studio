@@ -253,15 +253,26 @@ Deno.serve(async (req) => {
     if (analysisType === 'outlier_detection') {
       const numCols = colNames.filter(c => {
         const vals = extractNumeric(c);
-        return vals.length > 5 && !c.toLowerCase().match(/_id$|^id$|uuid/);
+        return vals.length > 2 && !c.toLowerCase().match(/_id$|^id$|uuid/);
       }).slice(0, 10);
       const results = numCols.map(c => detectOutliers(extractNumeric(c), c));
+
+      // Pre-compute per-column stats so flagging is consistent with detectOutliers
+      const colStats = {};
+      for (const c of numCols) {
+        const vals = extractNumeric(c);
+        const sorted = [...vals].sort((a, b) => a - b);
+        const q1 = percentile(sorted, 25), q3 = percentile(sorted, 75);
+        const iqr = q3 - q1;
+        colStats[c] = { mean: mean(vals), std: std(vals), fenceLo: q1 - 1.5 * iqr, fenceHi: q3 + 1.5 * iqr };
+      }
+
       const flaggedRows = rows.filter(row =>
         numCols.some(c => {
           const v = Number(row[c]);
-          const vals = extractNumeric(c);
-          const m = mean(vals), s = std(vals);
-          return !isNaN(v) && Math.abs((v - m) / (s || 1)) > 3;
+          if (isNaN(v)) return false;
+          const s = colStats[c];
+          return v < s.fenceLo || v > s.fenceHi;
         })
       ).slice(0, 50);
       return Response.json({ column_outliers: results, flagged_rows: flaggedRows, total_flagged: flaggedRows.length });

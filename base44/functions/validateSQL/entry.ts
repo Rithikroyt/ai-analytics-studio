@@ -23,6 +23,7 @@ const SEMANTIC_TYPE_MAP = {
 };
 
 function classifySemanticType(colName) {
+  if (!colName || typeof colName !== 'string') return 'unknown';
   const n = colName.toLowerCase();
   for (const [type, patterns] of Object.entries(SEMANTIC_TYPE_MAP)) {
     if (patterns.some(p => n.includes(p))) return type;
@@ -31,6 +32,7 @@ function classifySemanticType(colName) {
 }
 
 function isSafeToSum(colName) {
+  if (!colName || typeof colName !== 'string') return false;
   const n = colName.toLowerCase();
   return !UNSAFE_SUM_PATTERNS.some(p => p.test(n));
 }
@@ -130,8 +132,13 @@ Deno.serve(async (req) => {
     const { sql, columns, tableName } = await req.json();
     if (!sql) return Response.json({ error: 'SQL is required' }, { status: 400 });
 
+    // Normalize columns — accept string array or object array
+    const normalizedColumns = (columns || []).map(c =>
+      typeof c === 'string' ? { name: c, type: 'unknown' } : (c && c.name ? c : null)
+    ).filter(Boolean);
+
     // Classify all columns semantically
-    const enrichedColumns = (columns || []).map(col => ({
+    const enrichedColumns = normalizedColumns.map(col => ({
       ...col,
       semantic_type: col.semantic_type || classifySemanticType(col.name || ''),
       safe_to_sum: isSafeToSum(col.name || ''),
