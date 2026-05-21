@@ -42,7 +42,8 @@ const TABS = [
   { id: 'observability', label: 'Observability',    icon: Activity },
   { id: 'projectdocs',   label: 'Project Docs',     icon: FileText },
   { id: 'benchmark',     label: 'Benchmarks',       icon: Database },
-  { id: 'handover',      label: 'Handover Package', icon: FileText },
+  { id: 'handover',      label: 'Handover Package', icon: Package },
+  { id: 'sale_pitch',   label: 'Sale Pitch',       icon: Shield },
 ];
 
 export default function AdminCenter() {
@@ -175,6 +176,16 @@ export default function AdminCenter() {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+            {tab === 'sale_pitch' && (
+              <div className="text-center py-12 space-y-4">
+                <Package className="w-12 h-12 text-amber-400 mx-auto" />
+                <h2 className="text-lg font-black">Product Sale Pitch</h2>
+                <p className="text-sm text-white/40 max-w-md mx-auto">$20K–$25K acquisition package with feature matrix, value justification, use cases, architecture, and roadmap.</p>
+                <Link to="/product-pitch" className="inline-flex items-center gap-2 px-6 py-3 bg-amber-400/15 border border-amber-400/25 text-amber-400 rounded-xl font-bold hover:bg-amber-400/20 transition-all">
+                  <Package className="w-4 h-4" /> Open Sale Pitch →
+                </Link>
               </div>
             )}
             {tab === 'handover' && (

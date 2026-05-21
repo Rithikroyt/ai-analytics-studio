@@ -60,6 +60,9 @@ import VisualBuilder from '@/pages/VisualBuilder';
 import ApiConnectorWizard from '@/pages/ApiConnectorWizard';
 import DomainAnalyticsPacks from '@/pages/DomainAnalyticsPacks';
 import AdvancedAnalyticsLabV3 from '@/pages/AdvancedAnalyticsLab';
+import DemoMode from '@/pages/DemoMode';
+import SampleDashboards from '@/pages/SampleDashboards';
+import ProductSalePitch from '@/pages/ProductSalePitch';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -140,6 +143,9 @@ const AuthenticatedApp = () => {
         <Route path="/api-connector" element={<ApiConnectorWizard />} />
         <Route path="/domain-packs" element={<DomainAnalyticsPacks />} />
         <Route path="/analytics-lab-v3" element={<AdvancedAnalyticsLabV3 />} />
+        <Route path="/demo-mode" element={<DemoMode />} />
+        <Route path="/sample-dashboards" element={<SampleDashboards />} />
+        <Route path="/product-pitch" element={<ProductSalePitch />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </>

@@ -35,7 +35,7 @@ export default function Navbar() {
   );
 
   // Hide navbar on workspace/app pages
-  const appPages = ['/workspace', '/story-builder', '/alerts', '/integrations', '/data-mapping', '/reports', '/collaboration', '/predictive', '/forecast-hub', '/governance', '/workbench', '/ml-workbench', '/policy-center', '/agent-studio', '/ai-command-center', '/data-intelligence', '/ml-intelligence', '/strategic-kpi', '/analytics-lab', '/data-engineering', '/semantic-metrics', '/sql-workbench', '/decision-reports', '/handover', '/senior-workbench', '/visual-builder', '/api-connector', '/domain-packs', '/pipeline-studio', '/observability'];
+  const appPages = ['/workspace', '/story-builder', '/alerts', '/integrations', '/data-mapping', '/reports', '/collaboration', '/predictive', '/forecast-hub', '/governance', '/workbench', '/ml-workbench', '/policy-center', '/agent-studio', '/ai-command-center', '/data-intelligence', '/ml-intelligence', '/strategic-kpi', '/analytics-lab', '/data-engineering', '/semantic-metrics', '/sql-workbench', '/decision-reports', '/handover', '/senior-workbench', '/visual-builder', '/api-connector', '/domain-packs', '/pipeline-studio', '/observability', '/demo-mode', '/sample-dashboards', '/product-pitch'];
   const isWorkspace = appPages.some(p => location.pathname.startsWith(p));
   
   useEffect(() => {

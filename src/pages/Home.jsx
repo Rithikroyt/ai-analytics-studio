@@ -233,9 +233,9 @@ export default function Home() {
                     style={{ color: 'hsl(222,47%,6%)' }}>
                     <Zap className="w-4 h-4" /> Launch Workspace
                   </Link>
-                  <Link to="/workflows"
-                    className="inline-flex items-center gap-2 px-6 py-3.5 glass border border-white/10 rounded-xl text-sm font-semibold hover:border-cyan-400/30 transition-all">
-                    Explore Workflows <ArrowRight className="w-4 h-4" />
+                  <Link to="/demo-mode"
+                    className="inline-flex items-center gap-2 px-6 py-3.5 glass border border-cyan-400/30 rounded-xl text-sm font-semibold hover:border-cyan-400/50 text-cyan-400 transition-all">
+                    <Sparkles className="w-4 h-4" /> Try Guided Demo
                   </Link>
                 </div>
                 <div className="flex flex-wrap gap-4 mt-6">
@@ -369,10 +369,10 @@ export default function Home() {
               { label: 'Semantic Metric Store', sub: 'Define · Certify · Govern metrics', to: '/semantic-metrics', color: '#a855f7', emoji: '📐' },
               { label: 'SQL Python Workbench', sub: 'DuckDB · NL-to-SQL · 15 Templates', to: '/sql-workbench', color: '#4caf50', emoji: '💻' },
               { label: 'Agent Studio', sub: 'CFO · Growth · Ops · F-D-E-A-R', to: '/agent-studio', color: '#ff2d7a', emoji: '🧠' },
-              { label: 'Decision Reports', sub: '8 report types · What/Why/Risk/Action', to: '/decision-reports', color: '#ffcc02', emoji: '📋' },
+              { label: 'Decision Reports', sub: '14 report types · Evidence · Risk · Action', to: '/decision-reports', color: '#ffcc02', emoji: '📋' },
               { label: 'AI Command Center', sub: 'Proactive CXO intelligence', to: '/ai-command-center', color: '#00e5ff', emoji: '⚡' },
-              { label: 'Admin Observability', sub: 'Agent traces · SQL failures · Quality', to: '/observability', color: '#60a5fa', emoji: '👁️' },
-              { label: 'Handover Package', sub: 'Sale Readiness · $20K–$25K product', to: '/handover', color: '#fb923c', emoji: '📦' },
+              { label: 'Sample Dashboards', sub: 'Sales · Customer · HR pre-built views', to: '/sample-dashboards', color: '#4ade80', emoji: '📈' },
+              { label: 'Guided Demo Mode', sub: '11-step demo · 4 built-in datasets', to: '/demo-mode', color: '#a855f7', emoji: '🎯' },
             ].map(c => (
               <FadeIn key={c.label}>
                 <Link to={c.to}
