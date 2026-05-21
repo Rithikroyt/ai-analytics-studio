@@ -368,10 +368,13 @@ export default function VisualBuilder() {
                 { key: 'xAxis', label: '📐 X-Axis (Dimension)' },
                 { key: 'yAxis', label: '📏 Y-Axis (Metric)' },
                 { key: 'color', label: '🎨 Color By (optional)' },
+                { key: 'size', label: '⭕ Size Field (optional)' },
+                { key: 'label', label: '🏷️ Label Field (optional)' },
+                { key: 'detail', label: '🔍 Detail Field (optional)' },
               ].map(f => (
                 <div key={f.key}>
                   <label className="text-xs text-white/30 mb-1 block">{f.label}</label>
-                  <select value={spec[f.key]} onChange={e => set(f.key, e.target.value)}
+                  <select value={spec[f.key] || ''} onChange={e => set(f.key, e.target.value)}
                     className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs focus:outline-none">
                     <option value="">— Select —</option>
                     {colNames.map(c => <option key={c} value={c}>{c}</option>)}
@@ -392,9 +395,62 @@ export default function VisualBuilder() {
                 </div>
               </div>
 
-              {/* Tooltip fields */}
+              {/* Filters shelf */}
               <div>
-                <label className="text-xs text-white/30 mb-1 block">💬 Tooltip Fields</label>
+                <label className="text-xs text-white/30 mb-1 block">🔧 Quick Filter (col = value)</label>
+                <div className="flex gap-1">
+                  <select onChange={e => { if (e.target.value) set('filters', [...(spec.filters || []), { col: e.target.value, op: '=', val: '' }]); e.target.value = ''; }}
+                    className="flex-1 px-2 py-1.5 bg-white/5 border border-white/10 rounded-xl text-xs focus:outline-none">
+                    <option value="">+ Add filter…</option>
+                    {colNames.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                {(spec.filters || []).map((f, i) => (
+                  <div key={i} className="flex gap-1 mt-1 items-center">
+                    <span className="text-xs font-mono text-cyan-400 w-20 truncate">{f.col}</span>
+                    <input value={f.val} onChange={e => set('filters', spec.filters.map((ff, j) => j === i ? { ...ff, val: e.target.value } : ff))}
+                      placeholder="value" className="flex-1 px-2 py-1 bg-white/5 border border-white/10 rounded-lg text-xs focus:outline-none" />
+                    <button onClick={() => set('filters', spec.filters.filter((_, j) => j !== i))} className="text-red-400/50 hover:text-red-400 text-xs px-1">✕</button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Marks Card */}
+              <div>
+                <label className="text-xs text-white/30 mb-1 block">🎯 Marks</label>
+                <div className="grid grid-cols-3 gap-1">
+                  {['circle', 'square', 'bar', 'line', 'area', 'text'].map(m => (
+                    <button key={m} onClick={() => set('markType', m)}
+                      className={`px-2 py-1 rounded-lg text-xs transition-all ${spec.markType === m ? 'bg-pink-400/20 text-pink-400' : 'bg-white/5 text-white/35 hover:text-white/60'}`}>
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Theme Selector */}
+              <div>
+                <label className="text-xs text-white/30 mb-1 block">🎨 Theme</label>
+                <div className="flex gap-1.5 flex-wrap">
+                  {[
+                    { id: 'dark', label: 'Dark', colors: ['#00e5ff', '#a855f7', '#4ade80'] },
+                    { id: 'warm', label: 'Warm', colors: ['#f59e0b', '#f87171', '#fb923c'] },
+                    { id: 'cool', label: 'Cool', colors: ['#60a5fa', '#818cf8', '#34d399'] },
+                  ].map(theme => (
+                    <button key={theme.id} onClick={() => set('theme', theme.id)}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs transition-all border ${spec.theme === theme.id ? 'border-white/25 bg-white/8' : 'border-white/8 hover:border-white/15'}`}>
+                      <div className="flex gap-0.5">
+                        {theme.colors.map(c => <div key={c} className="w-2.5 h-2.5 rounded-full" style={{ background: c }} />)}
+                      </div>
+                      {theme.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Custom Tooltip Builder */}
+              <div className="p-3 rounded-xl bg-white/3 border border-white/8 space-y-2">
+                <label className="text-xs text-white/30 font-semibold block">💬 Custom Tooltip Builder</label>
                 <div className="flex flex-wrap gap-1">
                   {colNames.slice(0, 8).map(c => (
                     <button key={c} onClick={() => set('tooltipFields', spec.tooltipFields.includes(c) ? spec.tooltipFields.filter(f => f !== c) : [...spec.tooltipFields, c])}
@@ -402,6 +458,22 @@ export default function VisualBuilder() {
                       {c}
                     </button>
                   ))}
+                </div>
+                <div className="space-y-1">
+                  {[
+                    { key: 'tooltipFormat', label: 'Number Format', options: ['default', 'currency', 'percentage', 'thousands'] },
+                  ].map(f => (
+                    <div key={f.key} className="flex items-center gap-2">
+                      <span className="text-xs text-white/30 w-24">{f.label}</span>
+                      <select value={spec[f.key] || 'default'} onChange={e => set(f.key, e.target.value)}
+                        className="flex-1 px-2 py-1 bg-white/5 border border-white/8 rounded-lg text-xs focus:outline-none">
+                        {f.options.map(o => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    </div>
+                  ))}
+                  <input value={spec.tooltipNote || ''} onChange={e => set('tooltipNote', e.target.value)}
+                    placeholder="Business note shown in tooltip…"
+                    className="w-full px-2 py-1 bg-white/5 border border-white/8 rounded-lg text-xs focus:outline-none" />
                 </div>
               </div>
 

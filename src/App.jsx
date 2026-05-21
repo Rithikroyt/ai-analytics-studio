@@ -57,6 +57,9 @@ import DecisionIntelligenceReports from '@/pages/DecisionIntelligenceReports';
 import HandoverPackage from '@/pages/HandoverPackage';
 import SeniorAnalystWorkbench from '@/pages/SeniorAnalystWorkbench';
 import VisualBuilder from '@/pages/VisualBuilder';
+import ApiConnectorWizard from '@/pages/ApiConnectorWizard';
+import DomainAnalyticsPacks from '@/pages/DomainAnalyticsPacks';
+import AdvancedAnalyticsLabV3 from '@/pages/AdvancedAnalyticsLab';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -117,7 +120,7 @@ const AuthenticatedApp = () => {
         <Route path="/data-intelligence" element={<DataIntelligenceHub />} />
         <Route path="/ml-intelligence" element={<MLIntelligence />} />
         <Route path="/strategic-kpi" element={<StrategicKPIBoard />} />
-        <Route path="/analytics-lab" element={<AdvancedAnalyticsLab />} />
+        <Route path="/analytics-lab" element={<AdvancedAnalyticsLabV3 />} />
         <Route path="/executive-briefing" element={<ExecutiveBriefing />} />
         <Route path="/strategic-okr" element={<StrategicOKRBoard />} />
         <Route path="/data-lineage" element={<DataLineageViewer />} />
@@ -135,6 +138,9 @@ const AuthenticatedApp = () => {
         <Route path="/handover" element={<HandoverPackage />} />
         <Route path="/senior-workbench" element={<SeniorAnalystWorkbench />} />
         <Route path="/visual-builder" element={<VisualBuilder />} />
+        <Route path="/api-connector" element={<ApiConnectorWizard />} />
+        <Route path="/domain-packs" element={<DomainAnalyticsPacks />} />
+        <Route path="/analytics-lab-v3" element={<AdvancedAnalyticsLabV3 />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </>
