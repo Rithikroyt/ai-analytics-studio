@@ -12,25 +12,16 @@
     },
     "reportType": {
       "type": "string",
-      "title": "Report Type",
-      "enum": [
-        "executive",
-        "board",
-        "kpi_trend",
-        "anomaly",
-        "forecast",
-        "quality",
-        "feedback",
-        "custom"
-      ]
+      "title": "Report Type"
     },
     "content": {
       "type": "string",
-      "title": "Report Content"
+      "title": "Report Content (JSON or Markdown)"
     },
     "dataSnapshot": {
       "type": "object",
-      "title": "Data Snapshot"
+      "title": "Data Snapshot",
+      "additionalProperties": true
     },
     "accessLevel": {
       "type": "string",
@@ -66,49 +57,32 @@
       ],
       "default": "active"
     },
-    "tableName": {
+    "datasetName": {
       "type": "string",
       "title": "Source Dataset"
+    },
+    "tableName": {
+      "type": "string",
+      "title": "Table Name (legacy)"
     },
     "qualityScore": {
       "type": "number",
       "title": "Quality Score"
     },
+    "confidenceScore": {
+      "type": "number",
+      "title": "Confidence Score (0-100)"
+    },
     "kpiValue": {
       "type": "string",
       "title": "Primary KPI"
+    },
+    "createdBy": {
+      "type": "string",
+      "title": "Created By Email"
     }
   },
   "required": [
     "title"
-  ],
-  "rls": {
-    "create": {},
-    "read": {
-      "$or": [
-        {
-          "data.isPublic": true
-        },
-        {
-          "created_by": "{{user.email}}"
-        },
-        {
-          "data.invitedEmails": "{{user.email}}"
-        }
-      ]
-    },
-    "update": {
-      "$or": [
-        {
-          "created_by": "{{user.email}}"
-        },
-        {
-          "data.accessLevel": "edit"
-        }
-      ]
-    },
-    "delete": {
-      "created_by": "{{user.email}}"
-    }
-  }
+  ]
 }

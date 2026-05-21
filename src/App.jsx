@@ -43,9 +43,9 @@ import AdvancedAnalyticsLab from '@/pages/AdvancedAnalyticsLab';
 import ExecutiveBriefing from '@/pages/ExecutiveBriefing';
 import StrategicOKRBoard from '@/pages/StrategicOKRBoard';
 import DataLineageViewer from '@/pages/DataLineageViewer';
-import PipelineStudio from '@/pages/PipelineStudio';
+import PipelineStudio from '@/pages/PipelineStudio.jsx';
 import RAGEvidenceHub from '@/pages/RAGEvidenceHub';
-import ObservabilityCenter from '@/pages/ObservabilityCenter';
+import ObservabilityCenter from '@/pages/ObservabilityCenter.jsx';
 import ProjectDocumentationCenter from '@/pages/ProjectDocumentationCenter';
 import SemanticModelStudio from '@/pages/SemanticModelStudio';
 import BenchmarkCenter from '@/pages/BenchmarkCenter';
@@ -53,8 +53,8 @@ import SkillMatrix from '@/pages/SkillMatrix';
 import DataEngineeringStudio from '@/pages/DataEngineeringStudio';
 import SemanticMetricStore from '@/pages/SemanticMetricStore';
 import SQLPythonWorkbench from '@/pages/SQLPythonWorkbench';
-import DecisionIntelligenceReports from '@/pages/DecisionIntelligenceReports';
-import HandoverPackage from '@/pages/HandoverPackage';
+import HandoverPackage from '@/pages/HandoverPackage.jsx';
+import DecisionIntelligenceReportsV4 from '@/pages/DecisionIntelligenceReports.jsx';
 import SeniorAnalystWorkbench from '@/pages/SeniorAnalystWorkbench';
 import VisualBuilder from '@/pages/VisualBuilder';
 import ApiConnectorWizard from '@/pages/ApiConnectorWizard';
@@ -110,7 +110,7 @@ const AuthenticatedApp = () => {
         <Route path="/what-if" element={<WhatIfSimulator />} />
         <Route path="/notebook" element={<AnalystNotebook />} />
         <Route path="/action-board" element={<ActionBoard />} />
-        <Route path="/decision-reports" element={<DecisionReports />} />
+        <Route path="/decision-reports" element={<DecisionIntelligenceReportsV4 />} />
         <Route path="/ml-workbench" element={<MLWorkbench />} />
         <Route path="/policy-center" element={<PolicyCenter />} />
         <Route path="/agent-studio" element={<AgentStudio />} />
@@ -134,7 +134,6 @@ const AuthenticatedApp = () => {
         <Route path="/data-engineering" element={<DataEngineeringStudio />} />
         <Route path="/semantic-metrics" element={<SemanticMetricStore />} />
         <Route path="/sql-workbench" element={<SQLPythonWorkbench />} />
-        <Route path="/decision-reports" element={<DecisionIntelligenceReports />} />
         <Route path="/handover" element={<HandoverPackage />} />
         <Route path="/senior-workbench" element={<SeniorAnalystWorkbench />} />
         <Route path="/visual-builder" element={<VisualBuilder />} />

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lock, FileText, RefreshCw, Loader2, BookOpen, Shield } from 'lucide-react';
+import { Lock, FileText, RefreshCw, Loader2, BookOpen, Shield, GitMerge } from 'lucide-react';
 import DocMetadataForm from '@/components/projectdoc/DocMetadataForm';
 import DocSectionSelector from '@/components/projectdoc/DocSectionSelector';
 import DocScreenshotManager from '@/components/projectdoc/DocScreenshotManager';
@@ -11,6 +11,7 @@ import DocCodeManager from '@/components/projectdoc/DocCodeManager';
 import DocReferenceManager from '@/components/projectdoc/DocReferenceManager';
 import DocHistory from '@/components/projectdoc/DocHistory';
 import DocGeneratePanel from '@/components/projectdoc/DocGeneratePanel';
+import MermaidDiagramViewer from '@/components/diagrams/MermaidDiagramViewer';
 
 const ADMIN_EMAILS = ['rthati1@asu.edu', 'thatirithikroy@gmail.com'];
 function isAdmin(user) {
@@ -26,6 +27,7 @@ const TABS = [
   { id: 'diagrams',   label: 'Diagrams',                icon: FileText },
   { id: 'code',       label: 'Code Snippets',           icon: FileText },
   { id: 'references', label: 'References',              icon: FileText },
+  { id: 'arch_diagrams', label: 'Architecture Diagrams',    icon: GitMerge },
   { id: 'generate',   label: 'Generate PDF',            icon: FileText },
   { id: 'history',    label: 'Document History',        icon: FileText },
 ];
@@ -151,6 +153,16 @@ export default function ProjectDocumentationCenter() {
               {tab === 'diagrams'   && <DocDiagramManager config={config} user={user} />}
               {tab === 'code'       && <DocCodeManager config={config} user={user} />}
               {tab === 'references' && <DocReferenceManager config={config} user={user} />}
+              {tab === 'arch_diagrams' && (
+                <div className="space-y-4">
+                  <div className="p-3 rounded-xl bg-cyan-400/5 border border-cyan-400/15 text-xs text-white/50">
+                    Pre-built Mermaid architecture diagrams for your project documentation. Copy the code and paste into <a href="https://mermaid.live" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">mermaid.live</a> to render, or include in your PDF.
+                  </div>
+                  <a href="/handover" className="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-400/10 border border-amber-400/20 text-amber-400 rounded-xl text-xs font-semibold hover:bg-amber-400/15 transition-all">
+                    <GitMerge className="w-3.5 h-3.5" /> View all 8 diagrams in Handover Package →
+                  </a>
+                </div>
+              )}
               {tab === 'generate'   && <DocGeneratePanel config={config} user={user} />}
               {tab === 'history'    && <DocHistory config={config} />}
             </motion.div>

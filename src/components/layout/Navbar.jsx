@@ -18,7 +18,9 @@ const navLinks = [
   { label: 'Domain Packs', path: '/domain-packs' },
   { label: 'Reports', path: '/decision-reports' },
   { label: 'Dashboards', path: '/dashboards' },
+  { label: 'Pipeline Studio', path: '/pipeline-studio' },
   { label: 'AI Command', path: '/ai-command-center' },
+  { label: 'Handover', path: '/handover' },
 ];
 
 export default function Navbar() {
@@ -33,7 +35,7 @@ export default function Navbar() {
   );
 
   // Hide navbar on workspace/app pages
-  const appPages = ['/workspace', '/story-builder', '/alerts', '/integrations', '/data-mapping', '/reports', '/collaboration', '/predictive', '/forecast-hub', '/governance', '/workbench', '/ml-workbench', '/policy-center', '/agent-studio', '/ai-command-center', '/data-intelligence', '/ml-intelligence', '/strategic-kpi', '/analytics-lab', '/data-engineering', '/semantic-metrics', '/sql-workbench', '/decision-reports', '/handover', '/senior-workbench', '/visual-builder', '/api-connector', '/domain-packs'];
+  const appPages = ['/workspace', '/story-builder', '/alerts', '/integrations', '/data-mapping', '/reports', '/collaboration', '/predictive', '/forecast-hub', '/governance', '/workbench', '/ml-workbench', '/policy-center', '/agent-studio', '/ai-command-center', '/data-intelligence', '/ml-intelligence', '/strategic-kpi', '/analytics-lab', '/data-engineering', '/semantic-metrics', '/sql-workbench', '/decision-reports', '/handover', '/senior-workbench', '/visual-builder', '/api-connector', '/domain-packs', '/pipeline-studio', '/observability'];
   const isWorkspace = appPages.some(p => location.pathname.startsWith(p));
   
   useEffect(() => {
