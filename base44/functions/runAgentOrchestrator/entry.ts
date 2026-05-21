@@ -365,7 +365,9 @@ Deno.serve(async (req) => {
     const intent = classifyIntent(question);
 
     // ── Step 2: Column classification with safety checks ──────────────────────
-    const rawColumns = tableData?.columns || [];
+    const rawColumns = (tableData?.columns || []).map(c =>
+      typeof c === 'string' ? { name: c, type: 'unknown' } : (c && c.name ? c : null)
+    ).filter(Boolean);
     const rows = tableData?.rows || [];
     const enrichedColumns = semanticColumnClassify(rawColumns, rows);
     const hasDateColumn = enrichedColumns.some(c => c.semantic_type === 'date');

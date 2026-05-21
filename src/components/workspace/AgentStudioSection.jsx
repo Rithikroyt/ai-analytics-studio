@@ -62,9 +62,9 @@ export default function AgentStudioSection() {
 
     const tableContext = activeTable ? {
       name: activeTable.name,
-      rowCount: activeTable.rowCount || activeTable.rows?.length,
-      columns: activeTable.columns?.slice(0, 25),
-      rows: activeTable.rows?.slice(0, 50),
+      rowCount: activeTable.rowCount || activeTable.rows?.length || 0,
+      columns: activeTable.columns?.slice(0, 40) || [],
+      rows: activeTable.rows?.slice(0, 200) || [],
     } : null;
 
     let result = null;

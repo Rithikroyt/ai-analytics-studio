@@ -239,8 +239,8 @@ export default function SQLSection() {
         templateKey: templateId,
         rows: table.rows?.slice(0, 5),
       });
-      // Backend returns { ok, response: { sql, explanation, can_generate, ... } }
-      const data = resp.data?.response || resp.data || {};
+      // Backend returns flat: { ok, sql, explanation, can_generate, ... }
+      const data = resp.data || {};
       let queryResult = null;
       if (data.can_generate && data.sql && table.rows) {
         queryResult = runInMemorySQL(data.sql, table);

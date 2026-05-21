@@ -98,11 +98,12 @@ Deno.serve(async (req) => {
   const user = await base44.auth.me();
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { question, tableName: rawTableName, columns: rawColumns, templateKey, rows, datasetName } = await req.json();
-  const tableName = rawTableName || datasetName || 'data_table';
+  const body = await req.json();
+  const { question, templateKey, rows, datasetName } = body;
+  const tableName = body.tableName || datasetName || 'data_table';
 
   // Normalize columns — accept string array or object array
-  const columns = (rawColumns || []).map(c =>
+  const columns = (body.columns || []).map(c =>
     typeof c === 'string' ? { name: c, type: 'unknown' } : (c && c.name ? c : null)
   ).filter(Boolean);
 
@@ -194,5 +195,7 @@ Return JSON only:
     },
   });
 
-  return Response.json({ ok: true, ...result, safetyChecked: true });
+  // InvokeLLM returns the parsed JSON directly when response_json_schema is set
+  const flat = result?.response || result || {};
+  return Response.json({ ok: true, ...flat, safetyChecked: true });
 });

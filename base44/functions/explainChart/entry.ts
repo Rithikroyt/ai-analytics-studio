@@ -63,7 +63,7 @@ Respond in strict JSON with all these fields populated with specific values from
 - hasAnomaly: true/false
 - anomalyNote: Description of any anomaly with the specific value and how far above/below mean`;
 
-  const result = await base44.integrations.Core.InvokeLLM({
+  const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
     prompt,
     model: 'claude_sonnet_4_6',
     response_json_schema: {
