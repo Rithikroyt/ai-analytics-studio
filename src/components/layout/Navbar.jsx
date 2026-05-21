@@ -20,7 +20,6 @@ const navLinks = [
   { label: 'Dashboards', path: '/dashboards' },
   { label: 'Pipeline Studio', path: '/pipeline-studio' },
   { label: 'AI Command', path: '/ai-command-center' },
-  { label: 'Handover', path: '/handover' },
 ];
 
 export default function Navbar() {
