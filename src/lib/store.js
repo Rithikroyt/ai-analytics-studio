@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { sampleBundles } from '@/lib/sampleData';
+import { sampleBundles, inferColumns, buildSemanticModel, buildAnalysis } from '@/lib/sampleData';
+import DEMO_DATASETS from '@/lib/demoDatasets';
 
 export const useWorkspaceStore = create(
   persist(
@@ -110,19 +111,50 @@ export const useWorkspaceStore = create(
       })),
 
       loadSampleBundle: (bundleKey) => {
-        const bundle = sampleBundles[bundleKey];
-        if (!bundle || !bundle.tables?.length) {
-          console.warn('[store] loadSampleBundle: unknown key or empty bundle:', bundleKey);
+        // Try legacy sampleBundles first
+        const legacyBundle = sampleBundles[bundleKey];
+        if (legacyBundle?.tables?.length) {
+          set({
+            tables: legacyBundle.tables,
+            activeTableId: legacyBundle.tables[0]?.id || null,
+            semanticModel: legacyBundle.semanticModel,
+            analysisResults: legacyBundle.analysisResults,
+            chatMessages: [],
+          });
           return;
         }
-        // Preserve savedCharts, stories, alerts, documents — only replace workspace session data
-        set({
-          tables: bundle.tables,
-          activeTableId: bundle.tables[0]?.id || null,
-          semanticModel: bundle.semanticModel,
-          analysisResults: bundle.analysisResults,
-          chatMessages: [],
-        });
+
+        // Try new DEMO_DATASETS
+        const ds = DEMO_DATASETS.find(d => d.id === bundleKey);
+        if (ds) {
+          try {
+            const cols = inferColumns(ds.rows);
+            const id = `${bundleKey}-main`;
+            const table = {
+              id,
+              name: ds.name,
+              fileName: `${bundleKey}.csv`,
+              rows: ds.rows,
+              columns: cols,
+              rowCount: ds.rows.length,
+              qualityScore: 75, // realistic — datasets have quality issues
+              issues: ds.qualityIssues?.map(q => ({ type: 'quality', severity: 'medium', message: q })) || [],
+              qualityIssues: ds.qualityIssues,
+            };
+            set({
+              tables: [table],
+              activeTableId: id,
+              semanticModel: buildSemanticModel(id, cols, ds.name),
+              analysisResults: buildAnalysis(ds.rows, cols, ds.name),
+              chatMessages: [],
+            });
+          } catch (e) {
+            console.warn('[store] loadSampleBundle DEMO_DATASETS error:', e.message);
+          }
+          return;
+        }
+
+        console.warn('[store] loadSampleBundle: unknown key:', bundleKey);
       },
 
       getActiveTable: () => {

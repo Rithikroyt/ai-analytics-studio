@@ -63,6 +63,7 @@ import AdvancedAnalyticsLabV3 from '@/pages/AdvancedAnalyticsLab';
 import DemoMode from '@/pages/DemoMode';
 import SampleDashboards from '@/pages/SampleDashboards';
 import ProductSalePitch from '@/pages/ProductSalePitch';
+import ReadinessScore from '@/pages/ReadinessScore';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -146,6 +147,7 @@ const AuthenticatedApp = () => {
         <Route path="/demo-mode" element={<DemoMode />} />
         <Route path="/sample-dashboards" element={<SampleDashboards />} />
         <Route path="/product-pitch" element={<ProductSalePitch />} />
+        <Route path="/readiness-score" element={<ReadinessScore />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </>

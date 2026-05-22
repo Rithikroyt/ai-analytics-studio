@@ -33,6 +33,9 @@ export default function Navbar() {
     ADMIN_EMAILS.includes((user.email || '').toLowerCase())
   );
 
+  // Always show readiness score link
+  const showReadiness = true;
+
   // Hide navbar on workspace/app pages
   const appPages = ['/workspace', '/story-builder', '/alerts', '/integrations', '/data-mapping', '/reports', '/collaboration', '/predictive', '/forecast-hub', '/governance', '/workbench', '/ml-workbench', '/policy-center', '/agent-studio', '/ai-command-center', '/data-intelligence', '/ml-intelligence', '/strategic-kpi', '/analytics-lab', '/data-engineering', '/semantic-metrics', '/sql-workbench', '/decision-reports', '/handover', '/senior-workbench', '/visual-builder', '/api-connector', '/domain-packs', '/pipeline-studio', '/observability', '/demo-mode', '/sample-dashboards', '/product-pitch'];
   const isWorkspace = appPages.some(p => location.pathname.startsWith(p));
@@ -82,6 +85,10 @@ export default function Navbar() {
 
           {/* CTA */}
           <div className="hidden md:flex items-center gap-3">
+            <Link to="/readiness-score"
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${location.pathname === '/readiness-score' ? 'bg-green-400/15 text-green-400 border border-green-400/25' : 'text-white/40 hover:text-green-400 hover:bg-green-400/8 border border-transparent'}`}>
+              ✓ QA Score
+            </Link>
             {isAdmin && (
               <Link to="/admin"
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${location.pathname === '/admin' ? 'bg-red-400/15 text-red-400 border border-red-400/25' : 'text-white/40 hover:text-red-400 hover:bg-red-400/8 border border-transparent'}`}>

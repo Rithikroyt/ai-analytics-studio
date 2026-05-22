@@ -13,10 +13,10 @@ import KPIStrip from '@/components/workspace/KPIStrip';
 import StorytellingHeader from '@/components/workspace/StorytellingHeader';
 
 const bundles = [
-  { key: 'sales',      label: 'Sales & Revenue',          desc: '2,400 rows · 12 cols · 2023–2024', icon: '📊', color: 'border-cyan-400/30 bg-cyan-400/5',   tag: 'Revenue · Forecast · Regional · Channel', kpis: ['Revenue', 'Gross Profit', 'Units Sold', 'Gross Margin %'] },
-  { key: 'workforce',  label: 'HR & Workforce Analytics',  desc: '149 employees · 12 columns',          icon: '👥', color: 'border-teal-400/30 bg-teal-400/5',  tag: 'Attrition · Salary · Engagement · Tenure', kpis: ['Salary', 'Performance Score', 'Tenure', 'Engagement'] },
-  { key: 'healthcare', label: 'Healthcare Operations',     desc: '96 rows · 12 cols · 12 months',      icon: '🏥', color: 'border-blue-400/30 bg-blue-400/5',  tag: 'Admissions · Quality · Cost · Throughput', kpis: ['Admissions', 'Cost per Case', 'Satisfaction', 'Occupancy %'] },
-  { key: 'education',  label: 'Student Engagement & NPS',  desc: '480 rows · 12 cols · 2024',          icon: '🎓', color: 'border-purple-400/30 bg-purple-400/5', tag: 'Retention · Completion · NPS · Revenue', kpis: ['Completion Rate', 'NPS Score', 'Revenue', 'Satisfaction'] },
+  { key: 'sales_revenue',        label: 'Sales & Revenue',          desc: '350 orders · 20 cols · 2023–2024', icon: '📊', color: 'border-cyan-400/30 bg-cyan-400/5',   tag: 'Revenue · Gross Profit · RFM · Forecast · Geo', kpis: ['Revenue', 'Gross Profit', 'Gross Margin %', 'Units Sold'] },
+  { key: 'hr_workforce',         label: 'HR / Workforce',           desc: '280 employees · 14 columns',          icon: '👥', color: 'border-purple-400/30 bg-purple-400/5',  tag: 'Attrition · Salary · Performance · Tenure', kpis: ['Attrition Rate', 'Avg Salary', 'Performance Score', 'Tenure'] },
+  { key: 'finance_operations',   label: 'Finance / Operations',     desc: '240 transactions · 13 cols · P&L',     icon: '💰', color: 'border-green-400/30 bg-green-400/5',  tag: 'Revenue · Cost · Budget Variance · Vendor · Anomaly', kpis: ['Revenue', 'Cost', 'Gross Margin %', 'Budget Variance'] },
+  { key: 'appointments_healthcare', label: 'Appointments / Healthcare', desc: '320 appts · 11 cols · No-Show Analysis', icon: '🏥', color: 'border-blue-400/30 bg-blue-400/5',  tag: 'No-Show · Wait Time · Ops · Forecast', kpis: ['No-Show Rate', 'Avg Wait Time', 'Completion Rate', 'Dept Throughput'] },
 ];
 
 const quickActions = [

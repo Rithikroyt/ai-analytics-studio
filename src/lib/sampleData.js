@@ -461,6 +461,7 @@ const computeQualityScore = (rows, columns) => {
 };
 
 export const sampleBundles = {
+  // Legacy bundles
   sales: {
     tables: [{ id: 'sales-main', name: 'Sales & Revenue', fileName: 'sales_revenue_2023_2024.csv', rows: salesData, columns: salesColumns, rowCount: salesData.length, qualityScore: computeQualityScore(salesData, salesColumns), issues: [] }],
     semanticModel: buildSemanticModel('sales-main', salesColumns, 'Sales & Revenue'),
