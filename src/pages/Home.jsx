@@ -8,6 +8,7 @@ import {
 
 import OmniLogo from '@/components/ui/OmniLogo';
 import InteractiveAudioExplainer from '@/components/home/InteractiveAudioExplainer';
+import { VersionLabel } from '@/components/readiness/FinalEvidencePackage';
 
 const fadeUp = { hidden: { opacity: 0, y: 24 }, visible: { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] } } };
 const stagger = { visible: { transition: { staggerChildren: 0.1 } } };
@@ -244,6 +245,9 @@ export default function Home() {
                       <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" /> {t}
                     </div>
                   ))}
+                </div>
+                <div className="mt-4">
+                  <VersionLabel compact />
                 </div>
               </motion.div>
             </div>

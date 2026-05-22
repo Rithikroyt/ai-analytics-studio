@@ -11,6 +11,7 @@ import {
   GitBranch, Users, Lock, Cpu, Globe
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import FinalEvidencePackage, { HandoffPDFButton, VersionLabel } from '@/components/readiness/FinalEvidencePackage';
 
 // ── Module registry (all scores ≥ 95 = sale-ready) ──────────────────────────
 const MODULES = [
@@ -195,6 +196,7 @@ export default function ReadinessScore() {
     { id: 'e2e',       label: '🔄 E2E Workflow' },
     { id: 'issues',    label: '🐛 Issues Log' },
     { id: 'criteria',  label: '✅ Acceptance' },
+    { id: 'evidence',  label: '📦 Final Evidence Package' },
   ];
 
   const e2eDatasets = [...new Set(E2E_TESTS.map(t => t.dataset))];
@@ -213,8 +215,9 @@ export default function ReadinessScore() {
               <p className="text-xs text-muted-foreground">OmniData AI Analytics Studio · Sale-Ready · Professor-Review-Ready · Investor-Demo-Ready</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="text-xs text-white/30 font-mono">Generated: {new Date().toLocaleDateString()}</div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <VersionLabel compact />
+            <HandoffPDFButton variant="secondary" />
             <Link to="/workspace" className="text-xs px-4 py-2 bg-cyan-400/10 border border-cyan-400/20 text-cyan-400 rounded-xl hover:bg-cyan-400/15 transition-colors">
               → Launch Workspace
             </Link>
@@ -496,14 +499,19 @@ export default function ReadinessScore() {
                   <span key={label} className="px-3 py-1.5 rounded-full bg-green-400/10 border border-green-400/20 text-green-400 font-semibold">{label}</span>
                 ))}
               </div>
-              <div className="mt-6">
+              <div className="flex flex-wrap gap-3 justify-center mt-6">
                 <Link to="/workspace" className="inline-flex items-center gap-2 px-6 py-3 bg-cyan-400 text-sm font-bold rounded-xl hover:bg-cyan-300 transition-all" style={{ color: 'hsl(222,47%,6%)' }}>
                   <Zap className="w-4 h-4" /> Launch Full Workspace Demo
                 </Link>
+                <HandoffPDFButton variant="secondary" />
               </div>
             </motion.div>
           </div>
         )}
+
+        {/* ── TAB: FINAL EVIDENCE PACKAGE ─────────────────────── */}
+        {activeTab === 'evidence' && <FinalEvidencePackage />}
+
       </div>
     </div>
   );

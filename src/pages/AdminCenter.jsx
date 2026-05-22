@@ -21,6 +21,7 @@ import AdminErrorLogs from '@/components/admin/AdminErrorLogs.jsx';
 import AdminAuditLog from '@/components/admin/AdminAuditLog.jsx';
 import AdminModuleUsage from '@/components/admin/AdminModuleUsage.jsx';
 import AdminAgentTraceTable from '@/components/admin/AdminAgentTraceTable.jsx';
+import { VersionLabel, HandoffPDFButton } from '@/components/readiness/FinalEvidencePackage';
 
 const ADMIN_EMAILS = ['rthati1@asu.edu', 'thatirithikroy@gmail.com'];
 
@@ -99,13 +100,19 @@ export default function AdminCenter() {
               Secure analytics · {user.email}
               {lastRefresh && <span className="ml-2 text-white/20">· refreshed {lastRefresh.toLocaleTimeString()}</span>}
             </p>
+            <div className="mt-1.5">
+              <VersionLabel compact />
+            </div>
           </div>
         </div>
-        <button onClick={loadData} disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white/40 hover:text-white/70 hover:border-white/20 transition-all disabled:opacity-40">
-          {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <HandoffPDFButton variant="secondary" />
+          <button onClick={loadData} disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white/40 hover:text-white/70 hover:border-white/20 transition-all disabled:opacity-40">
+            {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -190,9 +197,12 @@ export default function AdminCenter() {
             )}
             {tab === 'handover' && (
               <div className="space-y-4">
-                <div className="text-sm text-white/40 mb-2">
-                  Sale readiness checklist, feature matrix, and buyer handover package.{' '}
-                  <Link to="/handover" className="text-amber-400 hover:underline">Open Handover Package →</Link>
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div className="text-sm text-white/40">
+                    Sale readiness checklist, feature matrix, and buyer handover package.{' '}
+                    <Link to="/handover" className="text-amber-400 hover:underline">Open Handover Package →</Link>
+                  </div>
+                  <HandoffPDFButton variant="secondary" />
                 </div>
                 <div className="grid grid-cols-3 gap-4">
                   {[
