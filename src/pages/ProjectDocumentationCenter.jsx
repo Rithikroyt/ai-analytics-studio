@@ -3,6 +3,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, FileText, RefreshCw, Loader2, BookOpen, Shield, GitMerge } from 'lucide-react';
+import { HandoffPDFButton, VersionLabel } from '@/components/readiness/FinalEvidencePackage';
 import DocMetadataForm from '@/components/projectdoc/DocMetadataForm';
 import DocSectionSelector from '@/components/projectdoc/DocSectionSelector';
 import DocScreenshotManager from '@/components/projectdoc/DocScreenshotManager';
@@ -116,13 +117,17 @@ export default function ProjectDocumentationCenter() {
               </span>
             </div>
             <p className="text-xs text-muted-foreground">Generate a capstone-grade, MNC-standard project document PDF from live application data</p>
+            <div className="mt-1"><VersionLabel compact /></div>
           </div>
         </div>
-        <button onClick={loadConfig} disabled={loadingConfig}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white/40 hover:text-white/70 transition-all disabled:opacity-40">
-          {loadingConfig ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-          Reload
-        </button>
+        <div className="flex items-center gap-2">
+          <HandoffPDFButton variant="secondary" />
+          <button onClick={loadConfig} disabled={loadingConfig}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white/40 hover:text-white/70 transition-all disabled:opacity-40">
+            {loadingConfig ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+            Reload
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
