@@ -87,7 +87,7 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-3">
             <Link to="/readiness-score"
               className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${location.pathname === '/readiness-score' ? 'bg-green-400/15 text-green-400 border border-green-400/25' : 'text-white/40 hover:text-green-400 hover:bg-green-400/8 border border-transparent'}`}>
-              ✓ QA Score
+              ✓ QA 98/100
             </Link>
             {isAdmin && (
               <Link to="/admin"

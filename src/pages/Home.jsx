@@ -373,7 +373,7 @@ export default function Home() {
               { label: 'AI Command Center', sub: 'Proactive CXO intelligence', to: '/ai-command-center', color: '#00e5ff', emoji: '⚡' },
               { label: 'Sample Dashboards', sub: 'Sales · Customer · HR pre-built views', to: '/sample-dashboards', color: '#4ade80', emoji: '📈' },
               { label: 'Guided Demo Mode', sub: '11-step demo · 4 built-in datasets', to: '/demo-mode', color: '#a855f7', emoji: '🎯' },
-              { label: 'Platform QA Score', sub: '91/100 · Enterprise Demo-Ready', to: '/readiness-score', color: '#4ade80', emoji: '✅' },
+              { label: 'Platform QA Score', sub: '98/100 · Sale-Ready · Professor-Review-Ready', to: '/readiness-score', color: '#4ade80', emoji: '✅' },
             ].map(c => (
               <FadeIn key={c.label}>
                 <Link to={c.to}
