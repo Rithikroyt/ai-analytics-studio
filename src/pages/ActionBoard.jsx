@@ -3,9 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import {
   Target, CheckCircle2, AlertTriangle, Loader2, ChevronLeft,
-  TrendingUp, Zap, Plus, Trash2, X
+  TrendingUp, Zap, Plus, Trash2, X, LayoutGrid, List
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import LayoutEditor from '@/components/actionboard/LayoutEditor';
 
 const PRIORITY_COLORS = {
   critical: 'bg-red-400/10 border-red-400/25 text-red-400',
@@ -18,6 +19,8 @@ export default function ActionBoard() {
   const [actions, setActions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [viewMode, setViewMode] = useState('list'); // 'list' | 'dashboard'
+  const [department, setDepartment] = useState('');
   const [form, setForm] = useState({
     recommendation: '',
     priority: 'high',
@@ -69,7 +72,9 @@ export default function ActionBoard() {
     fetchActions();
   };
 
-  const sorted = [...actions].sort((a, b) => (b.priorityScore || 0) - (a.priorityScore || 0));
+  const departments = [...new Set(actions.map(a => a.department).filter(Boolean))];
+  const filtered = department ? actions.filter(a => a.department === department) : actions;
+  const sorted = [...filtered].sort((a, b) => (b.priorityScore || 0) - (a.priorityScore || 0));
 
   return (
     <div className="min-h-screen bg-background">
@@ -88,10 +93,23 @@ export default function ActionBoard() {
               <p className="text-xs text-muted-foreground">Priority-scored recommendations</p>
             </div>
           </div>
-          <button onClick={() => setShowForm(v => !v)}
-            className="flex items-center gap-1.5 px-3 py-2 bg-red-400/10 border border-red-400/20 text-red-400 rounded-xl text-xs font-semibold hover:bg-red-400/15 transition-all">
-            <Plus className="w-3.5 h-3.5" /> New Action
-          </button>
+          <div className="flex items-center gap-2">
+            {/* View toggle */}
+            <div className="flex items-center gap-1 p-1 bg-white/5 border border-white/10 rounded-xl">
+              <button onClick={() => setViewMode('list')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${viewMode === 'list' ? 'bg-white/10 text-white' : 'text-white/35 hover:text-white/60'}`}>
+                <List className="w-3.5 h-3.5" /> List
+              </button>
+              <button onClick={() => setViewMode('dashboard')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${viewMode === 'dashboard' ? 'bg-cyan-400/15 text-cyan-400' : 'text-white/35 hover:text-white/60'}`}>
+                <LayoutGrid className="w-3.5 h-3.5" /> Dashboard
+              </button>
+            </div>
+            <button onClick={() => setShowForm(v => !v)}
+              className="flex items-center gap-1.5 px-3 py-2 bg-red-400/10 border border-red-400/20 text-red-400 rounded-xl text-xs font-semibold hover:bg-red-400/15 transition-all">
+              <Plus className="w-3.5 h-3.5" /> New Action
+            </button>
+          </div>
         </div>
       </div>
 
@@ -145,16 +163,28 @@ export default function ActionBoard() {
           </motion.div>
         )}
 
-        {/* Actions grid */}
-        {loading ? (
+        {/* Dashboard layout editor */}
+        {viewMode === 'dashboard' && !loading && (
+          <LayoutEditor
+            actions={filtered}
+            department={department}
+            onDepartmentChange={setDepartment}
+            departments={departments}
+          />
+        )}
+
+        {/* Actions list */}
+        {viewMode === 'list' && loading && (
           <div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 text-red-400 animate-spin" /></div>
-        ) : sorted.length === 0 ? (
+        )}
+        {viewMode === 'list' && !loading && sorted.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center border border-white/5 rounded-2xl">
             <Target className="w-12 h-12 text-white/15 mb-4" />
             <h3 className="font-semibold mb-1">No actions yet</h3>
             <p className="text-sm text-muted-foreground max-w-xs">Add recommendations to your action board.</p>
           </div>
-        ) : (
+        )}
+        {viewMode === 'list' && !loading && sorted.length > 0 && (
           <div className="space-y-3">
             <AnimatePresence>
               {sorted.map((action, i) => (
@@ -205,7 +235,8 @@ export default function ActionBoard() {
           </div>
         )}
 
-        {/* Impact-Effort matrix info */}
+        {/* Impact-Effort matrix info — only in list view */}
+        {viewMode === 'list' && (
         <div className="p-4 glass rounded-xl border border-white/5 text-xs text-muted-foreground space-y-2">
           <div className="font-semibold text-white/60">Priority Score Formula</div>
           <code className="font-mono text-white/40 block">
@@ -213,6 +244,7 @@ export default function ActionBoard() {
           </code>
           <p>Actions sorted by priority score. High impact + low effort = highest priority.</p>
         </div>
+        )}
       </div>
     </div>
   );
