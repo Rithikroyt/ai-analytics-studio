@@ -8,6 +8,7 @@ import { useAuth } from '@/lib/AuthContext';
 const ADMIN_EMAILS = ['rthati1@asu.edu', 'thatirithikroy@gmail.com'];
 
 const navLinks = [
+  { label: '🎯 Choose Role', path: '/role-select' },
   { label: 'Data Studio', path: '/data-engineering' },
   { label: 'Semantic Metrics', path: '/semantic-metrics' },
   { label: 'SQL Workbench', path: '/sql-workbench' },
@@ -37,7 +38,7 @@ export default function Navbar() {
   const showReadiness = true;
 
   // Hide navbar on workspace/app pages
-  const appPages = ['/workspace', '/story-builder', '/alerts', '/integrations', '/data-mapping', '/reports', '/collaboration', '/predictive', '/forecast-hub', '/governance', '/workbench', '/ml-workbench', '/policy-center', '/agent-studio', '/ai-command-center', '/data-intelligence', '/ml-intelligence', '/strategic-kpi', '/analytics-lab', '/data-engineering', '/semantic-metrics', '/sql-workbench', '/decision-reports', '/handover', '/senior-workbench', '/visual-builder', '/api-connector', '/domain-packs', '/pipeline-studio', '/observability', '/demo-mode', '/sample-dashboards', '/product-pitch'];
+  const appPages = ['/workspace/business-analyst', '/workspace/marketing-analyst', '/workspace/data-analyst', '/workspace/data-scientist', '/workspace', '/story-builder', '/alerts', '/integrations', '/data-mapping', '/reports', '/collaboration', '/predictive', '/forecast-hub', '/governance', '/workbench', '/ml-workbench', '/policy-center', '/agent-studio', '/ai-command-center', '/data-intelligence', '/ml-intelligence', '/strategic-kpi', '/analytics-lab', '/data-engineering', '/semantic-metrics', '/sql-workbench', '/decision-reports', '/handover', '/senior-workbench', '/visual-builder', '/api-connector', '/domain-packs', '/pipeline-studio', '/observability', '/demo-mode', '/sample-dashboards', '/product-pitch'];
   const isWorkspace = appPages.some(p => location.pathname.startsWith(p));
   
   useEffect(() => {

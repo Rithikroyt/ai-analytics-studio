@@ -64,6 +64,11 @@ import DemoMode from '@/pages/DemoMode';
 import SampleDashboards from '@/pages/SampleDashboards';
 import ProductSalePitch from '@/pages/ProductSalePitch';
 import ReadinessScore from '@/pages/ReadinessScore';
+import RoleSelector from '@/pages/RoleSelector';
+import BusinessAnalystWorkspace from '@/pages/BusinessAnalystWorkspace';
+import MarketingAnalystWorkspace from '@/pages/MarketingAnalystWorkspace';
+import DataAnalystWorkspace from '@/pages/DataAnalystWorkspace';
+import DataScienceWorkspace from '@/pages/DataScienceWorkspace';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -148,6 +153,11 @@ const AuthenticatedApp = () => {
         <Route path="/sample-dashboards" element={<SampleDashboards />} />
         <Route path="/product-pitch" element={<ProductSalePitch />} />
         <Route path="/readiness-score" element={<ReadinessScore />} />
+        <Route path="/role-select" element={<RoleSelector />} />
+        <Route path="/workspace/business-analyst" element={<BusinessAnalystWorkspace />} />
+        <Route path="/workspace/marketing-analyst" element={<MarketingAnalystWorkspace />} />
+        <Route path="/workspace/data-analyst" element={<DataAnalystWorkspace />} />
+        <Route path="/workspace/data-scientist" element={<DataScienceWorkspace />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </>

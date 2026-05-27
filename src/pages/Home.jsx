@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
 import {
   Zap, BarChart2, Brain, FileText, ArrowRight, CheckCircle2,
-  TrendingUp, Database, Shield, Sparkles, Target, Activity
+  TrendingUp, Database, Shield, Sparkles, Target, Activity,
+  Briefcase, Users
 } from 'lucide-react';
 
 import OmniLogo from '@/components/ui/OmniLogo';
@@ -254,6 +255,44 @@ export default function Home() {
             <motion.div initial={{ opacity: 0, x: 32 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7, delay: 0.2 }}>
               <HeroMockup />
             </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Role-Based Entry ─────────────────────────────────────── */}
+      <section className="py-16 px-6 border-b border-white/5">
+        <div className="max-w-5xl mx-auto">
+          <FadeIn className="text-center mb-8">
+            <div className="text-xs text-cyan-400 uppercase tracking-widest font-semibold mb-3">AI Analytics Team-in-a-Box</div>
+            <h2 className="text-3xl font-black mb-3">I want help as a…</h2>
+            <p className="text-sm text-muted-foreground">Choose your professional role for a purpose-built workspace, AI agent, tools, and structured outputs.</p>
+          </FadeIn>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { icon: Briefcase, color: 'text-blue-400', bg: 'bg-blue-400/10', border: 'border-blue-400/25', label: 'Business Analyst', sub: 'BRD · Process Maps · ROI · UAT', path: '/workspace/business-analyst' },
+              { icon: TrendingUp, color: 'text-pink-400', bg: 'bg-pink-400/10', border: 'border-pink-400/25', label: 'Marketing Analyst', sub: 'CAC · ROAS · LTV · A/B Tests', path: '/workspace/marketing-analyst' },
+              { icon: BarChart2, color: 'text-cyan-400', bg: 'bg-cyan-400/10', border: 'border-cyan-400/25', label: 'Data Analyst', sub: 'EDA · SQL · Chart QA · KPIs', path: '/workspace/data-analyst' },
+              { icon: Brain, color: 'text-purple-400', bg: 'bg-purple-400/10', border: 'border-purple-400/25', label: 'Data Scientist', sub: 'ML · SHAP · Registry · Drift', path: '/workspace/data-scientist' },
+            ].map(r => (
+              <Link key={r.label} to={r.path}
+                className={`glass-card rounded-2xl p-5 border ${r.border} hover:scale-[1.03] hover:shadow-lg transition-all duration-200 group flex flex-col gap-3`}>
+                <div className={`w-10 h-10 rounded-xl ${r.bg} border ${r.border} flex items-center justify-center`}>
+                  <r.icon className={`w-5 h-5 ${r.color}`} />
+                </div>
+                <div>
+                  <div className={`text-sm font-black ${r.color}`}>{r.label}</div>
+                  <div className="text-xs text-white/35 mt-0.5 leading-relaxed">{r.sub}</div>
+                </div>
+                <div className={`flex items-center gap-1 text-xs font-semibold mt-auto ${r.color}`}>
+                  Open Workspace <ArrowRight className="w-3 h-3" />
+                </div>
+              </Link>
+            ))}
+          </div>
+          <div className="text-center mt-5">
+            <Link to="/role-select" className="text-xs text-white/30 hover:text-white/60 transition-colors underline">
+              View full role comparison →
+            </Link>
           </div>
         </div>
       </section>
