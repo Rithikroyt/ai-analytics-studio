@@ -2,44 +2,77 @@
   "name": "ColumnProfile",
   "type": "object",
   "properties": {
-    "tableId": {
+    "datasetVersionId": {
       "type": "string",
-      "title": "Parent Table ID"
+      "title": "Dataset Version ID"
+    },
+    "dataSourceId": {
+      "type": "string",
+      "title": "Data Source ID"
     },
     "columnName": {
       "type": "string",
       "title": "Column Name"
     },
-    "inferredType": {
+    "originalName": {
       "type": "string",
-      "title": "Inferred Type",
+      "title": "Original Name"
+    },
+    "standardizedName": {
+      "type": "string",
+      "title": "Standardized Name"
+    },
+    "detectedType": {
+      "type": "string",
       "enum": [
-        "numeric",
+        "string",
+        "number",
+        "integer",
         "date",
+        "boolean",
         "category",
+        "currency",
+        "percentage",
         "id",
-        "text"
-      ]
+        "geo",
+        "unknown"
+      ],
+      "title": "Detected Type"
     },
-    "nullCount": {
-      "type": "number",
-      "title": "Null Count"
+    "semanticRole": {
+      "type": "string",
+      "enum": [
+        "metric",
+        "dimension",
+        "id",
+        "date",
+        "geo",
+        "target",
+        "text",
+        "flag",
+        "unknown"
+      ],
+      "title": "Semantic Role"
     },
-    "missingPct": {
+    "missingCount": {
       "type": "number",
-      "title": "Missing %"
+      "default": 0,
+      "title": "Missing Count"
+    },
+    "missingRate": {
+      "type": "number",
+      "default": 0,
+      "title": "Missing Rate"
     },
     "uniqueCount": {
       "type": "number",
+      "default": 0,
       "title": "Unique Count"
     },
-    "mean": {
+    "uniqueRate": {
       "type": "number",
-      "title": "Mean (numeric)"
-    },
-    "std": {
-      "type": "number",
-      "title": "Std Dev (numeric)"
+      "default": 0,
+      "title": "Unique Rate"
     },
     "min": {
       "type": "string",
@@ -49,44 +82,59 @@
       "type": "string",
       "title": "Max Value"
     },
+    "mean": {
+      "type": "number",
+      "title": "Mean"
+    },
     "median": {
       "type": "number",
-      "title": "Median (numeric)"
+      "title": "Median"
     },
-    "sampleValues": {
+    "mode": {
+      "type": "string",
+      "title": "Mode"
+    },
+    "stdDev": {
+      "type": "number",
+      "title": "Std Dev"
+    },
+    "outlierCount": {
+      "type": "number",
+      "default": 0,
+      "title": "Outlier Count"
+    },
+    "isKpiCandidate": {
+      "type": "boolean",
+      "default": false,
+      "title": "KPI Candidate"
+    },
+    "isDateCandidate": {
+      "type": "boolean",
+      "default": false,
+      "title": "Date Candidate"
+    },
+    "isGeoCandidate": {
+      "type": "boolean",
+      "default": false,
+      "title": "Geo Candidate"
+    },
+    "warnings": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "title": "Sample Values"
+      "title": "Warnings"
     },
-    "isKpiCandidate": {
-      "type": "boolean",
-      "default": false
-    },
-    "isDateCandidate": {
-      "type": "boolean",
-      "default": false
-    },
-    "isSegmentCandidate": {
-      "type": "boolean",
-      "default": false
+    "recommendedFixes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Recommended Fixes"
     }
   },
   "required": [
-    "tableId",
+    "dataSourceId",
     "columnName"
-  ],
-  "rls": {
-    "create": {},
-    "read": {
-      "created_by": "{{user.email}}"
-    },
-    "update": {
-      "created_by": "{{user.email}}"
-    },
-    "delete": {
-      "created_by": "{{user.email}}"
-    }
-  }
+  ]
 }

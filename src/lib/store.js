@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { sampleBundles, inferColumns, buildSemanticModel, buildAnalysis } from '@/lib/sampleData';
-import DEMO_DATASETS from '@/lib/demoDatasets';
+import { DEMO_DATASETS } from '@/lib/demoDatasets';
 
 export const useWorkspaceStore = create(
   persist(

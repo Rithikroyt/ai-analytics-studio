@@ -1,413 +1,324 @@
-/**
- * Built-in Demo Datasets for OmniData AI Analytics Studio
- * 4 enterprise-grade datasets with realistic quality issues for testing
- */
+// OmniData v2.0 — Realistic Demo Datasets with intentional data quality issues
 
-// ── Helper: random pick ───────────────────────────────────────────
-const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-const rnd = (min, max) => Math.round((Math.random() * (max - min) + min) * 100) / 100;
-const rndInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-
-// ── Dataset 1: Sales & Revenue ────────────────────────────────────
-const SALES_ROWS = (() => {
-  const regions = ['North', 'South', 'East', 'West', 'Central'];
-  const regionAliases = { North: ['NORTH', 'north', 'N. Region'], South: ['SOUTH', 'South Region', 'S.'], East: ['East'], West: ['West', 'WEST'], Central: ['Central', 'central', 'CTR'] };
-  const categories = ['Electronics', 'Clothing', 'Home & Garden', 'Sports', 'Books', 'Food & Beverage'];
-  const channels = ['Online', 'Retail', 'Partner', 'Direct'];
-  const statuses = ['Completed', 'Returned', 'Pending', 'Cancelled'];
-  const payments = ['Credit Card', 'Bank Transfer', 'Cash', 'PayPal'];
-  const names = ['Alice Johnson', 'Bob Smith', 'Carol White', 'David Lee', 'Emma Davis', 'Frank Miller', 'Grace Wilson', 'Henry Brown'];
-  const countries = ['USA', 'Canada', 'UK', 'Germany', 'France'];
-  const states = ['California', 'Texas', 'New York', 'Florida', 'Illinois'];
-  const cities = ['Los Angeles', 'Austin', 'New York City', 'Miami', 'Chicago'];
-  const products = ['Laptop Pro', 'Wireless Mouse', 'Standing Desk', 'Running Shoes', 'SQL Mastery', 'Protein Bar Pack', 'Smart Watch', 'Coffee Maker'];
-  const rows = [];
-
-  for (let i = 0; i < 350; i++) {
-    const monthIdx = i % 24;
-    const year = monthIdx >= 12 ? 2024 : 2023;
-    const mon = (monthIdx % 12) + 1;
-    const day = rndInt(1, 28);
-    const region = regions[i % regions.length];
-    const unitPrice = rnd(20, 800);
-    const quantity = rndInt(1, 50);
-    const revenue = Math.round(unitPrice * quantity);
-    const cost = Math.round(revenue * rnd(0.35, 0.60));
-    const profit = revenue - cost;
-    const discount = rndInt(0, 25);
-
-    // Inject quality issues
-    let regionVal = pick(regionAliases[region] || [region]);
-    let customerName = pick(names);
-    let revenueVal = revenue;
-    let dateVal = `${year}-${String(mon).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-
-    if (i % 45 === 0) regionVal = null;           // missing region
-    if (i % 37 === 0) customerName = null;         // missing customer name
-    if (i % 60 === 0) revenueVal = 'N/A';          // revenue stored as text
-    if (i % 80 === 0) revenueVal = 999999;         // extreme outlier
-    if (i % 55 === 0) dateVal = `${day}/${mon}/${year}`;  // wrong date format
-    if (i < 3) rows.push({ ...rows[i - 1 < 0 ? 0 : i - 1] || {} });  // duplicate rows early — skip if no prior row
-
-    const row = {
-      order_id: `ORD-${10000 + i}`,
-      order_date: dateVal,
-      customer_id: `CUST-${1000 + rndInt(0, 199)}`,
-      customer_name: customerName,
-      product_id: `PROD-${200 + (i % products.length)}`,
-      product_name: pick(products),
-      product_category: pick(categories),
-      region: regionVal,
-      country: pick(countries),
-      state: pick(states),
-      city: pick(cities),
-      channel: pick(channels),
-      quantity,
-      unit_price: unitPrice,
-      revenue: revenueVal,
-      cost,
-      profit,
-      discount,
-      payment_type: pick(payments),
-      order_status: pick(statuses),
-    };
-    rows.push(row);
-  }
-
-  // Inject a few duplicate rows
-  rows.push({ ...rows[10], order_id: rows[10]?.order_id });
-  rows.push({ ...rows[25], order_id: rows[25]?.order_id });
-  rows.push({ ...rows[50], order_id: rows[50]?.order_id });
-
-  return rows;
-})();
-
-// ── Dataset 2: HR / Workforce ──────────────────────────────────────
-const HR_ROWS = (() => {
-  const departments = ['Engineering', 'Sales', 'Marketing', 'HR', 'Finance', 'Operations', 'Support'];
-  const roles = ['Analyst', 'Manager', 'Director', 'VP', 'Specialist', 'Associate', 'Lead'];
-  const genders = ['Male', 'Female', 'Non-binary'];
-  const locations = ['New York', 'Chicago', 'San Francisco', 'Austin', 'Remote'];
-  const managerLevels = ['L1', 'L2', 'L3', 'L4', 'IC'];
-  const overtimeVals = ['Y', 'N', 'Yes', 'No', 'TRUE', 'FALSE'];  // inconsistent on purpose
-  const rows = [];
-
-  for (let i = 0; i < 280; i++) {
-    const tenure = rndInt(1, 180);
-    const salary = rndInt(45000, 160000);
-    const perf = Math.round(rnd(1, 5) * 10) / 10;
-    const attrition = perf < 2.5 || tenure < 12 || Math.random() < 0.12 ? 'Yes' : 'No';
-    const hireYear = 2024 - Math.floor(tenure / 12);
-    const hireMon = rndInt(1, 12);
-    let hireDate = `${hireYear}-${String(hireMon).padStart(2, '0')}-01`;
-
-    let salaryVal = salary;
-    let deptVal = pick(departments);
-    let overtimeVal = pick(overtimeVals.slice(0, 2));  // default Y/N
-
-    // Quality issues
-    if (i % 30 === 0) salaryVal = null;                 // missing salary
-    if (i % 50 === 0) deptVal = null;                   // missing department
-    if (i % 7 === 0) overtimeVal = pick(overtimeVals);  // inconsistent overtime
-    if (i % 65 === 0) hireDate = `${hireMon}/${1}/${hireYear}`;  // wrong date format
-
-    rows.push({
-      employee_id: `EMP-${1000 + i}`,
-      department: deptVal,
-      job_role: pick(roles),
-      gender: pick(genders),
-      age: rndInt(22, 58),
-      salary: salaryVal,
-      monthly_income: salaryVal ? Math.round(salaryVal / 12) : null,
-      years_at_company: Math.round(tenure / 12 * 10) / 10,
-      overtime: overtimeVal,
-      performance_score: perf,
-      attrition,
-      hire_date: hireDate,
-      location: pick(locations),
-      manager_level: pick(managerLevels),
-    });
-  }
-
-  // Inject duplicate employee IDs
-  rows[10].employee_id = rows[5].employee_id;
-  rows[20].employee_id = rows[15].employee_id;
-
-  return rows;
-})();
-
-// ── Dataset 3: Finance / Operations ───────────────────────────────
-const FINANCE_ROWS = (() => {
-  const departments = ['Revenue', 'COGS', 'Marketing', 'R&D', 'G&A', 'Sales', 'Operations'];
-  const deptAliases = { Revenue: ['Revenue', 'revenue', 'REV'], 'G&A': ['G&A', 'General & Admin', 'G and A', 'GA'] };
-  const vendors = ['AWS', 'Salesforce', 'Stripe', 'HubSpot', 'Oracle', 'SAP', 'Zoom', 'Slack'];
-  const statuses = ['Approved', 'Pending', 'Rejected', 'Accrued'];
-  const expenseCategories = ['Infrastructure', 'Headcount', 'Marketing Spend', 'Travel', 'Software', 'Consulting'];
-  const projects = ['Project Alpha', 'Project Beta', 'Q1 Growth', 'APAC Expansion', 'Digital Transformation'];
-  const rows = [];
-
-  for (let i = 0; i < 240; i++) {
-    const monthIdx = i % 24;
-    const year = monthIdx >= 12 ? 2024 : 2023;
-    const mon = (monthIdx % 12) + 1;
-    const revenue = rndInt(600000, 1400000);
-    const cost = Math.round(revenue * rnd(0.45, 0.72));
-    const budget = Math.round(revenue * rnd(0.90, 1.10));
-    const actual = Math.round(revenue * rnd(0.85, 1.20));
-    const dept = pick(departments);
-    const deptDisplays = deptAliases[dept] || [dept];
-
-    let costVal = cost;
-    let txDateVal = `${year}-${String(mon).padStart(2, '0')}-01`;
-
-    // Quality issues
-    if (i % 40 === 0) costVal = null;          // missing cost
-    if (i % 70 === 0) costVal = -Math.abs(cost); // negative cost anomaly
-    if (i % 60 === 0) txDateVal = `${mon}-01-${year}`;  // text date format
-
-    rows.push({
-      transaction_id: `TXN-${20000 + i}`,
-      transaction_date: txDateVal,
-      department: pick(deptDisplays),
-      account_type: pick(['Revenue', 'Expense', 'Asset', 'Liability']),
-      revenue,
-      cost: costVal,
-      budget,
-      actual,
-      region: pick(['North America', 'EMEA', 'APAC', 'LATAM']),
-      vendor: pick(vendors),
-      status: pick(statuses),
-      expense_category: pick(expenseCategories),
-      project_name: pick(projects),
-    });
-  }
-
-  // Inject duplicate transaction IDs
-  rows[5].transaction_id = rows[0].transaction_id;
-  rows[15].transaction_id = rows[10].transaction_id;
-
-  return rows;
-})();
-
-// ── Dataset 4: Appointments / Healthcare ─────────────────────────
-const APPOINTMENT_ROWS = (() => {
-  const departments = ['Cardiology', 'Orthopedics', 'Pediatrics', 'General Practice', 'Oncology', 'Neurology'];
-  const locations = ['Downtown Clinic', 'North Campus', 'South Campus', 'Telehealth', 'West Wing'];
-  const genders = ['Male', 'Female', 'Other'];
-  const statuses = ['Completed', 'No-Show', 'Cancelled', 'Rescheduled'];
-  const rows = [];
-
-  for (let i = 0; i < 320; i++) {
-    const monthIdx = i % 12;
-    const year = 2024;
-    const mon = monthIdx + 1;
-    const day = rndInt(1, 28);
-    const age = rndInt(18, 85);
-    const waitTime = rndInt(5, 90);
-    const noShow = Math.random() < (age > 65 ? 0.25 : age < 25 ? 0.30 : 0.15) ? 1 : 0;
-    const status = noShow ? 'No-Show' : pick(statuses.filter(s => s !== 'No-Show'));
-    const incomeRank = rndInt(1, 10);
-
-    rows.push({
-      appointment_id: `APT-${30000 + i}`,
-      patient_id: `PAT-${5000 + rndInt(0, 299)}`,
-      appointment_date: `${year}-${String(mon).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
-      appointment_status: status,
-      age,
-      gender: pick(genders),
-      income_rank: incomeRank,
-      department: pick(departments),
-      location: pick(locations),
-      wait_time_minutes: waitTime,
-      no_show_flag: noShow,
-    });
-  }
-  return rows;
-})();
-
-// ── Dataset exports ───────────────────────────────────────────────
 export const DEMO_DATASETS = [
   {
     id: 'sales_revenue',
     name: 'Sales & Revenue',
-    emoji: '📊',
-    color: '#00e5ff',
-    colorClass: 'text-cyan-400',
-    bgClass: 'bg-cyan-400/10',
-    borderClass: 'border-cyan-400/20',
-    description: '350 orders · 20 columns · 2023–2024 · Multi-region, multi-channel sales with realistic quality issues.',
-    businessProblem: 'Which products, regions, and customer segments are driving revenue growth? Where is gross margin at risk?',
-    rows: SALES_ROWS,
-    columns: [
-      { name: 'order_id', type: 'string' }, { name: 'order_date', type: 'date' },
-      { name: 'customer_id', type: 'string' }, { name: 'customer_name', type: 'string' },
-      { name: 'product_id', type: 'string' }, { name: 'product_name', type: 'string' },
-      { name: 'product_category', type: 'string' }, { name: 'region', type: 'string' },
-      { name: 'country', type: 'string' }, { name: 'state', type: 'string' },
-      { name: 'city', type: 'string' }, { name: 'channel', type: 'string' },
-      { name: 'quantity', type: 'numeric' }, { name: 'unit_price', type: 'numeric' },
-      { name: 'revenue', type: 'numeric' }, { name: 'cost', type: 'numeric' },
-      { name: 'profit', type: 'numeric' }, { name: 'discount', type: 'numeric' },
-      { name: 'payment_type', type: 'string' }, { name: 'order_status', type: 'string' },
-    ],
-    qualityIssues: ['missing region (~8%)', 'missing customer_name (~3%)', 'revenue stored as text in some rows', 'extreme revenue outlier', 'wrong date formats (DD/MM/YYYY)', '3 duplicate rows'],
-    kpis: ['Total Revenue', 'Gross Profit', 'Gross Margin %', 'Avg Order Value', 'Units Sold'],
-    suggestedQuestions: [
-      'What are the top revenue drivers by region?',
-      'Which product categories have the highest gross margin?',
-      'What is the monthly revenue trend for 2023–2024?',
-      'Which channel drives the most profit?',
-      'Forecast revenue for the next quarter.',
-      'Run RFM analysis on customer segments.',
-      'Which region has the highest discount rate?',
-      'Generate a CFO financial review report.',
-    ],
-    suggestedCharts: [
-      { title: 'Revenue by Region', type: 'bar', xAxis: 'region', yAxis: 'revenue' },
-      { title: 'Monthly Revenue Trend', type: 'line', xAxis: 'order_date', yAxis: 'revenue' },
-      { title: 'Profit by Category', type: 'bar', xAxis: 'product_category', yAxis: 'profit' },
-      { title: 'Revenue by Channel', type: 'bar', xAxis: 'channel', yAxis: 'revenue' },
-    ],
-    suggestedReport: 'Executive Summary Report',
+    domain: 'sales',
+    description: 'Multi-region sales orders with product, customer, and revenue data',
+    rowCount: 500,
+    tags: ['sales', 'revenue', 'customers', 'products'],
+    icon: '📊',
+    color: 'cyan'
+  },
+  {
+    id: 'marketing_campaigns',
+    name: 'Marketing Campaigns',
+    domain: 'marketing',
+    description: 'Digital marketing campaigns with impressions, clicks, conversions',
+    rowCount: 300,
+    tags: ['marketing', 'campaigns', 'ads', 'funnel'],
+    icon: '📣',
+    color: 'pink'
+  },
+  {
+    id: 'supply_chain',
+    name: 'Supply Chain Operations',
+    domain: 'supply_chain',
+    description: 'Orders, inventory, suppliers, transportation and delivery data',
+    rowCount: 400,
+    tags: ['supply chain', 'inventory', 'logistics', 'suppliers'],
+    icon: '🚚',
+    color: 'amber'
   },
   {
     id: 'hr_workforce',
-    name: 'HR / Workforce',
-    emoji: '👥',
-    color: '#a855f7',
-    colorClass: 'text-purple-400',
-    bgClass: 'bg-purple-400/10',
-    borderClass: 'border-purple-400/20',
-    description: '280 employees · 14 columns · Attrition, salary, performance, tenure by department with realistic issues.',
-    businessProblem: 'Why are employees leaving? Which departments have highest attrition risk? What is the cost of turnover?',
-    rows: HR_ROWS,
-    columns: [
-      { name: 'employee_id', type: 'string' }, { name: 'department', type: 'string' },
-      { name: 'job_role', type: 'string' }, { name: 'gender', type: 'string' },
-      { name: 'age', type: 'numeric' }, { name: 'salary', type: 'numeric' },
-      { name: 'monthly_income', type: 'numeric' }, { name: 'years_at_company', type: 'numeric' },
-      { name: 'overtime', type: 'string' }, { name: 'performance_score', type: 'numeric' },
-      { name: 'attrition', type: 'string' }, { name: 'hire_date', type: 'date' },
-      { name: 'location', type: 'string' }, { name: 'manager_level', type: 'string' },
-    ],
-    qualityIssues: ['duplicate employee_id (2 cases)', 'missing salary (~3%)', 'missing department (~2%)', 'inconsistent overtime values: Y, N, Yes, No, TRUE, FALSE', 'wrong date formats in hire_date'],
-    kpis: ['Attrition Rate', 'Avg Salary', 'Avg Performance Score', 'Avg Years at Company', 'Overtime Rate'],
-    suggestedQuestions: [
-      'Which department has the highest attrition rate?',
-      'Is there a correlation between performance score and attrition?',
-      'What is the average salary by department?',
-      'How does overtime impact attrition?',
-      'What is the average tenure of employees who left?',
-      'Generate an HR attrition risk report.',
-      'Which roles are most at risk of leaving?',
-    ],
-    suggestedCharts: [
-      { title: 'Attrition by Department', type: 'bar', xAxis: 'department', yAxis: 'attrition' },
-      { title: 'Avg Salary by Role', type: 'bar', xAxis: 'job_role', yAxis: 'salary' },
-      { title: 'Performance Score Distribution', type: 'bar', xAxis: 'department', yAxis: 'performance_score' },
-      { title: 'Tenure by Department', type: 'bar', xAxis: 'department', yAxis: 'years_at_company' },
-    ],
-    suggestedReport: 'HR Attrition Risk Report',
+    name: 'HR Workforce',
+    domain: 'hr',
+    description: 'Employee records, departments, salaries, performance scores',
+    rowCount: 250,
+    tags: ['hr', 'employees', 'payroll', 'performance'],
+    icon: '👥',
+    color: 'purple'
   },
   {
-    id: 'finance_operations',
-    name: 'Finance / Operations',
-    emoji: '💰',
-    color: '#4ade80',
-    colorClass: 'text-green-400',
-    bgClass: 'bg-green-400/10',
-    borderClass: 'border-green-400/20',
-    description: '240 transactions · 13 columns · P&L, budget vs actual, vendor spend, department costs with anomalies.',
-    businessProblem: 'Is the business growing profitably? Where is budget variance highest? What are the top cost drivers?',
-    rows: FINANCE_ROWS,
-    columns: [
-      { name: 'transaction_id', type: 'string' }, { name: 'transaction_date', type: 'date' },
-      { name: 'department', type: 'string' }, { name: 'account_type', type: 'string' },
-      { name: 'revenue', type: 'numeric' }, { name: 'cost', type: 'numeric' },
-      { name: 'budget', type: 'numeric' }, { name: 'actual', type: 'numeric' },
-      { name: 'region', type: 'string' }, { name: 'vendor', type: 'string' },
-      { name: 'status', type: 'string' }, { name: 'expense_category', type: 'string' },
-      { name: 'project_name', type: 'string' },
-    ],
-    qualityIssues: ['duplicate transaction_id (2 cases)', 'missing cost (~2%)', 'negative cost anomaly (~1%)', 'inconsistent department spelling (G&A vs General & Admin)', 'text date formats in some rows'],
-    kpis: ['Total Revenue', 'Total Cost', 'Gross Profit', 'Gross Margin %', 'Budget Variance'],
-    suggestedQuestions: [
-      'What is the monthly revenue trend?',
-      'Which department has the highest budget variance?',
-      'What is the gross margin by department?',
-      'Which vendor has the highest concentration risk?',
-      'Forecast revenue for the next quarter.',
-      'Where are cost anomalies?',
-      'Generate a CFO financial review report.',
-    ],
-    suggestedCharts: [
-      { title: 'Revenue vs Cost Trend', type: 'line', xAxis: 'transaction_date', yAxis: 'revenue' },
-      { title: 'Budget vs Actual by Department', type: 'bar', xAxis: 'department', yAxis: 'budget' },
-      { title: 'Cost by Expense Category', type: 'bar', xAxis: 'expense_category', yAxis: 'cost' },
-      { title: 'Vendor Spend Concentration', type: 'bar', xAxis: 'vendor', yAxis: 'cost' },
-    ],
-    suggestedReport: 'CFO Financial Report',
+    id: 'ecommerce',
+    name: 'E-commerce Orders',
+    domain: 'sales',
+    description: 'Online orders with product categories, customers, shipping status',
+    rowCount: 600,
+    tags: ['ecommerce', 'orders', 'products', 'shipping'],
+    icon: '🛒',
+    color: 'green'
   },
   {
-    id: 'appointments_healthcare',
-    name: 'Appointments / Healthcare',
-    emoji: '🏥',
-    color: '#60a5fa',
-    colorClass: 'text-blue-400',
-    bgClass: 'bg-blue-400/10',
-    borderClass: 'border-blue-400/20',
-    description: '320 appointments · 11 columns · No-show analysis, wait time, department ops by age, gender, location.',
-    businessProblem: 'What is driving the no-show rate? Which departments have the worst wait times? Who is most at risk of not showing?',
-    rows: APPOINTMENT_ROWS,
-    columns: [
-      { name: 'appointment_id', type: 'string' }, { name: 'patient_id', type: 'string' },
-      { name: 'appointment_date', type: 'date' }, { name: 'appointment_status', type: 'string' },
-      { name: 'age', type: 'numeric' }, { name: 'gender', type: 'string' },
-      { name: 'income_rank', type: 'numeric' }, { name: 'department', type: 'string' },
-      { name: 'location', type: 'string' }, { name: 'wait_time_minutes', type: 'numeric' },
-      { name: 'no_show_flag', type: 'numeric' },
-    ],
-    qualityIssues: ['no latitude/longitude for map (use location column)', 'income_rank is an ordinal — do not SUM'],
-    kpis: ['No-Show Rate', 'Avg Wait Time', 'Appointment Completion Rate', 'No-Shows by Department', 'High-Risk Patient %'],
-    suggestedQuestions: [
-      'What is the no-show rate by department?',
-      'Which age group has the highest no-show rate?',
-      'What is the average wait time by location?',
-      'Which departments have the worst throughput?',
-      'What factors predict no-show risk?',
-      'Generate an operations efficiency report.',
-      'Which income group has the highest no-show rate?',
-    ],
-    suggestedCharts: [
-      { title: 'No-Show Rate by Department', type: 'bar', xAxis: 'department', yAxis: 'no_show_flag' },
-      { title: 'Avg Wait Time by Location', type: 'bar', xAxis: 'location', yAxis: 'wait_time_minutes' },
-      { title: 'No-Shows by Age', type: 'scatter', xAxis: 'age', yAxis: 'no_show_flag' },
-      { title: 'Appointment Status Distribution', type: 'bar', xAxis: 'appointment_status', yAxis: 'appointment_id' },
-    ],
-    suggestedReport: 'Operations Efficiency Report',
+    id: 'finance_costs',
+    name: 'Finance & Costs',
+    domain: 'finance',
+    description: 'P&L data with revenue, cost, expenses by department and period',
+    rowCount: 200,
+    tags: ['finance', 'costs', 'profit', 'expenses'],
+    icon: '💰',
+    color: 'teal'
   },
+  {
+    id: 'healthcare',
+    name: 'Healthcare Appointments',
+    domain: 'healthcare',
+    description: 'Patient appointments, departments, wait times, no-show rates',
+    rowCount: 350,
+    tags: ['healthcare', 'patients', 'appointments', 'no-show'],
+    icon: '🏥',
+    color: 'red'
+  },
+  {
+    id: 'saas_subscriptions',
+    name: 'SaaS Subscriptions',
+    domain: 'operations',
+    description: 'Subscription plans, MRR, churn, renewals, customer tiers',
+    rowCount: 280,
+    tags: ['saas', 'subscriptions', 'mrr', 'churn'],
+    icon: '💻',
+    color: 'blue'
+  }
 ];
 
-// Legacy 4 datasets kept for backwards compatibility
-export const LEGACY_DEMO_DATASETS = [
-  {
-    id: 'sales_ecommerce',
-    name: 'Sales / E-Commerce',
-    emoji: '📊', color: '#00e5ff', colorClass: 'text-cyan-400', bgClass: 'bg-cyan-400/10', borderClass: 'border-cyan-400/20',
-    description: 'Multi-region B2B/B2C sales dataset with 300 orders across 4 customer segments, 6 product categories, and 4 channels.',
-    businessProblem: 'Which products, regions, and segments are driving revenue growth? Where is gross margin declining?',
-    rows: SALES_ROWS,
-    columns: [
-      { name: 'order_id', type: 'string' }, { name: 'order_date', type: 'date' }, { name: 'region', type: 'string' },
-      { name: 'product_category', type: 'string' }, { name: 'channel', type: 'string' }, { name: 'revenue', type: 'numeric' },
-      { name: 'cost', type: 'numeric' }, { name: 'profit', type: 'numeric' }, { name: 'quantity', type: 'numeric' },
-      { name: 'customer_id', type: 'string' }, { name: 'discount', type: 'numeric' }, { name: 'order_status', type: 'string' },
-    ],
-    kpis: ['Total Revenue', 'Gross Profit Margin', 'Units Sold', 'Avg Order Value'],
-    suggestedQuestions: ['What are the top revenue drivers?', 'Monthly revenue trend?', 'Generate executive summary.'],
-    suggestedCharts: [{ title: 'Revenue by Region', type: 'bar', xAxis: 'region', yAxis: 'revenue' }],
-    suggestedReport: 'Executive Summary Report',
-  },
-];
+function randBetween(min, max) { return Math.round((Math.random() * (max - min) + min) * 100) / 100; }
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function maybeNull(val, prob = 0.05) { return Math.random() < prob ? null : val; }
+function maybeDuplicate(rows, prob = 0.03) {
+  const extras = [];
+  rows.forEach(r => { if (Math.random() < prob) extras.push({ ...r }); });
+  return [...rows, ...extras];
+}
 
-export default DEMO_DATASETS;
+function generateDates(n, startYear = 2023) {
+  const dates = [];
+  for (let i = 0; i < n; i++) {
+    const d = new Date(startYear, Math.floor(Math.random() * 24), Math.floor(Math.random() * 28) + 1);
+    // Intentionally mix date formats
+    const fmt = Math.random();
+    if (fmt < 0.33) dates.push(d.toISOString().split('T')[0]);
+    else if (fmt < 0.66) dates.push(`${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`);
+    else dates.push(`${d.getDate()}-${d.toLocaleString('en', { month: 'short' })}-${d.getFullYear()}`);
+  }
+  return dates;
+}
+
+export function generateDemoData(datasetId) {
+  switch (datasetId) {
+    case 'sales_revenue': return generateSalesData();
+    case 'marketing_campaigns': return generateMarketingData();
+    case 'supply_chain': return generateSupplyChainData();
+    case 'hr_workforce': return generateHRData();
+    case 'ecommerce': return generateEcommerceData();
+    case 'finance_costs': return generateFinanceData();
+    case 'healthcare': return generateHealthcareData();
+    case 'saas_subscriptions': return generateSaaSData();
+    default: return generateSalesData();
+  }
+}
+
+function generateSalesData() {
+  const regions = ['North', 'South', 'East', 'West', 'Central'];
+  const categories = ['Electronics', 'Clothing', 'Food', 'Home', 'Sports'];
+  const reps = ['Alice Johnson', 'Bob Smith', 'Carol Lee', 'Dave Wilson', 'Eve Martinez', 'Frank Brown'];
+  const statuses = ['Completed', 'Completed', 'Completed', 'Pending', 'Cancelled', 'COMPLETED', 'completed'];
+  const dates = generateDates(500);
+
+  let rows = Array.from({ length: 500 }, (_, i) => ({
+    order_id: `ORD-${1000 + i}`,
+    order_date: dates[i],
+    customer_id: `CUST-${Math.floor(Math.random() * 200) + 1}`,
+    customer_name: maybeNull(`Customer ${Math.floor(Math.random() * 200) + 1}`, 0.03),
+    product_category: pick(categories),
+    region: maybeNull(pick(regions), 0.04),
+    sales_rep: pick(reps),
+    revenue: maybeNull(pick([`$${randBetween(50, 5000)}`, randBetween(50, 5000), `${randBetween(50, 5000)}.00`]), 0.02),
+    cost: maybeNull(randBetween(20, 3000), 0.03),
+    quantity: Math.floor(randBetween(1, 20)),
+    discount_pct: maybeNull(`${randBetween(0, 30)}%`, 0.05),
+    status: pick(statuses),
+    payment_method: pick(['Credit Card', 'PayPal', 'Bank Transfer', 'Cash', 'credit card']),
+    city: maybeNull(pick(['New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix', 'Philadelphia']), 0.06)
+  }));
+
+  // Add some negative revenues (data quality issue)
+  rows.slice(0, 8).forEach(r => { r.revenue = -randBetween(10, 100); });
+  // Add repeated header row
+  rows.splice(50, 0, { order_id: 'order_id', order_date: 'order_date', customer_id: 'customer_id', revenue: 'revenue', cost: 'cost' });
+
+  return maybeDuplicate(rows);
+}
+
+function generateMarketingData() {
+  const channels = ['Google Ads', 'Facebook', 'Instagram', 'Email', 'LinkedIn', 'TikTok', 'Organic'];
+  const campaigns = ['Q1 Launch', 'Summer Sale', 'Black Friday', 'Brand Awareness', 'Retargeting', 'Lead Gen'];
+  const dates = generateDates(300);
+
+  let rows = Array.from({ length: 300 }, (_, i) => ({
+    campaign_id: `CAM-${100 + i}`,
+    campaign_name: pick(campaigns),
+    channel: pick(channels),
+    start_date: dates[i],
+    impressions: maybeNull(Math.floor(randBetween(1000, 500000)), 0.03),
+    clicks: Math.floor(randBetween(50, 15000)),
+    spend: maybeNull(`$${randBetween(100, 10000)}`, 0.04),
+    revenue: maybeNull(randBetween(500, 50000), 0.05),
+    conversions: Math.floor(randBetween(5, 500)),
+    new_customers: Math.floor(randBetween(1, 100)),
+    leads: Math.floor(randBetween(10, 1000)),
+    ctr: maybeNull(`${randBetween(0.5, 8)}%`, 0.06),
+    region: pick(['North America', 'Europe', 'Asia Pacific', 'Latin America', null])
+  }));
+
+  return maybeDuplicate(rows, 0.02);
+}
+
+function generateSupplyChainData() {
+  const suppliers = ['Supplier A', 'Supplier B', 'Supplier C', 'Supplier D', 'Supplier E'];
+  const categories = ['Raw Materials', 'Packaging', 'Electronics', 'Textiles', 'Chemicals'];
+  const statuses = ['Delivered', 'In Transit', 'Delayed', 'Cancelled', 'Processing'];
+  const dates = generateDates(400);
+
+  let rows = Array.from({ length: 400 }, (_, i) => ({
+    order_id: `PO-${2000 + i}`,
+    supplier_id: `SUP-${Math.floor(Math.random() * 5) + 1}`,
+    supplier_name: pick(suppliers),
+    product_category: pick(categories),
+    order_date: dates[i],
+    delivery_date: maybeNull(dates[Math.min(i + 5, 399)], 0.05),
+    quantity_ordered: Math.floor(randBetween(10, 500)),
+    quantity_received: maybeNull(Math.floor(randBetween(8, 500)), 0.04),
+    unit_cost: maybeNull(randBetween(5, 200), 0.03),
+    transportation_cost: maybeNull(randBetween(50, 2000), 0.04),
+    lead_time_days: maybeNull(Math.floor(randBetween(1, 30)), 0.03),
+    on_time_delivery: pick([1, 1, 1, 0, 1, 'Yes', 'No', 'yes', null]),
+    defect_rate: maybeNull(`${randBetween(0, 10)}%`, 0.05),
+    warehouse: pick(['East Hub', 'West Hub', 'Central Hub', 'South Hub']),
+    region: pick(['North America', 'Europe', 'Asia', 'Latin America'])
+  }));
+
+  // Supplier D underperforms
+  rows.filter(r => r.supplier_name === 'Supplier D').forEach(r => {
+    r.on_time_delivery = Math.random() < 0.25 ? 0 : 1;
+  });
+
+  return maybeDuplicate(rows, 0.025);
+}
+
+function generateHRData() {
+  const departments = ['Engineering', 'Sales', 'Marketing', 'HR', 'Finance', 'Operations', 'Legal'];
+  const titles = ['Manager', 'Senior Analyst', 'Analyst', 'Director', 'VP', 'Associate', 'Specialist'];
+  const statuses = ['Active', 'Active', 'Active', 'Resigned', 'On Leave', 'active', null];
+  const dates = generateDates(250, 2020);
+
+  let rows = Array.from({ length: 250 }, (_, i) => ({
+    employee_id: `EMP-${3000 + i}`,
+    name: maybeNull(`Employee ${i + 1}`, 0.02),
+    department: pick(departments),
+    job_title: pick(titles),
+    hire_date: dates[i],
+    salary: maybeNull(pick([`$${Math.floor(randBetween(40000, 200000))}`, Math.floor(randBetween(40000, 200000))]), 0.04),
+    performance_score: maybeNull(randBetween(1, 5), 0.06),
+    age: maybeNull(Math.floor(randBetween(22, 65)), 0.03),
+    gender: pick(['Male', 'Female', 'M', 'F', null, 'Non-Binary']),
+    location: pick(['New York', 'San Francisco', 'Chicago', 'Austin', 'Remote']),
+    status: pick(statuses),
+    years_experience: maybeNull(Math.floor(randBetween(0, 30)), 0.05),
+    training_hours: maybeNull(Math.floor(randBetween(0, 200)), 0.04)
+  }));
+
+  return maybeDuplicate(rows, 0.02);
+}
+
+function generateEcommerceData() {
+  const categories = ['Electronics', 'Books', 'Clothing', 'Sports', 'Home & Garden', 'Toys', 'Beauty'];
+  const statuses = ['Shipped', 'Delivered', 'Returned', 'Processing', 'Cancelled'];
+  const dates = generateDates(600);
+
+  let rows = Array.from({ length: 600 }, (_, i) => ({
+    order_id: `EORD-${5000 + i}`,
+    order_date: dates[i],
+    customer_id: `ECUST-${Math.floor(Math.random() * 300) + 1}`,
+    product_name: `Product ${Math.floor(Math.random() * 100) + 1}`,
+    category: pick(categories),
+    quantity: Math.floor(randBetween(1, 10)),
+    unit_price: maybeNull(randBetween(5, 500), 0.03),
+    discount: maybeNull(`${Math.floor(randBetween(0, 50))}%`, 0.05),
+    shipping_cost: maybeNull(randBetween(0, 50), 0.04),
+    revenue: maybeNull(randBetween(10, 2000), 0.02),
+    status: pick(statuses),
+    return_flag: pick([0, 0, 0, 1, 'Yes', 'No', null]),
+    city: maybeNull(pick(['New York', 'Los Angeles', 'Chicago', 'Seattle', 'Boston']), 0.05),
+    state: pick(['NY', 'CA', 'IL', 'WA', 'MA', null]),
+    country: 'USA'
+  }));
+
+  return maybeDuplicate(rows, 0.03);
+}
+
+function generateFinanceData() {
+  const departments = ['Engineering', 'Sales', 'Marketing', 'HR', 'Operations', 'R&D'];
+  const categories = ['Salaries', 'Marketing Spend', 'COGS', 'SG&A', 'R&D', 'Depreciation'];
+  const dates = generateDates(200, 2022);
+
+  return Array.from({ length: 200 }, (_, i) => ({
+    period: dates[i],
+    department: pick(departments),
+    expense_category: pick(categories),
+    budget: maybeNull(randBetween(10000, 500000), 0.03),
+    actual_cost: maybeNull(randBetween(8000, 520000), 0.03),
+    revenue: maybeNull(randBetween(50000, 2000000), 0.02),
+    gross_profit: maybeNull(randBetween(5000, 800000), 0.04),
+    headcount: Math.floor(randBetween(5, 100)),
+    variance_pct: maybeNull(`${randBetween(-20, 30)}%`, 0.05),
+    quarter: pick(['Q1', 'Q2', 'Q3', 'Q4']),
+    year: pick([2022, 2023, 2024, 2025])
+  }));
+}
+
+function generateHealthcareData() {
+  const departments = ['Cardiology', 'Orthopedics', 'Neurology', 'Pediatrics', 'General Practice', 'Emergency'];
+  const types = ['Routine', 'Follow-Up', 'Emergency', 'Specialist', 'Lab', 'Imaging'];
+  const dates = generateDates(350);
+
+  return Array.from({ length: 350 }, (_, i) => ({
+    appointment_id: `APT-${6000 + i}`,
+    patient_id: `PAT-${Math.floor(Math.random() * 200) + 1}`,
+    appointment_date: dates[i],
+    department: pick(departments),
+    appointment_type: pick(types),
+    doctor_id: `DOC-${Math.floor(Math.random() * 30) + 1}`,
+    wait_time_minutes: maybeNull(Math.floor(randBetween(5, 120)), 0.05),
+    duration_minutes: maybeNull(Math.floor(randBetween(15, 90)), 0.04),
+    no_show: pick([0, 0, 0, 0, 1, 'Yes', 'No', null]),
+    billing_amount: maybeNull(`$${randBetween(50, 5000)}`, 0.06),
+    insurance_type: pick(['Private', 'Medicare', 'Medicaid', 'Uninsured', null]),
+    satisfaction_score: maybeNull(randBetween(1, 5), 0.08),
+    city: pick(['Phoenix', 'Scottsdale', 'Tempe', 'Mesa', 'Chandler'])
+  }));
+}
+
+function generateSaaSData() {
+  const plans = ['Starter', 'Professional', 'Enterprise', 'Enterprise Plus'];
+  const statuses = ['Active', 'Active', 'Churned', 'Trial', 'Paused', 'active', null];
+  const dates = generateDates(280, 2022);
+
+  return Array.from({ length: 280 }, (_, i) => ({
+    subscription_id: `SUB-${7000 + i}`,
+    customer_id: `SCUST-${Math.floor(Math.random() * 200) + 1}`,
+    company: `Company ${Math.floor(Math.random() * 200) + 1}`,
+    plan: pick(plans),
+    start_date: dates[i],
+    renewal_date: maybeNull(dates[Math.min(i + 30, 279)], 0.04),
+    mrr: maybeNull(pick([99, 299, 999, 2499, 4999, `$99`, `$299`]), 0.03),
+    arr: maybeNull(randBetween(1000, 60000), 0.04),
+    seats: maybeNull(Math.floor(randBetween(1, 500)), 0.03),
+    status: pick(statuses),
+    churn_date: maybeNull(dates[Math.floor(Math.random() * 280)], 0.85),
+    nps_score: maybeNull(Math.floor(randBetween(0, 10)), 0.10),
+    support_tickets: Math.floor(randBetween(0, 50)),
+    industry: pick(['Technology', 'Finance', 'Healthcare', 'Retail', 'Manufacturing', null])
+  }));
+}

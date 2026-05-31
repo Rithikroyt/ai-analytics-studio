@@ -6,7 +6,13 @@ import PageNotFound from './lib/PageNotFound';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
-import Navbar from '@/components/layout/Navbar';
+import NavbarV2 from '@/components/layout/NavbarV2';
+import DataStudio from '@/pages/v2/DataStudio';
+import SQLPythonLab from '@/pages/v2/SQLPythonLab';
+import AIAnalystTeam from '@/pages/v2/AIAnalystTeam';
+import SupplyChainOps from '@/pages/v2/SupplyChainOps';
+import MarketingStudioV2 from '@/pages/v2/MarketingStudio';
+import AdvancedAnalyticsLabV2 from '@/pages/v2/AdvancedAnalyticsLabV2';
 import Home from '@/pages/Home';
 import Platform from '@/pages/Platform';
 import Workflows from '@/pages/Workflows';
@@ -95,7 +101,7 @@ const AuthenticatedApp = () => {
 
   return (
     <>
-      <Navbar />
+      <NavbarV2 />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/platform" element={<Platform />} />
@@ -158,6 +164,13 @@ const AuthenticatedApp = () => {
         <Route path="/workspace/marketing-analyst" element={<MarketingAnalystWorkspace />} />
         <Route path="/workspace/data-analyst" element={<DataAnalystWorkspace />} />
         <Route path="/workspace/data-scientist" element={<DataScienceWorkspace />} />
+        {/* v2.0 Pages */}
+        <Route path="/v2/data-studio" element={<DataStudio />} />
+        <Route path="/v2/sql-lab" element={<SQLPythonLab />} />
+        <Route path="/v2/ai-analysts" element={<AIAnalystTeam />} />
+        <Route path="/v2/supply-chain" element={<SupplyChainOps />} />
+        <Route path="/v2/marketing-studio" element={<MarketingStudioV2 />} />
+        <Route path="/v2/analytics-lab" element={<AdvancedAnalyticsLabV2 />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </>

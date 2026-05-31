@@ -6,51 +6,18 @@
       "type": "string",
       "title": "Dataset Name"
     },
-    "fileName": {
-      "type": "string",
-      "title": "Original File Name"
-    },
     "fileType": {
       "type": "string",
       "enum": [
         "csv",
         "xlsx",
         "json",
-        "parquet"
+        "api",
+        "demo"
       ],
       "title": "File Type"
     },
-    "rowCount": {
-      "type": "number",
-      "default": 0,
-      "title": "Row Count"
-    },
-    "columnCount": {
-      "type": "number",
-      "default": 0,
-      "title": "Column Count"
-    },
-    "uploadedBy": {
-      "type": "string",
-      "title": "Uploaded By (email)"
-    },
-    "uploadedAt": {
-      "type": "string",
-      "format": "date-time",
-      "title": "Uploaded At"
-    },
-    "status": {
-      "type": "string",
-      "enum": [
-        "uploading",
-        "processing",
-        "ready",
-        "error"
-      ],
-      "default": "uploading",
-      "title": "Status"
-    },
-    "rawFileUrl": {
+    "fileUrl": {
       "type": "string",
       "title": "Raw File URL"
     },
@@ -62,6 +29,16 @@
       "type": "string",
       "title": "Active Version ID"
     },
+    "rowCount": {
+      "type": "number",
+      "default": 0,
+      "title": "Row Count"
+    },
+    "columnCount": {
+      "type": "number",
+      "default": 0,
+      "title": "Column Count"
+    },
     "qualityScore": {
       "type": "number",
       "default": 0,
@@ -72,6 +49,24 @@
       "default": 0,
       "title": "Readiness Score (0-100)"
     },
+    "description": {
+      "type": "string",
+      "title": "Description"
+    },
+    "domain": {
+      "type": "string",
+      "enum": [
+        "sales",
+        "marketing",
+        "finance",
+        "hr",
+        "healthcare",
+        "supply_chain",
+        "operations",
+        "general"
+      ],
+      "title": "Domain"
+    },
     "tags": {
       "type": "array",
       "items": {
@@ -79,9 +74,26 @@
       },
       "title": "Tags"
     },
-    "description": {
+    "status": {
       "type": "string",
-      "title": "Description"
+      "enum": [
+        "uploading",
+        "processing",
+        "ready",
+        "error",
+        "cleaned",
+        "analyzed"
+      ],
+      "default": "uploading",
+      "title": "Status"
+    },
+    "uploadedBy": {
+      "type": "string",
+      "title": "Uploaded By"
+    },
+    "fileName": {
+      "type": "string",
+      "title": "Original File Name"
     },
     "sheetName": {
       "type": "string",

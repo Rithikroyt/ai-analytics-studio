@@ -6,12 +6,18 @@
       "type": "string",
       "title": "Data Source ID"
     },
+    "versionName": {
+      "type": "string",
+      "title": "Version Name"
+    },
     "versionType": {
       "type": "string",
       "enum": [
         "raw",
+        "profiled",
         "cleaned",
-        "transformed"
+        "transformed",
+        "analyzed"
       ],
       "default": "raw",
       "title": "Version Type"
@@ -29,12 +35,12 @@
     "qualityScore": {
       "type": "number",
       "default": 0,
-      "title": "Quality Score (0-100)"
+      "title": "Quality Score"
     },
     "readinessScore": {
       "type": "number",
       "default": 0,
-      "title": "Readiness Score (0-100)"
+      "title": "Readiness Score"
     },
     "completenessScore": {
       "type": "number",
@@ -61,14 +67,10 @@
       "default": 0,
       "title": "Timeliness Score"
     },
-    "cleaningSummary": {
-      "type": "object",
-      "title": "Cleaning Summary",
-      "additionalProperties": true
-    },
-    "fileUrl": {
-      "type": "string",
-      "title": "File URL"
+    "businessRuleScore": {
+      "type": "number",
+      "default": 0,
+      "title": "Business Rule Score"
     },
     "columns": {
       "type": "array",
@@ -82,7 +84,21 @@
       "items": {
         "type": "object"
       },
-      "title": "Sample Rows (first 20)"
+      "title": "Sample Rows"
+    },
+    "cleaningSummary": {
+      "type": "object",
+      "title": "Cleaning Summary",
+      "additionalProperties": true
+    },
+    "transformationSummary": {
+      "type": "object",
+      "title": "Transformation Summary",
+      "additionalProperties": true
+    },
+    "fileUrl": {
+      "type": "string",
+      "title": "File URL"
     },
     "createdAt": {
       "type": "string",

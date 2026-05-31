@@ -11,6 +11,7 @@ import OmniLogo from '@/components/ui/OmniLogo';
 import InteractiveAudioExplainer from '@/components/home/InteractiveAudioExplainer';
 import { VersionLabel } from '@/components/readiness/FinalEvidencePackage';
 
+
 const fadeUp = { hidden: { opacity: 0, y: 24 }, visible: { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] } } };
 const stagger = { visible: { transition: { staggerChildren: 0.1 } } };
 
@@ -255,6 +256,35 @@ export default function Home() {
             <motion.div initial={{ opacity: 0, x: 32 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7, delay: 0.2 }}>
               <HeroMockup />
             </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── v2.0 Quick Access ────────────────────────────────────── */}
+      <section className="py-10 px-6 border-b border-white/5 bg-white/1">
+        <div className="max-w-6xl mx-auto">
+          <FadeIn className="text-center mb-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-400/10 border border-cyan-400/20 text-xs font-bold text-cyan-400 mb-3">
+              🚀 v2.0 — NEW: Full AI Analytics Operating System
+            </div>
+            <h2 className="text-2xl font-black">Start your analytics workflow</h2>
+          </FadeIn>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            {[
+              { icon: '🗄️', label: 'Data Studio', sub: 'Upload · Profile · Clean', path: '/v2/data-studio', color: 'text-cyan-400' },
+              { icon: '💻', label: 'SQL + Python Lab', sub: 'NL→SQL · Templates · Notebook', path: '/v2/sql-lab', color: 'text-green-400' },
+              { icon: '🧠', label: 'AI Analyst Team', sub: '8 agents · Deep analysis', path: '/v2/ai-analysts', color: 'text-purple-400' },
+              { icon: '📣', label: 'Marketing Studio', sub: 'CAC · ROAS · A/B · CLV', path: '/v2/marketing-studio', color: 'text-pink-400' },
+              { icon: '🚚', label: 'Supply Chain', sub: 'Inventory · Suppliers · OTD', path: '/v2/supply-chain', color: 'text-amber-400' },
+              { icon: '🔬', label: 'Analytics Lab', sub: 'Descriptive · Predictive · Causal', path: '/v2/analytics-lab', color: 'text-teal-400' },
+            ].map(item => (
+              <Link key={item.label} to={item.path}
+                className="glass-card rounded-2xl p-4 border border-white/8 hover:border-white/18 hover:scale-[1.03] transition-all group text-left">
+                <div className="text-2xl mb-2">{item.icon}</div>
+                <div className={`text-xs font-bold ${item.color}`}>{item.label}</div>
+                <div className="text-xs text-white/30 mt-0.5 leading-relaxed">{item.sub}</div>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
