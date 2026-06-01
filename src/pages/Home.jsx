@@ -4,423 +4,194 @@ import { motion, useInView, AnimatePresence } from 'framer-motion';
 import {
   Zap, BarChart2, Brain, FileText, ArrowRight, CheckCircle2,
   TrendingUp, Database, Shield, Sparkles, Target, Activity,
-  Briefcase, Users
+  Briefcase, Users, ChevronRight, Play, Star, Award
 } from 'lucide-react';
-
 import OmniLogo from '@/components/ui/OmniLogo';
-import InteractiveAudioExplainer from '@/components/home/InteractiveAudioExplainer';
-import { VersionLabel } from '@/components/readiness/FinalEvidencePackage';
-
-
-const fadeUp = { hidden: { opacity: 0, y: 24 }, visible: { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] } } };
-const stagger = { visible: { transition: { staggerChildren: 0.1 } } };
 
 function FadeIn({ children, delay = 0, className = '' }) {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: '-60px' });
   return (
-    <motion.div ref={ref} initial="hidden" animate={inView ? 'visible' : 'hidden'}
-      variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] } } }}
-      className={className}>
+    <motion.div ref={ref} initial={{ opacity: 0, y: 20 }} animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] }} className={className}>
       {children}
     </motion.div>
   );
 }
 
-// ── Hero product mockup ──────────────────────────────────────────
-function HeroMockup() {
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => setTick(n => n + 1), 2800);
-    return () => clearInterval(t);
-  }, []);
-
-  const kpis = [
-    { label: 'Total Revenue', value: '$4.82M', change: '+18.4%', up: true, color: '#00e5ff' },
-    { label: 'Avg Deal Size', value: '$24.1K', change: '+6.2%', up: true, color: '#4caf50' },
-    { label: 'Churn Rate', value: '3.8%', change: '-1.2%', up: false, color: '#ff6b35' },
-    { label: 'NPS Score', value: '72', change: '+4pts', up: true, color: '#9c27b0' },
-  ];
-
-  const bars = [42, 68, 55, 81, 63, 94, 78, 89, 71, 96, 83, 100];
-
-  return (
-    <div className="relative w-full max-w-2xl mx-auto">
-      {/* Glow */}
-      <div className="absolute inset-0 bg-cyan-400/5 blur-3xl rounded-3xl pointer-events-none" />
-
-      <div className="relative rounded-3xl border border-white/10 bg-navy-800/90 backdrop-blur-xl overflow-hidden shadow-2xl">
-        {/* Top bar */}
-        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/6 bg-white/2">
-          <div className="flex gap-1.5">
-            {['#ff5f57','#febc2e','#28c840'].map(c => <div key={c} className="w-2.5 h-2.5 rounded-full" style={{ background: c }} />)}
-          </div>
-          <div className="flex-1 text-center">
-            <span className="text-xs text-white/30 font-mono">AI Agent Analytics — Workspace</span>
-          </div>
-          <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-        </div>
-
-        <div className="p-5 space-y-4">
-          {/* KPI row */}
-          <div className="grid grid-cols-4 gap-2">
-            {kpis.map((k, i) => (
-              <motion.div key={k.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
-                className="rounded-xl p-3 text-center" style={{ background: `${k.color}10`, border: `1px solid ${k.color}25` }}>
-                <div className="text-xs text-white/40 mb-1 leading-tight">{k.label}</div>
-                <div className="text-base font-black font-mono leading-none" style={{ color: k.color }}>{k.value}</div>
-                <div className={`text-xs mt-1 font-medium ${k.up ? 'text-green-400' : 'text-red-400'}`}>{k.change}</div>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Chart + AI Answer */}
-          <div className="grid grid-cols-5 gap-3">
-            {/* Trend chart */}
-            <div className="col-span-3 rounded-xl border border-white/8 bg-white/3 p-3">
-              <div className="text-xs text-white/40 mb-3 font-semibold">Revenue Trend — 12 Months</div>
-              <div className="flex items-end gap-1 h-16">
-                {bars.map((h, i) => (
-                  <motion.div key={i} initial={{ height: 0 }} animate={{ height: `${h}%` }} transition={{ delay: 0.3 + i * 0.04, duration: 0.4, ease: 'easeOut' }}
-                    className="flex-1 rounded-t-sm" style={{ background: i >= 9 ? 'rgba(0,229,255,0.7)' : 'rgba(0,229,255,0.25)' }} />
-                ))}
-              </div>
-              <div className="flex justify-between text-xs text-white/20 mt-1">
-                <span>Jan</span><span>Jun</span><span>Dec</span>
-              </div>
-            </div>
-
-            {/* AI Answer card */}
-            <div className="col-span-2 rounded-xl border border-purple-400/20 bg-purple-400/5 p-3 flex flex-col">
-              <div className="flex items-center gap-1.5 mb-2">
-                <div className="w-4 h-4 rounded bg-purple-400/20 flex items-center justify-center">
-                  <Brain className="w-2.5 h-2.5 text-purple-400" />
-                </div>
-                <span className="text-xs text-purple-400 font-semibold">AI Analyst</span>
-              </div>
-              <AnimatePresence mode="wait">
-                <motion.div key={tick % 3} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1">
-                  {tick % 3 === 0 && <p className="text-xs text-white/55 leading-relaxed">Revenue grew <span className="text-cyan-400 font-semibold">18.4%</span> YoY. Q4 outperformed projections by $340K driven by Enterprise segment.</p>}
-                  {tick % 3 === 1 && <p className="text-xs text-white/55 leading-relaxed">Churn risk is highest in the <span className="text-amber-400 font-semibold">SMB segment</span>. Recommend proactive outreach for accounts &lt;90 days old.</p>}
-                  {tick % 3 === 2 && <p className="text-xs text-white/55 leading-relaxed">3 anomalies detected in <span className="text-red-400 font-semibold">October data</span>. These appear to be one-time events, not a systemic trend.</p>}
-                </motion.div>
-              </AnimatePresence>
-              <div className="flex items-center gap-1 mt-2 text-xs text-white/25">
-                <div className="w-1 h-1 rounded-full bg-green-400" />
-                Grounded · High confidence
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom row */}
-          <div className="flex gap-2">
-            <div className="flex-1 rounded-xl border border-white/8 bg-white/2 px-3 py-2">
-              <div className="text-xs text-white/30 mb-1">Top Driver</div>
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-3.5 h-3.5 text-green-400" />
-                <span className="text-xs font-semibold text-green-400">Enterprise accounts +34%</span>
-              </div>
-            </div>
-            <div className="flex-1 rounded-xl border border-amber-400/15 bg-amber-400/5 px-3 py-2">
-              <div className="text-xs text-white/30 mb-1">Risk Signal</div>
-              <div className="flex items-center gap-2">
-                <Activity className="w-3.5 h-3.5 text-amber-400" />
-                <span className="text-xs font-semibold text-amber-400">SMB churn elevated</span>
-              </div>
-            </div>
-            <div className="flex-1 rounded-xl border border-cyan-400/15 bg-cyan-400/5 px-3 py-2">
-              <div className="text-xs text-white/30 mb-1">Forecast</div>
-              <div className="flex items-center gap-2">
-                <Target className="w-3.5 h-3.5 text-cyan-400" />
-                <span className="text-xs font-semibold text-cyan-400">$5.6M next quarter</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const FEATURES = [
+const ROLES = [
   {
-    icon: Database, color: 'text-cyan-400', bg: 'bg-cyan-400/10', border: 'border-cyan-400/20',
-    title: 'Medallion Data Architecture',
-    desc: 'Enterprise Bronze→Silver→Gold pipeline with automatic data quality contracts, schema drift detection, and lineage tracking.',
+    icon: BarChart2, color: 'text-cyan-400', bg: 'bg-cyan-400/10', border: 'border-cyan-400/25',
+    label: 'Data Analyst', tag: 'Most Popular',
+    desc: 'Clean data, run SQL, calculate KPIs, build charts, generate reports.',
+    workflow: 'Upload → Profile → Clean → SQL/Python EDA → Dashboard → AI Insight → Report',
+    questions: ['What KPIs should I track?', 'What are the top trends?', 'Give me a full EDA analysis'],
+    tools: ['SQL Workbench', 'Python Notebook', 'BI Builder', 'AI Analyst'],
+    path: '/workspace/data-analyst',
   },
   {
-    icon: Brain, color: 'text-purple-400', bg: 'bg-purple-400/10', border: 'border-purple-400/20',
-    title: 'Multi-Agent AI War Room',
-    desc: 'CFO, Growth, and Operations analysts powered by F-D-E-A-R reasoning. Grounded answers, SHAP evidence, and causal inference.',
+    icon: Briefcase, color: 'text-blue-400', bg: 'bg-blue-400/10', border: 'border-blue-400/25',
+    label: 'Business Analyst',
+    desc: 'Frame problems, define KPIs, create business cases, map stakeholders.',
+    workflow: 'Problem → Stakeholders → KPIs → Gap Analysis → Recommendation → Roadmap',
+    questions: ['Why are costs increasing?', 'What are the key business risks?', 'Create a decision matrix'],
+    tools: ['Problem Framing', 'KPI Builder', 'Decision Matrix', 'Business Case'],
+    path: '/workspace/business-analyst',
   },
   {
-    icon: BarChart2, color: 'text-teal-400', bg: 'bg-teal-400/10', border: 'border-teal-400/20',
-    title: 'AI Command Center',
-    desc: 'Proactive intelligence feed: real-time anomaly signals, opportunity alerts, risk flags, and CXO-level strategic recommendations.',
+    icon: TrendingUp, color: 'text-pink-400', bg: 'bg-pink-400/10', border: 'border-pink-400/25',
+    label: 'Marketing Analyst',
+    desc: 'Analyze campaigns, calculate CAC/ROAS/CLV, run funnels and A/B tests.',
+    workflow: 'Campaigns → Funnel → Segmentation → CLV → A/B Test → Budget → Report',
+    questions: ['Which segments are most valuable?', 'What is our ROAS and CAC?', 'Run an A/B test analysis'],
+    tools: ['Campaign Analyzer', 'Funnel Builder', 'CLV Model', 'A/B Test Lab'],
+    path: '/workspace/marketing-analyst',
   },
   {
-    icon: TrendingUp, color: 'text-green-400', bg: 'bg-green-400/10', border: 'border-green-400/20',
-    title: 'AutoML + XAI Pipeline',
-    desc: 'AutoML with XGBoost, LightGBM, and Prophet. SHAP explainability, causal inference (DiD), and MLOps experiment tracking.',
+    icon: Brain, color: 'text-purple-400', bg: 'bg-purple-400/10', border: 'border-purple-400/25',
+    label: 'Data Scientist',
+    desc: 'Build ML models, run forecasting, detect anomalies, explain predictions.',
+    workflow: 'Feature Eng → Model Select → Train → Evaluate → Explain → Deploy → Monitor',
+    questions: ['Predict next quarter revenue', 'Cluster customers into segments', 'Detect anomalies in this data'],
+    tools: ['AutoML Pipeline', 'SHAP Explainability', 'Forecast Engine', 'MLOps Registry'],
+    path: '/workspace/data-scientist',
   },
   {
-    icon: FileText, color: 'text-blue-400', bg: 'bg-blue-400/10', border: 'border-blue-400/20',
-    title: 'Balanced Scorecard + OKRs',
-    desc: 'Kaplan-Norton Balanced Scorecard across 4 perspectives with OKR tracking, benchmark analytics, and industry comparisons.',
+    icon: Target, color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/25',
+    label: 'Supply Chain Analyst',
+    desc: 'Monitor inventory, supplier performance, on-time delivery, and demand.',
+    workflow: 'Orders → Inventory → Suppliers → Forecast → Risk Alerts → Recommendations',
+    questions: ['Which supplier is underperforming?', 'What is the inventory turnover?', 'Analyze on-time delivery'],
+    tools: ['Supplier Scorecard', 'Demand Forecast', 'Risk Monitor', 'OTD Dashboard'],
+    path: '/v2/supply-chain',
   },
   {
-    icon: Shield, color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/20',
-    title: 'Statistical Analytics Lab',
-    desc: 'Pearson correlation matrix, regression trees, hypothesis testing (t-test), Holt-Winters forecasting, and outlier detection.',
-  },
-  {
-    icon: Activity, color: 'text-pink-400', bg: 'bg-pink-400/10', border: 'border-pink-400/20',
-    title: 'Natural Language Query',
-    desc: 'Ask any business question in plain English. NL→SQL→Chart→Answer in one shot. Powered by a grounded semantic layer.',
-  },
-  {
-    icon: Target, color: 'text-orange-400', bg: 'bg-orange-400/10', border: 'border-orange-400/20',
-    title: 'Real-Time Observability',
-    desc: 'Live data pipeline monitoring, SLA tracking, service health, P50/P99 latency metrics, and anomaly-triggered alerts.',
+    icon: Database, color: 'text-green-400', bg: 'bg-green-400/10', border: 'border-green-400/25',
+    label: 'CFO / Executive',
+    desc: 'P&L analysis, margin analysis, cost variance, executive reports.',
+    workflow: 'Revenue → Cost → Margin → Variance → Forecast → Board Report → Decision',
+    questions: ['Explain why gross margin is declining', 'Give me a full P&L analysis', 'What is driving cost increases?'],
+    tools: ['CFO Agent', 'P&L Builder', 'Forecast Hub', 'Board Report'],
+    path: '/v2/ai-analysts',
   },
 ];
 
-const WORKFLOW_STEPS = [
-  { num: '01', label: 'Upload Raw Data',     desc: 'CSV · Excel · JSON — auto schema', color: 'text-cyan-400',   output: 'Workspace created' },
-  { num: '02', label: 'Clean It',            desc: 'Missing, duplicates, quality score', color: 'text-teal-400',  output: 'Cleaned dataset + score' },
-  { num: '03', label: 'Define KPIs',         desc: 'Primary, secondary, custom formulas', color: 'text-blue-400', output: 'Semantic KPI layer' },
-  { num: '04', label: 'Query with SQL',      desc: 'NL→SQL, execution, chart, explain', color: 'text-purple-400',output: 'SQL result + chart' },
-  { num: '05', label: 'Build Dashboards',    desc: 'KPIs, trends, anomalies, stories', color: 'text-pink-400',   output: 'Story dashboard' },
-  { num: '06', label: 'Explain Charts',      desc: 'Plain English + business meaning', color: 'text-amber-400',  output: 'Chart explanation' },
-  { num: '07', label: 'Ask AI',              desc: 'Tool-grounded 9-part analysis', color: 'text-green-400',    output: 'Evidence-backed answer' },
-  { num: '08', label: 'Generate Reports',    desc: 'Executive, board, forecast, RFM', color: 'text-orange-400', output: 'Decision-ready report' },
+const WORKFLOWS = [
+  { emoji: '📊', title: 'Analyze Sales Performance', desc: 'Upload sales data → clean → KPIs → trends → AI insight → PDF', path: '/v2/data-studio', color: 'cyan' },
+  { emoji: '📣', title: 'Build Marketing Funnel Report', desc: 'CAC · ROAS · CLV · A/B test analysis in one place', path: '/v2/marketing-studio', color: 'pink' },
+  { emoji: '🚚', title: 'Create Supply Chain Dashboard', desc: 'Inventory · Suppliers · OTD · Demand Forecast', path: '/v2/supply-chain', color: 'amber' },
+  { emoji: '🧠', title: 'Run AI Deep Analysis', desc: '8 AI analysts · Evidence-backed · SQL+charts', path: '/v2/ai-analysts', color: 'purple' },
+  { emoji: '📈', title: 'Forecast Revenue', desc: 'Holt-Winters · Prophet · accuracy metrics · confidence bands', path: '/forecast-hub', color: 'green' },
+  { emoji: '🔬', title: 'Advanced Analytics Lab', desc: 'Descriptive · Diagnostic · Predictive · Causal', path: '/v2/analytics-lab', color: 'teal' },
+  { emoji: '🧹', title: 'Clean Messy Dataset', desc: 'Profile · Quality score · 11 cleaning actions · Python code', path: '/v2/data-studio', color: 'blue' },
+  { emoji: '📋', title: 'Generate Executive PDF Report', desc: '14 report types · evidence · decisions · board-ready', path: '/decision-reports', color: 'orange' },
 ];
 
-const TRUST = [
-  { label: 'Sub-3s analysis', emoji: '⚡' },
-  { label: 'Grounded AI answers', emoji: '🧠' },
-  { label: 'Any data format', emoji: '📂' },
-  { label: 'Causal Inference (DiD)', emoji: '🔬' },
-  { label: 'AutoML + SHAP XAI', emoji: '🤖' },
-  { label: 'Balanced Scorecard', emoji: '🎯' },
-  { label: 'Medallion Architecture', emoji: '🏅' },
-  { label: 'Enterprise-ready', emoji: '🏆' },
+const PLATFORM_MODULES = [
+  { emoji: '🗄️', label: 'Data Studio', sub: 'Upload · Profile · Clean · Version · Export', path: '/v2/data-studio', color: 'text-cyan-400' },
+  { emoji: '💻', label: 'SQL + Python Lab', sub: 'NL→SQL · 10 Templates · Python Notebook', path: '/v2/sql-lab', color: 'text-green-400' },
+  { emoji: '🧠', label: 'AI Analyst Team', sub: '8 agents · Deep structured analysis', path: '/v2/ai-analysts', color: 'text-purple-400' },
+  { emoji: '📣', label: 'Marketing Studio', sub: 'CAC · ROAS · A/B · CLV · Funnel', path: '/v2/marketing-studio', color: 'text-pink-400' },
+  { emoji: '🚚', label: 'Supply Chain', sub: 'Inventory · Suppliers · OTD · Risk', path: '/v2/supply-chain', color: 'text-amber-400' },
+  { emoji: '🔬', label: 'Analytics Lab', sub: 'Descriptive · Predictive · Causal', path: '/v2/analytics-lab', color: 'text-teal-400' },
+  { emoji: '📊', label: 'BI Dashboards', sub: 'Charts · KPIs · Visual Builder · Stories', path: '/visual-builder', color: 'text-blue-400' },
+  { emoji: '📋', label: 'Decision Reports', sub: '14 report types · evidence · PDF export', path: '/decision-reports', color: 'text-orange-400' },
+  { emoji: '🎯', label: 'Business Analyst', sub: 'Problem framing · KPIs · Decision matrix', path: '/workspace/business-analyst', color: 'text-blue-400' },
+  { emoji: '⚗️', label: 'Data Science Lab', sub: 'AutoML · SHAP · Forecast · MLOps', path: '/workspace/data-scientist', color: 'text-indigo-400' },
+  { emoji: '📐', label: 'Semantic Metrics', sub: 'Define · Certify · Govern KPIs', path: '/semantic-metrics', color: 'text-purple-400' },
+  { emoji: '👁️', label: 'Observability', sub: 'AI logs · pipeline runs · trust center', path: '/observability', color: 'text-white/50' },
+];
+
+const DATA_FLOW_STEPS = [
+  { n: '01', label: 'Raw Data', desc: 'CSV · XLSX · JSON · API · Demo datasets', color: 'text-cyan-400' },
+  { n: '02', label: 'Clean & Profile', desc: 'Quality score · 11 cleaning actions · versions', color: 'text-teal-400' },
+  { n: '03', label: 'Define KPIs', desc: 'Semantic metric layer · formulas · governance', color: 'text-blue-400' },
+  { n: '04', label: 'SQL / Python', desc: 'NL→SQL · Advanced builder · Python notebook', color: 'text-purple-400' },
+  { n: '05', label: 'AI Analysis', desc: '8 agents · evidence-backed · 19-section output', color: 'text-pink-400' },
+  { n: '06', label: 'Dashboard', desc: 'Charts · stories · KPI cards · geo maps', color: 'text-amber-400' },
+  { n: '07', label: 'Forecast / ML', desc: 'Holt-Winters · AutoML · SHAP · anomaly detection', color: 'text-green-400' },
+  { n: '08', label: 'Decision Report', desc: 'PDF · board-ready · evidence · recommendations', color: 'text-orange-400' },
 ];
 
 export default function Home() {
+  const [selectedRole, setSelectedRole] = useState(null);
+
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
-      {/* ── Hero ────────────────────────────────────────────────── */}
-      <section className="hero-gradient pt-32 pb-20 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-                <h1 className="text-5xl lg:text-6xl font-black leading-[1.05] mb-5">
-                  AI insights you can
-                  <span className="block text-gradient">trust across any</span>
-                  <span className="block">raw data</span>
-                </h1>
-                <p className="text-lg text-muted-foreground leading-relaxed mb-4 max-w-lg">
-                  Upload raw data, infer structure, generate dashboards, ask an AI analyst, and export executive-ready reports — all in one platform.
-                </p>
-                <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 mb-6">
-                  <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 flex-shrink-0" />
-                  <span className="text-xs text-white/60 leading-relaxed">
-                    <strong className="text-white/80">OmniData AI Analytics Studio</strong> helps you transform messy raw data into cleaned datasets, SQL-backed insights, explainable dashboards, AI recommendations, and executive decision reports.
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-3">
-                  <Link to="/workspace"
-                    className="inline-flex items-center gap-2 px-6 py-3.5 bg-cyan-400 rounded-xl font-bold text-sm hover:bg-cyan-300 transition-all hover:scale-105 shadow-lg shadow-cyan-400/20"
-                    style={{ color: 'hsl(222,47%,6%)' }}>
-                    <Zap className="w-4 h-4" /> Launch Workspace
-                  </Link>
-                  <Link to="/demo-mode"
-                    className="inline-flex items-center gap-2 px-6 py-3.5 glass border border-cyan-400/30 rounded-xl text-sm font-semibold hover:border-cyan-400/50 text-cyan-400 transition-all">
-                    <Sparkles className="w-4 h-4" /> Try Guided Demo
-                  </Link>
-                </div>
-                <div className="flex flex-wrap gap-4 mt-6">
-                  {['No setup required', 'Any data format', 'Grounded AI'].map(t => (
-                    <div key={t} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" /> {t}
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4">
-                  <VersionLabel compact />
-                </div>
-              </motion.div>
+      {/* ── HERO ─────────────────────────────────────────────────── */}
+      <section className="hero-gradient pt-28 pb-16 px-6">
+        <div className="max-w-7xl mx-auto text-center">
+          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-400/10 border border-cyan-400/20 text-xs font-bold text-cyan-400 mb-6">
+              <Star className="w-3 h-3" /> OmniData AI Analytics Studio v2.0 · 98/100 Sale-Ready
             </div>
-            <motion.div initial={{ opacity: 0, x: 32 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7, delay: 0.2 }}>
-              <HeroMockup />
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── v2.0 Quick Access ────────────────────────────────────── */}
-      <section className="py-10 px-6 border-b border-white/5 bg-white/1">
-        <div className="max-w-6xl mx-auto">
-          <FadeIn className="text-center mb-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-400/10 border border-cyan-400/20 text-xs font-bold text-cyan-400 mb-3">
-              🚀 v2.0 — NEW: Full AI Analytics Operating System
-            </div>
-            <h2 className="text-2xl font-black">Start your analytics workflow</h2>
-          </FadeIn>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-            {[
-              { icon: '🗄️', label: 'Data Studio', sub: 'Upload · Profile · Clean', path: '/v2/data-studio', color: 'text-cyan-400' },
-              { icon: '💻', label: 'SQL + Python Lab', sub: 'NL→SQL · Templates · Notebook', path: '/v2/sql-lab', color: 'text-green-400' },
-              { icon: '🧠', label: 'AI Analyst Team', sub: '8 agents · Deep analysis', path: '/v2/ai-analysts', color: 'text-purple-400' },
-              { icon: '📣', label: 'Marketing Studio', sub: 'CAC · ROAS · A/B · CLV', path: '/v2/marketing-studio', color: 'text-pink-400' },
-              { icon: '🚚', label: 'Supply Chain', sub: 'Inventory · Suppliers · OTD', path: '/v2/supply-chain', color: 'text-amber-400' },
-              { icon: '🔬', label: 'Analytics Lab', sub: 'Descriptive · Predictive · Causal', path: '/v2/analytics-lab', color: 'text-teal-400' },
-            ].map(item => (
-              <Link key={item.label} to={item.path}
-                className="glass-card rounded-2xl p-4 border border-white/8 hover:border-white/18 hover:scale-[1.03] transition-all group text-left">
-                <div className="text-2xl mb-2">{item.icon}</div>
-                <div className={`text-xs font-bold ${item.color}`}>{item.label}</div>
-                <div className="text-xs text-white/30 mt-0.5 leading-relaxed">{item.sub}</div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Role-Based Entry ─────────────────────────────────────── */}
-      <section className="py-16 px-6 border-b border-white/5">
-        <div className="max-w-5xl mx-auto">
-          <FadeIn className="text-center mb-8">
-            <div className="text-xs text-cyan-400 uppercase tracking-widest font-semibold mb-3">AI Analytics Team-in-a-Box</div>
-            <h2 className="text-3xl font-black mb-3">I want help as a…</h2>
-            <p className="text-sm text-muted-foreground">Choose your professional role for a purpose-built workspace, AI agent, tools, and structured outputs.</p>
-          </FadeIn>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { icon: Briefcase, color: 'text-blue-400', bg: 'bg-blue-400/10', border: 'border-blue-400/25', label: 'Business Analyst', sub: 'BRD · Process Maps · ROI · UAT', path: '/workspace/business-analyst' },
-              { icon: TrendingUp, color: 'text-pink-400', bg: 'bg-pink-400/10', border: 'border-pink-400/25', label: 'Marketing Analyst', sub: 'CAC · ROAS · LTV · A/B Tests', path: '/workspace/marketing-analyst' },
-              { icon: BarChart2, color: 'text-cyan-400', bg: 'bg-cyan-400/10', border: 'border-cyan-400/25', label: 'Data Analyst', sub: 'EDA · SQL · Chart QA · KPIs', path: '/workspace/data-analyst' },
-              { icon: Brain, color: 'text-purple-400', bg: 'bg-purple-400/10', border: 'border-purple-400/25', label: 'Data Scientist', sub: 'ML · SHAP · Registry · Drift', path: '/workspace/data-scientist' },
-            ].map(r => (
-              <Link key={r.label} to={r.path}
-                className={`glass-card rounded-2xl p-5 border ${r.border} hover:scale-[1.03] hover:shadow-lg transition-all duration-200 group flex flex-col gap-3`}>
-                <div className={`w-10 h-10 rounded-xl ${r.bg} border ${r.border} flex items-center justify-center`}>
-                  <r.icon className={`w-5 h-5 ${r.color}`} />
-                </div>
-                <div>
-                  <div className={`text-sm font-black ${r.color}`}>{r.label}</div>
-                  <div className="text-xs text-white/35 mt-0.5 leading-relaxed">{r.sub}</div>
-                </div>
-                <div className={`flex items-center gap-1 text-xs font-semibold mt-auto ${r.color}`}>
-                  Open Workspace <ArrowRight className="w-3 h-3" />
-                </div>
-              </Link>
-            ))}
-          </div>
-          <div className="text-center mt-5">
-            <Link to="/role-select" className="text-xs text-white/30 hover:text-white/60 transition-colors underline">
-              View full role comparison →
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Interactive Audio Explainer ──────────────────────────── */}
-      <InteractiveAudioExplainer />
-
-      {/* ── Trust strip ─────────────────────────────────────────── */}
-      <section className="border-y border-white/5 bg-white/2 py-5 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-wrap items-center justify-center gap-6 lg:gap-10">
-            {TRUST.map(({ emoji, label }) => (
-              <div key={label} className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span>{emoji}</span> {label}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Features ────────────────────────────────────────────── */}
-      <section className="section-gradient py-24 px-6">
-        <div className="max-w-7xl mx-auto">
-          <FadeIn className="text-center mb-16">
-            <div className="text-xs text-cyan-400 uppercase tracking-widest font-semibold mb-3">Platform Capabilities</div>
-            <h2 className="text-4xl font-black mb-4">Everything you need to go from<br />raw data to executive insight</h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">
-              One integrated platform — from messy CSVs to board-ready analytics in minutes.
+            <h1 className="text-5xl lg:text-7xl font-black leading-[1.05] mb-5">
+              <span className="block">Your AI-Powered</span>
+              <span className="block text-gradient">Analytics Team</span>
+              <span className="block text-3xl lg:text-4xl font-bold text-white/50 mt-2">in One Platform</span>
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
+              Upload messy data → clean it → run SQL → build dashboards → ask AI analysts → forecast → generate executive PDF reports. Like having Power BI + Tableau + ChatGPT + a data team — all in one app.
             </p>
-          </FadeIn>
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {FEATURES.map((f, i) => (
-              <motion.div key={f.title} variants={fadeUp}
-                className={`glass-card rounded-2xl p-6 border ${f.border} hover:scale-[1.01] transition-all duration-300 group`}>
-                <div className={`w-10 h-10 rounded-xl ${f.bg} border ${f.border} flex items-center justify-center mb-4`}>
-                  <f.icon className={`w-5 h-5 ${f.color}`} />
-                </div>
-                <h3 className="font-bold text-base mb-2">{f.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
-              </motion.div>
-            ))}
+            <div className="flex flex-wrap gap-3 justify-center mb-10">
+              <Link to="/v2/data-studio"
+                className="inline-flex items-center gap-2 px-7 py-4 bg-cyan-400 rounded-xl font-bold text-base hover:bg-cyan-300 transition-all hover:scale-105 shadow-lg shadow-cyan-400/20"
+                style={{ color: 'hsl(222,47%,6%)' }}>
+                <Zap className="w-5 h-5" /> Launch Data Studio
+              </Link>
+              <Link to="/v2/ai-analysts"
+                className="inline-flex items-center gap-2 px-7 py-4 glass border border-purple-400/30 rounded-xl font-bold text-base text-purple-400 hover:border-purple-400/50 transition-all">
+                <Brain className="w-5 h-5" /> Ask AI Analyst
+              </Link>
+              <Link to="/demo-mode"
+                className="inline-flex items-center gap-2 px-7 py-4 glass border border-white/10 rounded-xl font-semibold text-base hover:border-white/20 transition-all">
+                <Play className="w-5 h-5" /> Guided Demo
+              </Link>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-xs text-white/40">
+              {['No setup required', 'Any data format', 'Grounded AI only', '8 specialist agents', 'PDF export', '98/100 QA score'].map(f => (
+                <span key={f} className="flex items-center gap-1.5"><CheckCircle2 className="w-3 h-3 text-cyan-400" />{f}</span>
+              ))}
+            </div>
           </motion.div>
         </div>
       </section>
 
-      {/* ── Workflow ─────────────────────────────────────────────── */}
-      <section className="py-24 px-6">
+      {/* ── QUICK ACCESS PLATFORM MODULES ──────────────────────── */}
+      <section className="py-12 px-6 border-b border-white/5 bg-white/1">
         <div className="max-w-7xl mx-auto">
-          <FadeIn className="text-center mb-10">
-            <div className="text-xs text-teal-400 uppercase tracking-widest font-semibold mb-3">How It Works</div>
-            <h2 className="text-4xl font-black mb-4">From raw data to decision report<br />in 8 clear steps</h2>
-            <p className="text-muted-foreground max-w-xl mx-auto text-sm">Each step produces a clear output. Nothing is disconnected — every stage feeds the next.</p>
+          <FadeIn className="text-center mb-6">
+            <h2 className="text-xl font-black">Start your analytics workflow</h2>
+            <p className="text-sm text-muted-foreground mt-1">12 integrated modules · one unified platform</p>
           </FadeIn>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {WORKFLOW_STEPS.map((step, i) => (
-              <FadeIn key={step.num} delay={i * 0.07}>
-                <div className="glass-card rounded-2xl p-4 border border-white/5 hover:border-white/15 transition-all">
-                  <div className={`text-xs font-black font-mono ${step.color} mb-2`}>{step.num}</div>
-                  <h3 className="font-bold text-sm mb-1">{step.label}</h3>
-                  <p className="text-xs text-muted-foreground mb-3 leading-relaxed">{step.desc}</p>
-                  <div className={`text-xs px-2 py-1 rounded-full bg-white/5 border border-white/8 ${step.color} font-mono inline-block`}>→ {step.output}</div>
-                </div>
-              </FadeIn>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
+            {PLATFORM_MODULES.map(m => (
+              <Link key={m.label} to={m.path}
+                className="glass-card rounded-xl p-3.5 border border-white/8 hover:border-white/18 hover:scale-[1.03] transition-all group text-left">
+                <div className="text-xl mb-1.5">{m.emoji}</div>
+                <div className={`text-xs font-bold ${m.color}`}>{m.label}</div>
+                <div className="text-xs text-white/28 mt-0.5 leading-relaxed">{m.sub}</div>
+              </Link>
             ))}
           </div>
-
-          <FadeIn className="mt-12 text-center">
-            <Link to="/workspace"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-cyan-400 rounded-xl font-bold text-base hover:bg-cyan-300 transition-all hover:scale-105 shadow-lg shadow-cyan-400/20"
-              style={{ color: 'hsl(222,47%,6%)' }}>
-              <Zap className="w-5 h-5" /> Start Analyzing Your Data
-            </Link>
-          </FadeIn>
         </div>
       </section>
 
-      {/* ── Use Cases ────────────────────────────────────────────── */}
-      <section className="section-gradient py-24 px-6">
+      {/* ── DATA FLOW PIPELINE ─────────────────────────────────── */}
+      <section className="py-16 px-6 border-b border-white/5">
         <div className="max-w-7xl mx-auto">
-          <FadeIn className="text-center mb-12">
-            <div className="text-xs text-purple-400 uppercase tracking-widest font-semibold mb-3">Use Cases</div>
-            <h2 className="text-4xl font-black mb-4">Built for every industry</h2>
-            <p className="text-muted-foreground">From startup ops to enterprise BI — one platform adapts to your data.</p>
+          <FadeIn className="text-center mb-10">
+            <div className="text-xs text-cyan-400 uppercase tracking-widest font-semibold mb-2">Core Analytics Pipeline</div>
+            <h2 className="text-3xl font-black mb-2">From Raw Data → Business Decision</h2>
+            <p className="text-sm text-muted-foreground">Every step produces a real output. Nothing is disconnected.</p>
           </FadeIn>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-            {[
-              { emoji: '📊', label: 'Sales & Revenue' },
-              { emoji: '👥', label: 'HR & Payroll' },
-              { emoji: '🏥', label: 'Healthcare Ops' },
-              { emoji: '🎓', label: 'Education' },
-              { emoji: '📦', label: 'Supply Chain' },
-              { emoji: '📈', label: 'Finance & Risk' },
-            ].map((u) => (
-              <FadeIn key={u.label}>
-                <div className="glass-card rounded-2xl p-5 text-center border border-white/5 hover:border-white/15 transition-all hover:scale-105">
-                  <div className="text-3xl mb-2">{u.emoji}</div>
-                  <div className="text-xs font-semibold text-white/70">{u.label}</div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {DATA_FLOW_STEPS.map((step, i) => (
+              <FadeIn key={step.n} delay={i * 0.06}>
+                <div className="glass-card rounded-2xl p-4 border border-white/6 hover:border-white/15 transition-all h-full">
+                  <div className={`text-xs font-black font-mono ${step.color} mb-2`}>{step.n}</div>
+                  <h3 className={`font-bold text-sm mb-1 ${step.color}`}>{step.label}</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{step.desc}</p>
                 </div>
               </FadeIn>
             ))}
@@ -428,33 +199,91 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Phase Capabilities Highlight ─────────────────────── */}
-      <section className="py-16 px-6">
+      {/* ── ROLE SELECTOR ──────────────────────────────────────── */}
+      <section className="py-20 px-6">
         <div className="max-w-7xl mx-auto">
           <FadeIn className="text-center mb-10">
-            <div className="text-xs text-pink-400 uppercase tracking-widest font-semibold mb-3">All 13 Phases Complete · Sale-Ready Enterprise Product</div>
-            <h2 className="text-3xl font-black mb-3">$20K–$25K Analytics Platform, live now</h2>
-            <p className="text-muted-foreground text-sm">Inspired by: Power BI Copilot · Snowflake Cortex · Databricks Genie · Amazon QuickSight · Tableau Next · dbt Semantic Layer</p>
+            <div className="text-xs text-purple-400 uppercase tracking-widest font-semibold mb-3">AI Analytics Team-in-a-Box</div>
+            <h2 className="text-3xl font-black mb-3">I want help as a…</h2>
+            <p className="text-sm text-muted-foreground">Choose your role for a purpose-built workspace, AI agent, tools, and structured outputs.</p>
           </FadeIn>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { label: 'Data Engineering Studio', sub: 'Upload · Profile · Clean · Version', to: '/data-engineering', color: '#00e5ff', emoji: '🏗️' },
-              { label: 'Semantic Metric Store', sub: 'Define · Certify · Govern metrics', to: '/semantic-metrics', color: '#a855f7', emoji: '📐' },
-              { label: 'SQL Python Workbench', sub: 'DuckDB · NL-to-SQL · 15 Templates', to: '/sql-workbench', color: '#4caf50', emoji: '💻' },
-              { label: 'Agent Studio', sub: 'CFO · Growth · Ops · F-D-E-A-R', to: '/agent-studio', color: '#ff2d7a', emoji: '🧠' },
-              { label: 'Decision Reports', sub: '14 report types · Evidence · Risk · Action', to: '/decision-reports', color: '#ffcc02', emoji: '📋' },
-              { label: 'AI Command Center', sub: 'Proactive CXO intelligence', to: '/ai-command-center', color: '#00e5ff', emoji: '⚡' },
-              { label: 'Sample Dashboards', sub: 'Sales · Customer · HR pre-built views', to: '/sample-dashboards', color: '#4ade80', emoji: '📈' },
-              { label: 'Guided Demo Mode', sub: '11-step demo · 4 built-in datasets', to: '/demo-mode', color: '#a855f7', emoji: '🎯' },
-              { label: 'Platform QA Score', sub: '98/100 · Sale-Ready · Professor-Review-Ready', to: '/readiness-score', color: '#4ade80', emoji: '✅' },
-            ].map(c => (
-              <FadeIn key={c.label}>
-                <Link to={c.to}
-                  className="glass-card rounded-2xl p-4 border border-white/8 hover:border-white/18 hover:scale-[1.02] transition-all flex items-center gap-3 group">
-                  <span className="text-2xl">{c.emoji}</span>
-                  <div className="min-w-0">
-                    <div className="text-xs font-bold truncate" style={{ color: c.color }}>{c.label}</div>
-                    <div className="text-xs text-white/30 truncate">{c.sub}</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {ROLES.map((role, i) => (
+              <FadeIn key={role.label} delay={i * 0.06}>
+                <div
+                  onClick={() => setSelectedRole(selectedRole?.label === role.label ? null : role)}
+                  className={`glass-card rounded-2xl p-5 border cursor-pointer transition-all duration-200 ${selectedRole?.label === role.label ? `${role.border} ${role.bg}` : 'border-white/8 hover:border-white/18'}`}
+                >
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className={`w-10 h-10 rounded-xl ${role.bg} border ${role.border} flex items-center justify-center flex-shrink-0`}>
+                      <role.icon className={`w-5 h-5 ${role.color}`} />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <div className={`text-sm font-black ${role.color}`}>{role.label}</div>
+                        {role.tag && <span className="text-xs px-1.5 py-0.5 rounded-full bg-cyan-400/10 text-cyan-400 border border-cyan-400/20">{role.tag}</span>}
+                      </div>
+                      <div className="text-xs text-white/40 mt-0.5 leading-relaxed">{role.desc}</div>
+                    </div>
+                  </div>
+
+                  <AnimatePresence>
+                    {selectedRole?.label === role.label && (
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="space-y-3 border-t border-white/8 pt-3 mt-3">
+                        <div>
+                          <div className="text-xs font-bold text-white/40 mb-1">WORKFLOW</div>
+                          <div className="text-xs text-white/55 leading-relaxed">{role.workflow}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-white/40 mb-1">EXAMPLE QUESTIONS</div>
+                          <div className="space-y-1">
+                            {role.questions.map(q => <div key={q} className="text-xs text-white/45 flex items-center gap-1"><ChevronRight className="w-3 h-3 text-white/25" />{q}</div>)}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-white/40 mb-1">TOOLS</div>
+                          <div className="flex flex-wrap gap-1">
+                            {role.tools.map(t => <span key={t} className={`text-xs px-2 py-0.5 rounded ${role.bg} ${role.color} border ${role.border}`}>{t}</span>)}
+                          </div>
+                        </div>
+                        <Link to={role.path} className={`flex items-center gap-1.5 text-xs font-bold ${role.color} hover:opacity-80 transition-all`}>
+                          Open {role.label} Workspace <ArrowRight className="w-3.5 h-3.5" />
+                        </Link>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {selectedRole?.label !== role.label && (
+                    <div className={`flex items-center gap-1 text-xs font-semibold mt-3 ${role.color}`}>
+                      Open Workspace <ArrowRight className="w-3 h-3" />
+                    </div>
+                  )}
+                </div>
+              </FadeIn>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── QUICK START WORKFLOWS ────────────────────────────────── */}
+      <section className="py-16 px-6 border-t border-white/5 bg-white/1">
+        <div className="max-w-7xl mx-auto">
+          <FadeIn className="text-center mb-8">
+            <div className="text-xs text-teal-400 uppercase tracking-widest font-semibold mb-3">Quick Start Workflows</div>
+            <h2 className="text-3xl font-black mb-2">Pick a workflow, start in 30 seconds</h2>
+            <p className="text-sm text-muted-foreground">Each workflow guides you from dataset to decision.</p>
+          </FadeIn>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+            {WORKFLOWS.map((wf, i) => (
+              <FadeIn key={wf.title} delay={i * 0.05}>
+                <Link to={wf.path} className="glass-card rounded-2xl p-5 border border-white/8 hover:border-white/20 transition-all group flex flex-col gap-3 h-full">
+                  <div className="text-3xl">{wf.emoji}</div>
+                  <div>
+                    <div className="font-bold text-sm text-white/90 mb-1 group-hover:text-white transition-colors">{wf.title}</div>
+                    <div className="text-xs text-white/35 leading-relaxed">{wf.desc}</div>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs text-cyan-400 font-semibold mt-auto">
+                    Start Workflow <ArrowRight className="w-3 h-3" />
                   </div>
                 </Link>
               </FadeIn>
@@ -463,30 +292,56 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Final CTA ────────────────────────────────────────────── */}
-      <section className="py-24 px-6">
+      {/* ── WHAT THIS REPLACES ───────────────────────────────────── */}
+      <section className="py-16 px-6 border-t border-white/5">
+        <div className="max-w-5xl mx-auto">
+          <FadeIn className="text-center mb-8">
+            <h2 className="text-3xl font-black mb-3">One platform. Replaces many tools.</h2>
+            <p className="text-sm text-muted-foreground">OmniData combines the best of enterprise analytics software in one simplified app.</p>
+          </FadeIn>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { tool: 'Power BI', what: 'Dashboards & KPIs', emoji: '📊' },
+              { tool: 'Tableau', what: 'Visual analytics', emoji: '📈' },
+              { tool: 'Excel', what: 'Formulas & pivots', emoji: '📋' },
+              { tool: 'SQL Workbench', what: 'Query builder', emoji: '💾' },
+              { tool: 'Python Notebook', what: 'Data science code', emoji: '🐍' },
+              { tool: 'ChatGPT ADA', what: 'AI data analysis', emoji: '🤖' },
+              { tool: 'Snowflake Cortex', what: 'Semantic layer', emoji: '❄️' },
+              { tool: 'dbt Semantic Layer', what: 'Metric governance', emoji: '🏗️' },
+            ].map(item => (
+              <div key={item.tool} className="glass-card rounded-xl p-4 border border-white/6 text-center">
+                <div className="text-2xl mb-2">{item.emoji}</div>
+                <div className="text-xs font-bold text-white/70">{item.tool}</div>
+                <div className="text-xs text-white/30 mt-0.5">{item.what}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── FINAL CTA ───────────────────────────────────────────── */}
+      <section className="py-20 px-6">
         <div className="max-w-3xl mx-auto text-center">
           <FadeIn>
             <div className="glass-card rounded-3xl p-12 border border-cyan-400/15 glow-cyan">
-              <div className="w-16 h-16 rounded-2xl bg-cyan-400/10 border border-cyan-400/20 flex items-center justify-center mx-auto mb-6">
-                <Sparkles className="w-8 h-8 text-cyan-400" />
+              <Award className="w-12 h-12 text-cyan-400 mx-auto mb-4" />
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-400/10 border border-green-400/20 text-xs font-bold text-green-400 mb-4">
+                ✓ QA Score: 98/100 · Sale-Ready · Professor-Review-Ready
               </div>
-              <h2 className="text-4xl font-black mb-3">Ready to unlock your data?</h2>
-              <p className="text-sm text-cyan-400/70 font-mono mb-4 leading-relaxed max-w-lg mx-auto">
-                "OmniData AI Analytics Studio helps users transform messy raw data into cleaned datasets, SQL-backed insights, explainable dashboards, AI recommendations, and executive decision reports."
-              </p>
+              <h2 className="text-4xl font-black mb-3">Ready to analyze your data?</h2>
               <p className="text-muted-foreground mb-8 max-w-md mx-auto leading-relaxed text-sm">
-                Upload your first dataset in seconds. No setup, no configuration, no data engineering required.
+                Upload your first dataset in seconds. No setup, no configuration. Get AI-powered insights in minutes.
               </p>
               <div className="flex flex-wrap gap-3 justify-center">
-                <Link to="/workspace"
+                <Link to="/v2/data-studio"
                   className="inline-flex items-center gap-2 px-8 py-4 bg-cyan-400 rounded-xl font-bold hover:bg-cyan-300 transition-all hover:scale-105"
                   style={{ color: 'hsl(222,47%,6%)' }}>
-                  <Zap className="w-5 h-5" /> Launch Workspace Free
+                  <Zap className="w-5 h-5" /> Launch Data Studio
                 </Link>
-                <Link to="/platform"
-                  className="inline-flex items-center gap-2 px-8 py-4 glass border border-white/10 rounded-xl font-semibold hover:border-cyan-400/30 transition-all">
-                  View Platform <ArrowRight className="w-4 h-4" />
+                <Link to="/v2/ai-analysts"
+                  className="inline-flex items-center gap-2 px-8 py-4 glass border border-purple-400/25 rounded-xl font-semibold text-purple-400 hover:border-purple-400/45 transition-all">
+                  <Brain className="w-5 h-5" /> Ask AI Analyst
                 </Link>
               </div>
             </div>
@@ -499,14 +354,17 @@ export default function Home() {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <OmniLogo size="sm" showText={true} />
           <div className="flex gap-6 text-xs text-muted-foreground flex-wrap justify-center">
-            <Link to="/platform" className="hover:text-foreground transition-colors">Platform</Link>
-            <Link to="/workflows" className="hover:text-foreground transition-colors">Workflows</Link>
-            <Link to="/universal-data" className="hover:text-foreground transition-colors">Universal Data</Link>
-            <Link to="/workspace" className="hover:text-foreground transition-colors">Workspace</Link>
-            <Link to="/integrations" className="hover:text-foreground transition-colors">Integrations</Link>
-            <Link to="/reports" className="hover:text-foreground transition-colors">Reports</Link>
+            {[
+              { label: 'Data Studio', path: '/v2/data-studio' },
+              { label: 'SQL Lab', path: '/v2/sql-lab' },
+              { label: 'AI Analysts', path: '/v2/ai-analysts' },
+              { label: 'Marketing Studio', path: '/v2/marketing-studio' },
+              { label: 'Supply Chain', path: '/v2/supply-chain' },
+              { label: 'Reports', path: '/decision-reports' },
+              { label: 'Readiness QA', path: '/readiness-score' },
+            ].map(l => <Link key={l.path} to={l.path} className="hover:text-foreground transition-colors">{l.label}</Link>)}
           </div>
-          <div className="text-xs text-muted-foreground">© 2026 OmniData AI · Data Engineering · Semantic Metrics · SQL Workbench · AI Agents · Decision Reports · $20K–$25K Enterprise Product</div>
+          <div className="text-xs text-muted-foreground">© 2026 OmniData AI Analytics Studio v2.0 · 98/100</div>
         </div>
       </footer>
     </div>
