@@ -1,7 +1,13 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { sampleBundles, inferColumns, buildSemanticModel, buildAnalysis } from '@/lib/sampleData';
-import { DEMO_DATASETS } from '@/lib/demoDatasets';
+import { DEMO_DATASETS, generateDemoData } from '@/lib/demoDatasets';
+
+// Map bundle keys used in UI to actual DEMO_DATASETS ids
+const BUNDLE_KEY_MAP = {
+  finance_operations: 'finance_costs',
+  appointments_healthcare: 'healthcare',
+};
 
 export const useWorkspaceStore = create(
   persist(
@@ -124,28 +130,30 @@ export const useWorkspaceStore = create(
           return;
         }
 
-        // Try new DEMO_DATASETS
-        const ds = DEMO_DATASETS.find(d => d.id === bundleKey);
+        // Try new DEMO_DATASETS (resolve aliased keys first)
+        const resolvedKey = BUNDLE_KEY_MAP[bundleKey] || bundleKey;
+        const ds = DEMO_DATASETS.find(d => d.id === resolvedKey);
         if (ds) {
           try {
-            const cols = inferColumns(ds.rows);
-            const id = `${bundleKey}-main`;
+            const rows = generateDemoData(resolvedKey);
+            const cols = inferColumns(rows);
+            const id = `${resolvedKey}-main`;
             const table = {
               id,
               name: ds.name,
-              fileName: `${bundleKey}.csv`,
-              rows: ds.rows,
+              fileName: `${resolvedKey}.csv`,
+              rows,
               columns: cols,
-              rowCount: ds.rows.length,
-              qualityScore: 75, // realistic — datasets have quality issues
-              issues: ds.qualityIssues?.map(q => ({ type: 'quality', severity: 'medium', message: q })) || [],
-              qualityIssues: ds.qualityIssues,
+              rowCount: rows.length,
+              qualityScore: 75,
+              issues: [],
+              qualityIssues: [],
             };
             set({
               tables: [table],
               activeTableId: id,
               semanticModel: buildSemanticModel(id, cols, ds.name),
-              analysisResults: buildAnalysis(ds.rows, cols, ds.name),
+              analysisResults: buildAnalysis(rows, cols, ds.name),
               chatMessages: [],
             });
           } catch (e) {
