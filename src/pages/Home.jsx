@@ -4,7 +4,7 @@ import { motion, useInView, AnimatePresence } from 'framer-motion';
 import {
   Zap, BarChart2, Brain, FileText, ArrowRight, CheckCircle2,
   TrendingUp, Database, Shield, Sparkles, Target, Activity,
-  Briefcase, Users, ChevronRight, Play, Star, Award
+  Briefcase, Users, ChevronRight, Play, Star, Award, LayoutDashboard
 } from 'lucide-react';
 import OmniLogo from '@/components/ui/OmniLogo';
 
@@ -123,7 +123,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto text-center">
           <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-400/10 border border-cyan-400/20 text-xs font-bold text-cyan-400 mb-6">
-              <Star className="w-3 h-3" /> OmniData AI Analytics Studio v2.0 · 98/100 Sale-Ready
+              <Star className="w-3 h-3" /> OmniData AI Analytics Studio v2.0
             </div>
             <h1 className="text-5xl lg:text-7xl font-black leading-[1.05] mb-5">
               <span className="block">Your AI-Powered</span>
@@ -134,22 +134,22 @@ export default function Home() {
               Upload messy data → clean it → run SQL → build dashboards → ask AI analysts → forecast → generate executive PDF reports. Like having Power BI + Tableau + ChatGPT + a data team — all in one app.
             </p>
             <div className="flex flex-wrap gap-3 justify-center mb-10">
-              <Link to="/v2/data-studio"
+              <Link to="/workspace"
                 className="inline-flex items-center gap-2 px-7 py-4 bg-cyan-400 rounded-xl font-bold text-base hover:bg-cyan-300 transition-all hover:scale-105 shadow-lg shadow-cyan-400/20"
                 style={{ color: 'hsl(222,47%,6%)' }}>
-                <Zap className="w-5 h-5" /> Launch Data Studio
+                <Zap className="w-5 h-5" /> Launch Workspace
+              </Link>
+              <Link to="/v2/data-studio"
+                className="inline-flex items-center gap-2 px-7 py-4 glass border border-cyan-400/30 rounded-xl font-bold text-base text-cyan-400 hover:border-cyan-400/50 transition-all">
+                <Database className="w-5 h-5" /> Data Studio
               </Link>
               <Link to="/v2/ai-analysts"
                 className="inline-flex items-center gap-2 px-7 py-4 glass border border-purple-400/30 rounded-xl font-bold text-base text-purple-400 hover:border-purple-400/50 transition-all">
                 <Brain className="w-5 h-5" /> Ask AI Analyst
               </Link>
-              <Link to="/demo-mode"
-                className="inline-flex items-center gap-2 px-7 py-4 glass border border-white/10 rounded-xl font-semibold text-base hover:border-white/20 transition-all">
-                <Play className="w-5 h-5" /> Guided Demo
-              </Link>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-xs text-white/40">
-              {['No setup required', 'Any data format', 'Grounded AI only', '8 specialist agents', 'PDF export', '98/100 QA score'].map(f => (
+              {['No setup required', 'Any data format', 'Grounded AI only', '8 specialist agents', 'PDF export'].map(f => (
                 <span key={f} className="flex items-center gap-1.5"><CheckCircle2 className="w-3 h-3 text-cyan-400" />{f}</span>
               ))}
             </div>
@@ -292,52 +292,25 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── WHAT THIS REPLACES ───────────────────────────────────── */}
-      <section className="py-16 px-6 border-t border-white/5">
-        <div className="max-w-5xl mx-auto">
-          <FadeIn className="text-center mb-8">
-            <h2 className="text-3xl font-black mb-3">One platform. Replaces many tools.</h2>
-            <p className="text-sm text-muted-foreground">OmniData combines the best of enterprise analytics software in one simplified app.</p>
-          </FadeIn>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {[
-              { tool: 'Power BI', what: 'Dashboards & KPIs', emoji: '📊' },
-              { tool: 'Tableau', what: 'Visual analytics', emoji: '📈' },
-              { tool: 'Excel', what: 'Formulas & pivots', emoji: '📋' },
-              { tool: 'SQL Workbench', what: 'Query builder', emoji: '💾' },
-              { tool: 'Python Notebook', what: 'Data science code', emoji: '🐍' },
-              { tool: 'ChatGPT ADA', what: 'AI data analysis', emoji: '🤖' },
-              { tool: 'Snowflake Cortex', what: 'Semantic layer', emoji: '❄️' },
-              { tool: 'dbt Semantic Layer', what: 'Metric governance', emoji: '🏗️' },
-            ].map(item => (
-              <div key={item.tool} className="glass-card rounded-xl p-4 border border-white/6 text-center">
-                <div className="text-2xl mb-2">{item.emoji}</div>
-                <div className="text-xs font-bold text-white/70">{item.tool}</div>
-                <div className="text-xs text-white/30 mt-0.5">{item.what}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ── FINAL CTA ───────────────────────────────────────────── */}
       <section className="py-20 px-6">
         <div className="max-w-3xl mx-auto text-center">
           <FadeIn>
             <div className="glass-card rounded-3xl p-12 border border-cyan-400/15 glow-cyan">
               <Award className="w-12 h-12 text-cyan-400 mx-auto mb-4" />
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-400/10 border border-green-400/20 text-xs font-bold text-green-400 mb-4">
-                ✓ QA Score: 98/100 · Sale-Ready · Professor-Review-Ready
-              </div>
               <h2 className="text-4xl font-black mb-3">Ready to analyze your data?</h2>
               <p className="text-muted-foreground mb-8 max-w-md mx-auto leading-relaxed text-sm">
                 Upload your first dataset in seconds. No setup, no configuration. Get AI-powered insights in minutes.
               </p>
               <div className="flex flex-wrap gap-3 justify-center">
-                <Link to="/v2/data-studio"
+                <Link to="/workspace"
                   className="inline-flex items-center gap-2 px-8 py-4 bg-cyan-400 rounded-xl font-bold hover:bg-cyan-300 transition-all hover:scale-105"
                   style={{ color: 'hsl(222,47%,6%)' }}>
-                  <Zap className="w-5 h-5" /> Launch Data Studio
+                  <Zap className="w-5 h-5" /> Launch Workspace
+                </Link>
+                <Link to="/v2/data-studio"
+                  className="inline-flex items-center gap-2 px-8 py-4 glass border border-cyan-400/25 rounded-xl font-semibold text-cyan-400 hover:border-cyan-400/45 transition-all">
+                  <Database className="w-5 h-5" /> Data Studio
                 </Link>
                 <Link to="/v2/ai-analysts"
                   className="inline-flex items-center gap-2 px-8 py-4 glass border border-purple-400/25 rounded-xl font-semibold text-purple-400 hover:border-purple-400/45 transition-all">
@@ -355,16 +328,16 @@ export default function Home() {
           <OmniLogo size="sm" showText={true} />
           <div className="flex gap-6 text-xs text-muted-foreground flex-wrap justify-center">
             {[
+              { label: 'Workspace', path: '/workspace' },
               { label: 'Data Studio', path: '/v2/data-studio' },
               { label: 'SQL Lab', path: '/v2/sql-lab' },
               { label: 'AI Analysts', path: '/v2/ai-analysts' },
               { label: 'Marketing Studio', path: '/v2/marketing-studio' },
               { label: 'Supply Chain', path: '/v2/supply-chain' },
               { label: 'Reports', path: '/decision-reports' },
-              { label: 'Readiness QA', path: '/readiness-score' },
             ].map(l => <Link key={l.path} to={l.path} className="hover:text-foreground transition-colors">{l.label}</Link>)}
           </div>
-          <div className="text-xs text-muted-foreground">© 2026 OmniData AI Analytics Studio v2.0 · 98/100</div>
+          <div className="text-xs text-muted-foreground">© 2026 OmniData AI Analytics Studio v2.0</div>
         </div>
       </footer>
     </div>
