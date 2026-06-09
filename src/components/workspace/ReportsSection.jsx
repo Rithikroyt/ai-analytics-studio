@@ -7,6 +7,13 @@ import {
   TrendingUp, AlertTriangle, Shield, MessageSquare, Copy
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
+import LocalPptxExport from '@/components/export/LocalPptxExport';
+
+// Thin wrapper to avoid prop-drilling issues
+function LocalPptxExportButton({ table }) {
+  if (!table) return null;
+  return <LocalPptxExport title={table.name} variant="default" />;
+}
 
 const reportTypes = [
   { id: 'executive', label: 'Executive Summary',         icon: '📄', emoji: FileText,     color: 'text-cyan-400',   border: 'border-cyan-400/20',   bg: 'bg-cyan-400/5',   desc: 'C-suite narrative: KPIs, trend, risk, and strategic recommendations.' },
@@ -498,8 +505,13 @@ ${r?.anomalies?.length ? `<h2>Anomaly Register</h2><table class="data-table"><th
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold mb-1">Reports & Export</h1>
-        <p className="text-sm text-muted-foreground">Generate AI-written board-ready reports or export cleaned data for distribution.</p>
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-bold mb-1">Reports {"&"} Export</h1>
+            <p className="text-sm text-muted-foreground">Generate AI-written board-ready reports or export cleaned data.</p>
+          </div>
+          <LocalPptxExportButton table={table} />
+        </div>
       </motion.div>
 
       {/* Context strip */}

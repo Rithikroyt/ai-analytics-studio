@@ -3,6 +3,7 @@ import { useWorkspaceStore } from '@/lib/store';
 import { Search, Database, Activity, RotateCcw, ChevronDown, Zap, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import NLQueryBar from '@/components/workspace/NLQueryBar';
+import LocalPptxExport from '@/components/export/LocalPptxExport';
 
 const sectionTitles = {
   overview:    { label: 'Overview',                sub: 'Workspace home · quick actions & bundles' },
@@ -70,6 +71,9 @@ export default function WorkspaceTopBar({ onSearch }) {
           <span>Analysis ready</span>
         </div>
       )}
+
+      {/* PPTX Export — shown when data is loaded */}
+      {activeTable && <LocalPptxExport variant="compact" className="flex-shrink-0 hidden sm:flex" />}
 
       {/* Spacer */}
       <div className="flex-1" />

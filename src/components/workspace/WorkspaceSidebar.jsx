@@ -41,6 +41,7 @@ const sections = [
   { id: 'reconciliation',    label: 'Reconciliation',      icon: GitCompare },
   { id: 'geo',               label: 'Geo Analytics',       icon: Map },
   { id: 'methodology',       label: 'Methodology Docs',    icon: BookMarked },
+  { id: 'rolepresets',       label: 'Role Presets',         icon: Users },
 ];
 
 export default function WorkspaceSidebar({ collapsed, onToggle }) {

@@ -48,10 +48,10 @@ export default function OverviewSection() {
     setLoadingBundle(key);
     try {
       loadSampleBundle(key);
-      await new Promise(r => setTimeout(r, 150));
+      await new Promise(r => setTimeout(r, 200));
     } catch {}
     setLoadingBundle('');
-    setActiveSection('story');
+    setActiveSection('explorer');
   };
 
   const r = analysisResults;

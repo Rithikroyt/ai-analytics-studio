@@ -37,6 +37,7 @@ import ABTestingStudio from '@/components/workspace/ABTestingStudio';
 import DataReconciliationModule from '@/components/workspace/DataReconciliationModule';
 import GeoAnalyticsSection from '@/components/workspace/GeoAnalyticsSection';
 import AnalystMethodologyPanel from '@/components/workspace/AnalystMethodologyPanel';
+import RoleDashboardPresets from '@/components/workspace/RoleDashboardPresets';
 import { useWorkspaceStore } from '@/lib/store';
 
 // Wrapper for RealTimeMonitor as a full workspace section
@@ -81,6 +82,7 @@ const sectionComponents = {
   reconciliation: DataReconciliationModule,
   geo: GeoAnalyticsSection,
   methodology: AnalystMethodologyPanel,
+  rolepresets: RoleDashboardPresets,
 };
 
 export default function Workspace() {

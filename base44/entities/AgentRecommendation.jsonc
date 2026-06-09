@@ -58,17 +58,5 @@
   "required": [
     "sourceAgent",
     "recommendation"
-  ],
-  "rls": {
-    "create": {},
-    "read": {
-      "data.owner": "{{user.email}}"
-    },
-    "update": {
-      "data.owner": "{{user.email}}"
-    },
-    "delete": {
-      "data.owner": "{{user.email}}"
-    }
-  }
+  ]
 }
