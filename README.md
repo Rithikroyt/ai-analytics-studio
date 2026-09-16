@@ -1,5 +1,5 @@
 **Welcome to your Base44 project** 
-
+https://ai-analytics-studio.base44.app
 **About**
 
 View and Edit  your app on [Base44.com](http://Base44.com) 
